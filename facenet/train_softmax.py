@@ -36,6 +36,7 @@ import importlib
 import argparse
 import h5py
 import math
+import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
@@ -262,7 +263,8 @@ def main(args):
                         f.create_dataset(key, data=value)
     
     return model_dir
-  
+
+
 def find_threshold(var, percentile):
     hist, bin_edges = np.histogram(var, 100)
     cdf = np.float32(np.cumsum(hist)) / np.sum(hist)
@@ -270,7 +272,8 @@ def find_threshold(var, percentile):
     #plt.plot(bin_centers, cdf)
     threshold = np.interp(percentile*0.01, cdf, bin_centers)
     return threshold
-  
+
+
 def filter_dataset(dataset, data_filename, percentile, min_nrof_images_per_class):
     with h5py.File(data_filename,'r') as f:
         distance_to_center = np.array(f.get('distance_to_center'))
@@ -293,7 +296,8 @@ def filter_dataset(dataset, data_filename, percentile, min_nrof_images_per_class
             del(filtered_dataset[i])
 
     return filtered_dataset
-  
+
+
 def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder, 
       learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, step, 
       loss, train_op, summary_op, summary_writer, reg_losses, learning_rate_schedule_file, 
@@ -353,6 +357,7 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     summary.value.add(tag='time/total', simple_value=train_time)
     summary_writer.add_summary(summary, global_step=step_)
     return True
+
 
 def validate(args, sess, epoch, image_list, label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
              phase_train_placeholder, batch_size_placeholder, 
@@ -454,6 +459,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         f.write('%d\t%.5f\t%.5f\n' % (step, np.mean(accuracy), val))
     stat['lfw_accuracy'][epoch-1] = np.mean(accuracy)
     stat['lfw_valrate'][epoch-1] = val
+
 
 def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
     # Save the model checkpoint
