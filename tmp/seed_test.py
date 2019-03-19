@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 import time
-sys.path.append('../src')
+sys.path.append('../facenet')
 import facenet
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import array_ops

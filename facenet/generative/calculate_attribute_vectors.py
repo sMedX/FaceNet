@@ -174,7 +174,7 @@ def parse_arguments(argv):
     
     parser.add_argument('vae_def', type=str,
         help='Model definition for the variational autoencoder. Points to a module containing the definition.', 
-        default='src.generative.models.dfc_vae')
+        default='facenet.generative.models.dfc_vae')
     parser.add_argument('vae_checkpoint', type=str,
         help='Checkpoint file of a pre-trained variational autoencoder.')
     parser.add_argument('data_dir', type=str,

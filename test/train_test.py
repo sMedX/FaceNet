@@ -39,7 +39,7 @@ def memory_usage_psutil():
 def align_dataset_if_needed(self):
     if not os.path.exists('data/lfw_aligned'):
         argv = ['python',
-                'src/align/align_dataset_mtcnn.py',
+                'facenet/align/align_dataset_mtcnn.py',
                 'data/lfw',
                 'data/lfw_aligned',
                 '--image_size', '160',
@@ -75,7 +75,7 @@ class TrainTest(unittest.TestCase):
     def test_training_classifier_inception_resnet_v1(self):
         print('test_training_classifier_inception_resnet_v1')
         argv = ['python',
-                'src/train_softmax.py',
+                'facenet/train_softmax.py',
                 '--logs_base_dir', self.tmp_dir,
                 '--models_base_dir', self.tmp_dir,
                 '--data_dir', self.dataset_dir,
@@ -93,7 +93,7 @@ class TrainTest(unittest.TestCase):
     def test_training_classifier_inception_resnet_v2(self):
         print('test_training_classifier_inception_resnet_v2')
         argv = ['python',
-                'src/train_softmax.py',
+                'facenet/train_softmax.py',
                 '--logs_base_dir', self.tmp_dir,
                 '--models_base_dir', self.tmp_dir,
                 '--data_dir', self.dataset_dir,
@@ -110,7 +110,7 @@ class TrainTest(unittest.TestCase):
     def test_training_classifier_squeezenet(self):
         print('test_training_classifier_squeezenet')
         argv = ['python',
-                'src/train_softmax.py',
+                'facenet/train_softmax.py',
                 '--logs_base_dir', self.tmp_dir,
                 '--models_base_dir', self.tmp_dir,
                 '--data_dir', self.dataset_dir,
@@ -128,7 +128,7 @@ class TrainTest(unittest.TestCase):
     def test_train_tripletloss_inception_resnet_v1(self):
         print('test_train_tripletloss_inception_resnet_v1')
         argv = ['python',
-                'src/train_tripletloss.py',
+                'facenet/train_tripletloss.py',
                 '--logs_base_dir', self.tmp_dir,
                 '--models_base_dir', self.tmp_dir,
                 '--data_dir', self.dataset_dir,
@@ -146,7 +146,7 @@ class TrainTest(unittest.TestCase):
     def test_finetune_tripletloss_inception_resnet_v1(self):
         print('test_finetune_tripletloss_inception_resnet_v1')
         argv = ['python',
-                'src/train_tripletloss.py',
+                'facenet/train_tripletloss.py',
                 '--logs_base_dir', self.tmp_dir,
                 '--models_base_dir', self.tmp_dir,
                 '--data_dir', self.dataset_dir,
@@ -166,7 +166,7 @@ class TrainTest(unittest.TestCase):
     def test_compare(self):
         print('test_compare')
         argv = ['python',
-                'src/compare.py',
+                'facenet/compare.py',
                 os.path.join('data/', self.pretrained_model_name),
                 'data/images/Anthony_Hopkins_0001.jpg',
                 'data/images/Anthony_Hopkins_0002.jpg' ]
@@ -176,7 +176,7 @@ class TrainTest(unittest.TestCase):
         print('test_validate_on_lfw')
         align_dataset_if_needed(self)
         argv = ['python',
-                'src/validate_on_lfw.py', 
+                'facenet/validate_on_lfw.py',
                 'data/lfw_aligned',
                 self.pretrained_model,
                 '--lfw_pairs', 'data/lfw/pairs_small.txt',
@@ -189,7 +189,7 @@ class TrainTest(unittest.TestCase):
         self.pretrained_model = os.path.join('data', self.pretrained_model_name)
         frozen_model = os.path.join(self.pretrained_model, self.pretrained_model_name+'.pb')
         argv = ['python',
-                'src/validate_on_lfw.py',
+                'facenet/validate_on_lfw.py',
                 self.dataset_dir,
                 frozen_model,
                 '--lfw_pairs', self.lfw_pairs_file,
@@ -200,7 +200,7 @@ class TrainTest(unittest.TestCase):
     def test_freeze_graph(self):
         print('test_freeze_graph')
         argv = ['python',
-                'src/freeze_graph.py',
+                'facenet/freeze_graph.py',
                 self.pretrained_model,
                 self.frozen_graph_filename ]
         subprocess.call(argv)

@@ -37,7 +37,7 @@ $ python batch_represent.py -d <YOUR IMAGE DATA DIRECTORY> -o <DIRECTORY TO STOR
 
 """
 Attributions:
-The code is heavily inspired by the code from by David Sandberg's ../src/validate_on_lfw.py
+The code is heavily inspired by the code from by David Sandberg's ../facenet/validate_on_lfw.py
 The concept is inspired by Brandon Amos' github.com/cmusatyalab/openface/blob/master/batch-represent/batch-represent.lua
 """
 
@@ -71,7 +71,7 @@ import argparse
 import importlib
 import time
 
-sys.path.insert(1, "../src")
+sys.path.insert(1, "../facenet")
 import facenet
 import numpy as np
 from sklearn.datasets import load_files

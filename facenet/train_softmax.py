@@ -31,18 +31,19 @@ import os.path
 import time
 import sys
 import random
-import tensorflow as tf
 import numpy as np
 import importlib
 import argparse
-import facenet
-import lfw
 import h5py
 import math
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
+
+from facenet import lfw
+from facenet import facenet
+
 
 def main(args):
   
@@ -73,7 +74,7 @@ def main(args):
         dataset = filter_dataset(dataset, os.path.expanduser(args.filter_filename), 
             args.filter_percentile, args.filter_min_nrof_images_per_class)
         
-    if args.validation_set_split_ratio>0.0:
+    if args.validation_set_split_ratio > 0.0:
         train_set, val_set = facenet.split_dataset(dataset, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
     else:
         train_set, val_set = dataset, []
