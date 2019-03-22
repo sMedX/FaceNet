@@ -47,7 +47,7 @@ from facenet import facenet
 
 
 def main(args):
-  
+    print('import model \'{}\''.format(args.model_def))
     network = importlib.import_module(args.model_def)
     image_size = (args.image_size, args.image_size)
 
@@ -499,7 +499,7 @@ def parse_arguments(argv):
         help='Path to the data directory containing aligned face patches.',
         default='~/datasets/casia/casia_maxpy_mtcnnalign_182_160')
     parser.add_argument('--model_def', type=str,
-        help='Model definition. Points to a module containing the definition of the inference graph.', default='models.inception_resnet_v1')
+        help='Model definition. Points to a module containing the definition of the inference graph.', default='facenet.models.inception_resnet_v1')
     parser.add_argument('--max_nrof_epochs', type=int,
         help='Number of epochs to run.', default=500)
     parser.add_argument('--batch_size', type=int,
