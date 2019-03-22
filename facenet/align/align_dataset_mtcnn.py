@@ -56,9 +56,9 @@ def main(args):
         with sess.as_default():
             pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
     
-    minsize = 20 # minimum size of face
-    threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
-    factor = 0.709 # scale factor
+    minsize = 20  # minimum size of face
+    threshold = (0.6, 0.7, 0.7)  # three steps's threshold
+    factor = 0.709  # scale factor
 
     # Add a random key to the filename to allow alignment using multiple processes
     random_key = np.random.randint(0, high=99999)
@@ -93,7 +93,7 @@ def main(args):
                             continue
                         if img.ndim == 2:
                             img = facenet.to_rgb(img)
-                        img = img[:,:,0:3]
+                        img = img[:, :, 0:3]
     
                         bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
                         nrof_faces = bounding_boxes.shape[0]
@@ -101,7 +101,7 @@ def main(args):
                             det = bounding_boxes[:, 0:4]
                             det_arr = []
                             img_size = np.asarray(img.shape)[0:2]
-                            if nrof_faces>1:
+                            if nrof_faces > 1:
                                 if args.detect_multiple_faces:
                                     for i in range(nrof_faces):
                                         det_arr.append(np.squeeze(det[i]))
