@@ -580,8 +580,9 @@ def parse_arguments(argv):
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--lfw_subtract_mean', 
         help='Subtract feature mean before calculating distance.', action='store_true')
-    return parser.parse_args(argv)
+
+    return parser.parse_args(argv[1:])
   
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+    main(parse_arguments(sys.argv))
