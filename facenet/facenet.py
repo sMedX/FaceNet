@@ -217,6 +217,7 @@ def prewhiten(x):
     y = np.multiply(np.subtract(x, mean), 1/std_adj)
     return y  
 
+
 def crop(image, random_crop, image_size):
     if image.shape[1]>image_size:
         sz1 = int(image.shape[1]//2)
@@ -229,10 +230,12 @@ def crop(image, random_crop, image_size):
         image = image[(sz1-sz2+v):(sz1+sz2+v),(sz1-sz2+h):(sz1+sz2+h),:]
     return image
   
+
 def flip(image, random_flip):
     if random_flip and np.random.choice([True, False]):
         image = np.fliplr(image)
     return image
+
 
 def to_rgb(img):
     w, h = img.shape
@@ -240,6 +243,7 @@ def to_rgb(img):
     ret[:, :, 0] = ret[:, :, 1] = ret[:, :, 2] = img
     return ret
   
+
 def load_data(image_paths, do_random_crop, do_random_flip, image_size, do_prewhiten=True):
     nrof_samples = len(image_paths)
     images = np.zeros((nrof_samples, image_size, image_size, 3))
@@ -254,6 +258,7 @@ def load_data(image_paths, do_random_crop, do_random_flip, image_size, do_prewhi
         images[i,:,:,:] = img
     return images
 
+
 def get_label_batch(label_data, batch_size, batch_index):
     nrof_examples = np.size(label_data, 0)
     j = batch_index*batch_size % nrof_examples
@@ -265,6 +270,7 @@ def get_label_batch(label_data, batch_size, batch_index):
         batch = np.vstack([x1,x2])
     batch_int = batch.astype(np.int64)
     return batch_int
+
 
 def get_batch(image_data, batch_size, batch_index):
     nrof_examples = np.size(image_data, 0)
@@ -278,6 +284,7 @@ def get_batch(image_data, batch_size, batch_index):
     batch_float = batch.astype(np.float32)
     return batch_float
 
+
 def get_triplet_batch(triplets, batch_index, batch_size):
     ax, px, nx = triplets
     a = get_batch(ax, int(batch_size/3), batch_index)
@@ -285,6 +292,7 @@ def get_triplet_batch(triplets, batch_index, batch_size):
     n = get_batch(nx, int(batch_size/3), batch_index)
     batch = np.vstack([a, p, n])
     return batch
+
 
 def get_learning_rate_from_file(filename, epoch):
     with open(filename, 'r') as f:
@@ -302,7 +310,8 @@ def get_learning_rate_from_file(filename, epoch):
                 else:
                     return learning_rate
 
-class ImageClass():
+
+class ImageClass:
     "Stores the paths to images for a given class"
     def __init__(self, name, image_paths):
         self.name = name
@@ -336,7 +345,8 @@ def get_image_paths(facedir):
         images = os.listdir(facedir)
         image_paths = [os.path.join(facedir,img) for img in images]
     return image_paths
-  
+
+
 def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
     if mode=='SPLIT_CLASSES':
         nrof_classes = len(dataset)
@@ -361,6 +371,7 @@ def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
     else:
         raise ValueError('Invalid train/test split mode "%s"' % mode)
     return train_set, test_set
+
 
 def load_model(model, input_map=None):
     # Check if the model is a model directory (containing a metagraph and a checkpoint file)
@@ -406,7 +417,8 @@ def get_model_filenames(model_dir):
                 max_step = step
                 ckpt_file = step_str.groups()[0]
     return meta_file, ckpt_file
-  
+
+
 def distance(embeddings1, embeddings2, distance_metric=0):
     if distance_metric==0:
         # Euclidian distance
@@ -456,6 +468,7 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_fold
         tpr = np.mean(tprs,0)
         fpr = np.mean(fprs,0)
     return tpr, fpr, accuracy
+
 
 def calculate_accuracy(threshold, dist, actual_issame):
     predict_issame = np.less(dist, threshold)
@@ -545,11 +558,13 @@ def store_revision_info(src_path, output_dir, arg_string):
         text_file.write('git hash: %s\n--------------------\n' % git_hash)
         text_file.write('%s' % git_diff)
 
+
 def list_variables(filename):
     reader = training.NewCheckpointReader(filename)
     variable_map = reader.get_variable_to_shape_map()
     names = sorted(variable_map.keys())
     return names
+
 
 def put_images_on_grid(images, shape=(16,8)):
     nrof_images = images.shape[0]
@@ -564,9 +579,10 @@ def put_images_on_grid(images, shape=(16,8)):
                 break
             y_start = j*(img_size+bw)+bw
             img[x_start:x_start+img_size, y_start:y_start+img_size, :] = images[img_index, :, :, :]
-        if img_index>=nrof_images:
+        if img_index >= nrof_images:
             break
     return img
+
 
 def write_arguments_to_file(args, filename):
     with open(filename, 'w') as f:
