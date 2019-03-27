@@ -4,10 +4,10 @@ echo "train softmax"
 python3.5m -m facenet.train_softmax \
 --logs_base_dir ~/logs/facenet/ \
 --models_base_dir ~/models/facenet/ \
---data_dir ~/datasets/vggface2/vggface2_train_182/ \
+--data_dir ~/datasets/vggface2/train_mtcnn_182/ \
 --image_size 160 \
 --model_def facenet.models.inception_resnet_v1 \
---lfw_dir ~/datasets/lfw/lfw_mtcnnalign_160/ \
+--lfw_dir ~/datasets/lfw_mtcnnalign_160/ \
 --optimizer ADAM \
 --learning_rate -1 \
 --max_nrof_epochs 500 \
