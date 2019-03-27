@@ -32,8 +32,8 @@ import tensorflow as tf
 import argparse
 import os
 import sys
-import facenet
-from six.moves import xrange  # @UnresolvedImport
+from facenet import facenet
+
 
 def main(args):
     with tf.Graph().as_default():
@@ -61,12 +61,13 @@ def main(args):
         with tf.gfile.GFile(args.output_file, 'wb') as f:
             f.write(output_graph_def.SerializeToString())
         print("%d ops in the final graph: %s" % (len(output_graph_def.node), args.output_file))
-        
+
+
 def freeze_graph_def(sess, input_graph_def, output_node_names):
     for node in input_graph_def.node:
         if node.op == 'RefSwitch':
             node.op = 'Switch'
-            for index in xrange(len(node.input)):
+            for index in range(len(node.input)):
                 if 'moving_' in node.input[index]:
                     node.input[index] = node.input[index] + '/read'
         elif node.op == 'AssignSub':
@@ -89,7 +90,8 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
         sess, input_graph_def, output_node_names.split(","),
         variable_names_whitelist=whitelist_names)
     return output_graph_def
-  
+
+
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
@@ -97,7 +99,8 @@ def parse_arguments(argv):
         help='Directory containing the metagraph (.meta) file and the checkpoint (ckpt) file containing model parameters')
     parser.add_argument('output_file', type=str, 
         help='Filename for the exported graphdef protobuf (.pb)')
-    return parser.parse_args(argv)
+    return parser.parse_args(argv[1:])
+
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+    main(parse_arguments(sys.argv))
