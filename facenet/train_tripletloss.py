@@ -37,14 +37,13 @@ import importlib
 import itertools
 import argparse
 import facenet
-import lfw
+from facenet import lfw
 
 from tensorflow.python.ops import data_flow_ops
-
 from six.moves import xrange  # @UnresolvedImport
 
+
 def main(args):
-  
     network = importlib.import_module(args.model_def)
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
@@ -77,7 +76,6 @@ def main(args):
         # Get the paths for the corresponding images
         lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
         
-    
     with tf.Graph().as_default():
         tf.set_random_seed(args.seed)
         global_step = tf.Variable(0, trainable=False)
@@ -223,7 +221,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             batch_size = min(nrof_examples-i*args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size, 
                 learning_rate_placeholder: lr, phase_train_placeholder: True})
-            emb_array[lab,:] = emb
+            emb_array[lab, :] = emb
         print('%.3f' % (time.time()-start_time))
 
         # Select triplets based on the embeddings
@@ -267,7 +265,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         summary.value.add(tag='time/selection', simple_value=selection_time)
         summary_writer.add_summary(summary, step)
     return step
-  
+
+
 def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_batch, alpha):
     """ Select the triplets for training
     """
