@@ -294,21 +294,24 @@ def get_triplet_batch(triplets, batch_index, batch_size):
     return batch
 
 
-def get_learning_rate_from_file(filename, epoch):
+def get_learning_rate_from_file(filename, epoch, default_learning_rate=-1.0):
+    learning_rate = default_learning_rate
+
     with open(filename, 'r') as f:
         for line in f.readlines():
             line = line.split('#', 1)[0]
             if line:
                 par = line.strip().split(':')
-                e = int(par[0])
-
                 try:
-                    lr = float(par[1])
+                    e = int(par[0])
                 except ValueError:
-                    lr = -1
+                    continue
 
                 if e <= epoch:
-                    learning_rate = lr
+                    try:
+                        learning_rate = float(par[1])
+                    except ValueError:
+                        learning_rate = default_learning_rate
 
     return learning_rate
 
