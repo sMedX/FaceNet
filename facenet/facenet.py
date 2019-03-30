@@ -301,14 +301,16 @@ def get_learning_rate_from_file(filename, epoch):
             if line:
                 par = line.strip().split(':')
                 e = int(par[0])
-                if par[1]=='-':
-                    lr = -1
-                else:
+
+                try:
                     lr = float(par[1])
+                except ValueError:
+                    lr = -1
+
                 if e <= epoch:
                     learning_rate = lr
-                else:
-                    return learning_rate
+
+    return learning_rate
 
 
 class ImageClass:
