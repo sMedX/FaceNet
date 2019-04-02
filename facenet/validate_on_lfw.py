@@ -32,8 +32,8 @@ from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import argparse
-import facenet
-import lfw
+from facenet import lfw
+from facenet import facenet
 import os
 import sys
 from tensorflow.python.ops import data_flow_ops
@@ -41,12 +41,11 @@ from sklearn import metrics
 from scipy.optimize import brentq
 from scipy import interpolate
 
+
 def main(args):
-  
     with tf.Graph().as_default():
       
         with tf.Session() as sess:
-            
             # Read the file containing the pairs used for testing
             pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
 
@@ -119,8 +118,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
     if use_flipped_images:
         # Concatenate embeddings for flipped and non flipped version of the images
-        embeddings[:,:embedding_size] = emb_array[0::2,:]
-        embeddings[:,embedding_size:] = emb_array[1::2,:]
+        embeddings[:, :embedding_size] = emb_array[0::2, :]
+        embeddings[:, embedding_size:] = emb_array[1::2, :]
     else:
         embeddings = emb_array
 
@@ -134,7 +133,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     print('Area Under Curve (AUC): %1.3f' % auc)
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
     print('Equal Error Rate (EER): %1.3f' % eer)
-    
+
+
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
@@ -158,7 +158,8 @@ def parse_arguments(argv):
         help='Subtract feature mean before calculating distance.', action='store_true')
     parser.add_argument('--use_fixed_image_standardization', 
         help='Performs fixed standardization of images.', action='store_true')
-    return parser.parse_args(argv)
+    return parser.parse_args(argv[1:])
+
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+    main(parse_arguments(sys.argv))
