@@ -40,6 +40,7 @@ from facenet import facenet
 def main(args):
 
     images = load_and_align_data(args.image_files, args.image_size, args.margin, args.gpu_memory_fraction)
+
     with tf.Graph().as_default():
 
         with tf.Session() as sess:
@@ -53,7 +54,7 @@ def main(args):
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
 
             # Run forward pass to calculate embeddings
-            feed_dict = { images_placeholder: images, phase_train_placeholder:False }
+            feed_dict = {images_placeholder: images, phase_train_placeholder: False}
             emb = sess.run(embeddings, feed_dict=feed_dict)
             
             nrof_images = len(args.image_files)
