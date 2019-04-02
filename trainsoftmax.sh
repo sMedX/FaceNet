@@ -9,7 +9,7 @@ echo "datasets directory" ${ds}
 md=~
 echo "output directory" ${md}
 
-python3.5m -m facenet.train_softmax \
+python3 -m facenet.train_softmax \
     --model_def facenet.models.inception_resnet_v1 \
     --data_dir ${ds}/datasets/vggface2/train_mtcnn_182 \
     --image_size 160 \
