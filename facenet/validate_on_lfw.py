@@ -73,7 +73,7 @@ def main(args):
 
             # Get output tensor
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-#              
+
             coord = tf.train.Coordinator()
             tf.train.start_queue_runners(coord=coord, sess=sess)
 
@@ -82,8 +82,10 @@ def main(args):
                 args.use_flipped_images, args.use_fixed_image_standardization)
 
               
-def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder,
-        embeddings, labels, image_paths, actual_issame, batch_size, nrof_folds, distance_metric, subtract_mean, use_flipped_images, use_fixed_image_standardization):
+def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, actual_issame, batch_size,
+             nrof_folds, distance_metric, subtract_mean, use_flipped_images, use_fixed_image_standardization):
+
     # Run forward pass to calculate embeddings
     print('Runnning forward pass on LFW images')
     
@@ -94,11 +96,14 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     labels_array = np.expand_dims(np.arange(0,nrof_images),1)
     image_paths_array = np.expand_dims(np.repeat(np.array(image_paths),nrof_flips),1)
     control_array = np.zeros_like(labels_array, np.int32)
+
     if use_fixed_image_standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
+
     if use_flipped_images:
         # Flip every second image
         control_array += (labels_array % 2)*facenet.FLIP
+
     sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
     
     embedding_size = int(embeddings.get_shape()[1])
@@ -124,7 +129,11 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         embeddings = emb_array
 
     assert np.array_equal(lab_array, np.arange(nrof_images))==True, 'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
-    tpr, fpr, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame, nrof_folds=nrof_folds, distance_metric=distance_metric, subtract_mean=subtract_mean)
+
+    tpr, fpr, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame,
+                                                         nrof_folds=nrof_folds,
+                                                         distance_metric=distance_metric,
+                                                         subtract_mean=subtract_mean)
     
     print('Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
@@ -154,7 +163,7 @@ def parse_arguments(argv):
         help='Distance metric  0:euclidian, 1:cosine similarity.', default=0)
     parser.add_argument('--use_flipped_images', 
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
-    parser.add_argument('--subtract_mean', 
+    parser.add_argument('--subtract_mean',
         help='Subtract feature mean before calculating distance.', action='store_true')
     parser.add_argument('--use_fixed_image_standardization', 
         help='Performs fixed standardization of images.', action='store_true')
