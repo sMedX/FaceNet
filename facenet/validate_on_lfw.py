@@ -77,17 +77,18 @@ def main(args):
             coord = tf.train.Coordinator()
             tf.train.start_queue_runners(coord=coord, sess=sess)
 
-            evaluate(sess, eval_enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder,
-                embeddings, label_batch, paths, actual_issame, args.lfw_batch_size, args.lfw_nrof_folds, args.distance_metric, args.subtract_mean,
-                args.use_flipped_images, args.use_fixed_image_standardization)
+            evaluate(sess, eval_enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+                     batch_size_placeholder, control_placeholder, embeddings, label_batch, paths, actual_issame,
+                     args.lfw_batch_size, args.lfw_nrof_folds, args.distance_metric, args.subtract_mean,
+                     args.use_flipped_images, args.use_fixed_image_standardization)
 
-              
+
 def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
              batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, actual_issame, batch_size,
              nrof_folds, distance_metric, subtract_mean, use_flipped_images, use_fixed_image_standardization):
 
     # Run forward pass to calculate embeddings
-    print('Runnning forward pass on LFW images')
+    print('Running forward pass on LFW images')
     
     # Enqueue one epoch of image paths and labels
     nrof_embeddings = len(actual_issame)*2  # nrof_pairs * nrof_images_per_pair
@@ -112,7 +113,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     emb_array = np.zeros((nrof_images, embedding_size))
     lab_array = np.zeros((nrof_images,))
     for i in range(nrof_batches):
-        feed_dict = {phase_train_placeholder:False, batch_size_placeholder:batch_size}
+        feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
         lab_array[lab] = lab
         emb_array[lab, :] = emb
@@ -140,6 +141,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     
     auc = metrics.auc(fpr, tpr)
     print('Area Under Curve (AUC): %1.3f' % auc)
+
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
     print('Equal Error Rate (EER): %1.3f' % eer)
 
