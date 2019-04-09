@@ -92,9 +92,15 @@ def shuffle_examples(image_paths, labels):
 
 def random_rotate_image(image):
     angle = np.random.uniform(low=-10.0, high=10.0)
-    print(image.shape, image.dtype, np.min(image), np.max(image))
-    return transform.rotate(image, angle=angle, order=1, resize=False, mode='edge', preserve_range=True)
-    #out = np.array(out, dtype=inp.dtype)
+
+    print(1, image.shape, image.dtype, np.min(image), np.max(image))
+    output = transform.rotate(image, angle=angle, order=1, resize=False, mode='edge', preserve_range=True)
+
+    print(2, output.shape, output.dtype, np.min(output), np.max(output))
+    output = np.array(output, dtype=image.dtype)
+
+    print(3, output.shape, output.dtype, np.min(output), np.max(output))
+    return output
     #return misc.imrotate(image, angle, 'bicubic')
   
 # 1: Random rotate 2: Random crop  4: Random flip  8:  Fixed image standardization  16: Flip
