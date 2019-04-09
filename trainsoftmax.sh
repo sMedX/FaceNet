@@ -15,6 +15,8 @@ python3 -m facenet.train_softmax \
     --image_size 160 \
     --lfw_dir ${ds}/datasets/lfw_mtcnnalign_160 \
     --models_base_dir ${md}/models/facenet \
+    --pretrained_model ${md}/models/facenet/inception_resnet_v1/inception_resnet_v1 \
+    --learning_rate_schedule_file data/learning_rate_schedule_classifier_vggface2.txt \
     --optimizer ADAM \
     --learning_rate -1 \
     --max_nrof_epochs 500 \
@@ -23,7 +25,6 @@ python3 -m facenet.train_softmax \
     --random_flip \
     --random_rotate \
     --use_fixed_image_standardization \
-    --learning_rate_schedule_file data/learning_rate_schedule_classifier_vggface2.txt \
     --weight_decay 5e-4 \
     --embedding_size 512 \
     --lfw_distance_metric 1 \
