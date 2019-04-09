@@ -269,7 +269,8 @@ def main(args):
                 with h5py.File(stat_file_name, 'w') as f:
                     for key, value in stat.items():
                         f.create_dataset(key, data=value)
-    
+
+    print('model directory', model_dir)
     return model_dir
 
 
