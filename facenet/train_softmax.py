@@ -52,12 +52,17 @@ def main(args):
     image_size = (args.image_size, args.image_size)
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
-    log_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
-    if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
-        os.makedirs(log_dir)
+
     model_dir = os.path.join(os.path.expanduser(args.models_base_dir), subdir)
     if not os.path.isdir(model_dir):  # Create the model directory if it doesn't exist
         os.makedirs(model_dir)
+
+    if args.logs_base_dir is None:
+        log_dir = os.path.join(model_dir, 'logs')
+    else:
+        log_dir = os.path.expanduser(args.logs_base_dir)
+    if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
+        os.makedirs(log_dir)
 
     stat_file_name = os.path.join(log_dir, 'stat.h5')
 
@@ -95,14 +100,17 @@ def main(args):
         pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
         # Get the paths for the corresponding images
         lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
-    
+
+    tf.reset_default_graph()
+    tf.Graph().as_default()
+
     with tf.Graph().as_default():
         tf.set_random_seed(args.seed)
         global_step = tf.Variable(0, trainable=False)
         
         # Get a list of image paths and their labels
         image_list, label_list = facenet.get_image_paths_and_labels(train_set)
-        assert len(image_list)>0, 'The training set should not be empty'
+        assert len(image_list) > 0, 'The training set should not be empty'
         
         val_image_list, val_label_list = facenet.get_image_paths_and_labels(val_set)
 
@@ -487,10 +495,10 @@ def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_n
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--logs_base_dir', type=str, 
-        help='Directory where to write event logs.', default='~/logs/facenet')
     parser.add_argument('--models_base_dir', type=str,
         help='Directory where to write trained models and checkpoints.', default='~/models/facenet')
+    parser.add_argument('--logs_base_dir', type=str,
+        help='Directory where to write event logs.', default=None)
     parser.add_argument('--gpu_memory_fraction', type=float,
         help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
     parser.add_argument('--pretrained_model', type=str,
