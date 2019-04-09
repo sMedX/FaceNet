@@ -92,16 +92,9 @@ def shuffle_examples(image_paths, labels):
 
 def random_rotate_image(image):
     angle = np.random.uniform(low=-10.0, high=10.0)
-
-    print(1, image.shape, image.dtype, np.min(image), np.max(image))
     output = transform.rotate(image, angle=angle, order=1, resize=False, mode='edge', preserve_range=True)
-
-    print(2, output.shape, output.dtype, np.min(output), np.max(output))
-    output = np.array(output, dtype=image.dtype)
-
-    print(3, output.shape, output.dtype, np.min(output), np.max(output))
-    return output
-    #return misc.imrotate(image, angle, 'bicubic')
+    return np.array(output, dtype=image.dtype)
+    # return misc.imrotate(image, angle, 'bicubic') imrotate is deprecated in SciPy 1.0.0
   
 # 1: Random rotate 2: Random crop  4: Random flip  8:  Fixed image standardization  16: Flip
 RANDOM_ROTATE = 1
