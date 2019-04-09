@@ -14,7 +14,6 @@ python3 -m facenet.train_softmax \
     --data_dir ${ds}/datasets/vggface2/train_mtcnn_182 \
     --image_size 160 \
     --lfw_dir ${ds}/datasets/lfw_mtcnnalign_160 \
-    --logs_base_dir ${md}/facenet/softmax/logs \
     --models_base_dir ${md}/models/facenet \
     --optimizer ADAM \
     --learning_rate -1 \
@@ -22,6 +21,7 @@ python3 -m facenet.train_softmax \
     --batch_size 90 \
     --keep_probability 0.4 \
     --random_flip \
+    --random_rotate \
     --use_fixed_image_standardization \
     --learning_rate_schedule_file data/learning_rate_schedule_classifier_vggface2.txt \
     --weight_decay 5e-4 \
