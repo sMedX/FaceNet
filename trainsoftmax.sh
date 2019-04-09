@@ -15,8 +15,8 @@ python3 -m facenet.train_softmax \
     --image_size 160 \
     --lfw_dir ${ds}/datasets/lfw_mtcnnalign_160 \
     --models_base_dir ${md}/models/facenet \
-    --pretrained_model ${md}/models/facenet/inception_resnet_v1/inception_resnet_v1 \
-    --learning_rate_schedule_file data/learning_rate_schedule_classifier_vggface2.txt \
+    --pretrained_model ${md}/models/facenet/softmax/pretrained_inception_resnet_v1/model-20190327-175738.ckpt-275 \
+    --learning_rate_schedule_file learning_rate_schedule_classifier_vggface2.txt \
     --optimizer ADAM \
     --learning_rate -1 \
     --max_nrof_epochs 500 \
