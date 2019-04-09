@@ -31,8 +31,7 @@ import os
 from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
-from scipy import misc
-# from skimage import transform
+from skimage import transform
 from sklearn.model_selection import KFold
 from scipy import interpolate
 from tensorflow.python.training import training
@@ -94,7 +93,9 @@ def shuffle_examples(image_paths, labels):
 def random_rotate_image(image):
     angle = np.random.uniform(low=-10.0, high=10.0)
     print(image.shape, image.dtype, np.min(image), np.max(image))
-    return misc.imrotate(image, angle, 'bicubic')
+    return transform.rotate(image, angle=angle, order=1, resize=False, mode='edge', preserve_range=True)
+    #out = np.array(out, dtype=inp.dtype)
+    #return misc.imrotate(image, angle, 'bicubic')
   
 # 1: Random rotate 2: Random crop  4: Random flip  8:  Fixed image standardization  16: Flip
 RANDOM_ROTATE = 1
