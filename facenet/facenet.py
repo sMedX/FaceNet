@@ -111,20 +111,20 @@ def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, batc
             file_contents = tf.read_file(filename)
             image = tf.image.decode_image(file_contents, 3)
             image = tf.cond(get_control_flag(control[0], RANDOM_ROTATE),
-                            lambda:tf.py_func(random_rotate_image, [image], tf.uint8), 
-                            lambda:tf.identity(image))
+                            lambda: tf.py_func(random_rotate_image, [image], tf.uint8),
+                            lambda: tf.identity(image))
             image = tf.cond(get_control_flag(control[0], RANDOM_CROP), 
-                            lambda:tf.random_crop(image, image_size + (3,)), 
-                            lambda:tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
+                            lambda: tf.random_crop(image, image_size + (3,)),
+                            lambda: tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
             image = tf.cond(get_control_flag(control[0], RANDOM_FLIP),
-                            lambda:tf.image.random_flip_left_right(image),
-                            lambda:tf.identity(image))
+                            lambda: tf.image.random_flip_left_right(image),
+                            lambda: tf.identity(image))
             image = tf.cond(get_control_flag(control[0], FIXED_STANDARDIZATION),
-                            lambda:(tf.cast(image, tf.float32) - 127.5)/128.0,
-                            lambda:tf.image.per_image_standardization(image))
+                            lambda: (tf.cast(image, tf.float32) - 127.5)/128.0,
+                            lambda: tf.image.per_image_standardization(image))
             image = tf.cond(get_control_flag(control[0], FLIP),
-                            lambda:tf.image.flip_left_right(image),
-                            lambda:tf.identity(image))
+                            lambda: tf.image.flip_left_right(image),
+                            lambda: tf.identity(image))
             #pylint: disable=no-member
             image.set_shape(image_size + (3,))
             images.append(image)

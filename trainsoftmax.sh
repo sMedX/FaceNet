@@ -22,8 +22,9 @@ python3 -m facenet.train_softmax \
     --max_nrof_epochs 500 \
     --batch_size 90 \
     --keep_probability 0.4 \
-    --random_flip \
     --random_rotate \
+    --random_crop \
+    --random_flip \
     --use_fixed_image_standardization \
     --weight_decay 5e-4 \
     --embedding_size 512 \
