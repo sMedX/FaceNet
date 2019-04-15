@@ -381,24 +381,30 @@ def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
 
 
 def load_model(model, input_map=None):
-    # Check if the model is a model directory (containing a metagraph and a checkpoint file)
-    #  or if it is a protobuf file with a frozen graph
+    # Check if the model is a model directory (containing a metagraph and a checkpoint file) or if it is
+    # a protobuf file with a frozen graph
     model_exp = os.path.expanduser(model)
-    if (os.path.isfile(model_exp)):
-        print('Model filename: %s' % model_exp)
-        with gfile.FastGFile(model_exp,'rb') as f:
+
+    if os.path.isfile(model_exp):
+        print('Model filename: {}'.format(model_exp))
+        with gfile.FastGFile(model_exp, 'rb') as f:
             graph_def = tf.GraphDef()
             graph_def.ParseFromString(f.read())
             tf.import_graph_def(graph_def, input_map=input_map, name='')
     else:
-        print('Model directory: %s' % model_exp)
-        meta_file, ckpt_file = get_model_filenames(model_exp)
+        pb_file = os.path.join(model_exp, os.path.basename(model_exp) + '.pb')
+
+        if os.path.isfile(pb_file):
+            load_model(pb_file, input_map=input_map)
+        else:
+            print('Model directory: {}'.format(model_exp))
+            meta_file, ckpt_file = get_model_filenames(model_exp)
         
-        print('Metagraph file: %s' % meta_file)
-        print('Checkpoint file: %s' % ckpt_file)
+            print('Metagraph file: {}'.format(meta_file))
+            print('Checkpoint file: {}'.format(ckpt_file))
       
-        saver = tf.train.import_meta_graph(os.path.join(model_exp, meta_file), input_map=input_map)
-        saver.restore(tf.get_default_session(), os.path.join(model_exp, ckpt_file))
+            saver = tf.train.import_meta_graph(os.path.join(model_exp, meta_file), input_map=input_map)
+            saver.restore(tf.get_default_session(), os.path.join(model_exp, ckpt_file))
 
 
 def get_model_filenames(model_dir):
