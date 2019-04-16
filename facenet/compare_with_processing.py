@@ -5,7 +5,8 @@ from __future__ import division
 from __future__ import print_function
 
 from scipy import misc
-from PIL import Image
+import random
+from skimage import io, transform
 import tensorflow as tf
 import numpy as np
 import sys
@@ -13,7 +14,7 @@ import os
 import copy
 import argparse
 from facenet.align import detect_face
-from facenet import facenet
+from facenet import utils, facenet
 
 minsize = 20  # minimum size of face
 threshold = (0.6, 0.7, 0.7)  # three steps's threshold
@@ -22,8 +23,20 @@ factor = 0.709  # scale factor
 
 def main(args):
 
-    images1 = load_and_align_data(args.image_files, args.image_size, args.margin, args.gpu_memory_fraction)
-    images2 = load_and_align_data_with_processing(args.image_files, args.image_size, args.margin, args.gpu_memory_fraction, args)
+    list_of_files = args.image_files
+
+    image_dir = os.path.expanduser(args.image_dir)
+    if os.path.isdir(image_dir):
+        print('directory with images: {}'.format(image_dir))
+        list_of_files = utils.get_files(image_dir)
+
+        if args.nrof_images > 0:
+            list_of_files = random.sample(list_of_files, args.nrof_images)
+
+    images1, images2 = load_and_align_data_with_processing(list_of_files,
+                                                           args.image_size, args.margin,
+                                                           args.gpu_memory_fraction, args)
+    distancies = []
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -43,22 +56,22 @@ def main(args):
             feed_dict = {images_placeholder: images2, phase_train_placeholder: False}
             emb2 = sess.run(embeddings, feed_dict=feed_dict)
 
-            nrof_images = len(args.image_files)
-
-            print('Images:')
-            for i in range(nrof_images):
-                print('%1d: %s' % (i, args.image_files[i]))
-            print('')
-            
-            # Print distance matrix
             print('Distancies')
             print('')
-            for i in range(nrof_images):
-                print('%1d  ' % i, end='')
+            for i, file in enumerate(list_of_files):
                 dist = np.sqrt(np.sum(np.square(np.subtract(emb1[i, :], emb2[i, :]))))
-                print('  %1.4f  ' % dist, end='')
-                print('')
-            
+                distancies.append(dist)
+                print('{})  {:1.4f} {} '.format(i, dist, file))
+
+    print('\n')
+    print('number of images', len(list_of_files))
+    print('statistical metrics for distances (rotation {} degrees)'.format(args.rotation))
+    print('')
+    print('minimal value', min(distancies))
+    print(' median value', np.median(distancies))
+    print('   mean value', np.mean(distancies))
+    print('maximal value', max(distancies))
+
             
 def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
 
@@ -110,12 +123,12 @@ def load_and_align_data_with_processing(image_paths, image_size, margin, gpu_mem
     print('rotation angle in degrees', args.rotation)
 
     tmp_image_paths = copy.copy(image_paths)
-    img_list = []
+
+    img_list1 = []
+    img_list2 = []
 
     for image in tmp_image_paths:
-        img = Image.open(os.path.expanduser(image))
-        img = img.rotate(args.rotation)
-        img = np.array(img)
+        img = io.imread(os.path.expanduser(image))
 
         img_size = np.asarray(img.shape)[0:2]
         bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
@@ -133,12 +146,19 @@ def load_and_align_data_with_processing(image_paths, image_size, margin, gpu_mem
         bb[3] = np.minimum(det[3] + margin / 2, img_size[0])
         cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
         aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
+
         prewhitened = facenet.prewhiten(aligned)
-        img_list.append(prewhitened)
+        img_list1.append(prewhitened)
 
-    images = np.stack(img_list)
+        # rotate image
+        rotated = transform.rotate(aligned, angle=args.rotation, order=1, resize=False, mode='edge', preserve_range=True)
+        prewhitened = facenet.prewhiten(rotated)
+        img_list2.append(prewhitened)
 
-    return images
+    images1 = np.stack(img_list1)
+    images2 = np.stack(img_list2)
+
+    return images1, images2
 
 
 def parse_arguments(argv):
@@ -146,9 +166,14 @@ def parse_arguments(argv):
     
     parser.add_argument('model', type=str,
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file')
-    parser.add_argument('image_files', type=str, nargs='+', help='Images to compare')
+    parser.add_argument('--image_dir', type=str,
+        help='Path to the data directory containing images.', default=None)
+    parser.add_argument('--image_files', type=str, nargs='+',
+        help='Images to compare', default=None)
+    parser.add_argument('--nrof_images', type=int,
+        help='Number of images to evaluete statistics.', default=0)
     parser.add_argument('--rotation', type=float,
-        help='Rotation angle in degrees.', default=0)
+        help='Rotation angle in degrees.', default=5)
     parser.add_argument('--image_size', type=int,
         help='Image size (height, width) in pixels.', default=160)
     parser.add_argument('--margin', type=int,
