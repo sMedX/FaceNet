@@ -31,6 +31,7 @@ def main(args):
         list_of_files = utils.get_files(image_dir)
 
         if args.nrof_images > 0:
+            random.seed(0)
             list_of_files = random.sample(list_of_files, args.nrof_images)
 
     images1, images2 = load_and_align_data_with_processing(list_of_files,
