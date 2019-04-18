@@ -32,7 +32,7 @@ from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import argparse
-from facenet import lfw
+from facenet import utils
 from facenet import facenet
 import os
 import sys
@@ -44,11 +44,8 @@ from scipy import interpolate
 
 def main(args):
 
-    # Read the file containing the pairs used for testing
-    pairs = lfw.read_pairs(os.path.expanduser(args.pairs))
-
     # Get the paths for the corresponding images
-    paths, actual_issame = lfw.get_paths(os.path.expanduser(args.dir), pairs)
+    paths, _ = utils.get_files(os.path.expanduser(args.dir), args.nrof_folders)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -78,24 +75,24 @@ def main(args):
             tf.train.start_queue_runners(coord=coord, sess=sess)
 
             evaluate(sess, eval_enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-                     batch_size_placeholder, control_placeholder, embeddings, label_batch, paths, actual_issame,
+                     batch_size_placeholder, control_placeholder, embeddings, label_batch, paths,
                      args.batch_size, args.nrof_folds, args.distance_metric, args.subtract_mean,
                      args.use_flipped_images, args.use_fixed_image_standardization)
 
 
 def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, actual_issame, batch_size,
+             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, batch_size,
              nrof_folds, distance_metric, subtract_mean, use_flipped_images, use_fixed_image_standardization):
 
     # Run forward pass to calculate embeddings
     print('Running forward pass on images')
     
     # Enqueue one epoch of image paths and labels
-    nrof_embeddings = len(actual_issame)*2  # nrof_pairs * nrof_images_per_pair
+    nrof_embeddings = len(image_paths)
     nrof_flips = 2 if use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
-    labels_array = np.expand_dims(np.arange(0,nrof_images),1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(image_paths),nrof_flips),1)
+    labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(image_paths), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
     if use_fixed_image_standardization:
@@ -165,8 +162,8 @@ def parse_arguments(argv):
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file')
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
-    parser.add_argument('--pairs', type=str,
-        help='The file containing the pairs to use for validation.', default='data/pairs.txt')
+    parser.add_argument('--nrof_folders', type=int,
+        help='Number of folders to validate model.', default=10)
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,

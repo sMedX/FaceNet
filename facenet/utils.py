@@ -3,13 +3,20 @@ import os
 import numpy as np
 
 
-def get_files(dirname):
+def get_files(dirname, nrof_folders=0):
     list_of_files = []
+    list_of_dirs = []
+
+    if nrof_folders == 0:
+        nrof_folders = np.Inf
 
     for root, dirs, files in os.walk(dirname):
-        list_of_files += [os.path.join(root, file) for file in files]
+        if len(list_of_dirs) < nrof_folders:
+            if len(dirs) == 0:
+                list_of_dirs.append(root)
+                list_of_files += [os.path.join(root, file) for file in files]
 
-    return list_of_files
+    return list_of_files, list_of_dirs
 
 
 def label_matrix(image_paths, diagonal=True):
