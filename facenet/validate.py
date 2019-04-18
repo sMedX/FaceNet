@@ -163,7 +163,7 @@ def parse_arguments(argv):
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
     parser.add_argument('--nrof_folders', type=int,
-        help='Number of folders to validate model.', default=10)
+        help='Number of folders to validate model.', default=0)
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,
