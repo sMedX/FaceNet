@@ -512,6 +512,8 @@ def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, s
 
         _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist_test, actual_issame_test)
 
+    print()
+
     tpr = np.mean(tprs, 0)
     fpr = np.mean(fprs, 0)
 
@@ -609,9 +611,12 @@ def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, dis
 
         val[fold_idx], far[fold_idx] = calculate_val_far(threshold, dist_test, actual_issame_test)
 
+    print()
+
     val_mean = np.mean(val)
     far_mean = np.mean(far)
     val_std = np.std(val)
+
     return val_mean, val_std, far_mean
 
 
