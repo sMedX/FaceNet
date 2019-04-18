@@ -28,6 +28,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
 from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
@@ -482,7 +483,12 @@ def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, s
     # compute label matrix
     actual_issame = utils.label_matrix(image_paths, diagonal=False)
 
+    print('ROC ({}): '.format(nrof_folds), end='')
+
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+        print('{} '.format(fold_idx), end='')
+        sys.stdout.flush()
+
         if subtract_mean:
             mean = np.mean(embeddings[train_set], axis=0)
         else:
@@ -496,15 +502,13 @@ def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, s
 
         # Find the best threshold for the fold
         acc_train = np.zeros(nrof_thresholds)
-        for threshold_idx, threshold in enumerate(thresholds):
-            _, _, acc_train[threshold_idx] = calculate_accuracy(threshold, dist_train, actual_issame_train)
+        for idx, threshold in enumerate(thresholds):
+            _, _, acc_train[idx] = calculate_accuracy(threshold, dist_train, actual_issame_train)
 
         best_threshold_index = np.argmax(acc_train)
 
-        for threshold_idx, threshold in enumerate(thresholds):
-            tprs[fold_idx, threshold_idx], fprs[fold_idx, threshold_idx], _ = calculate_accuracy(threshold,
-                                                                                                 dist_test,
-                                                                                                 actual_issame_test)
+        for idx, threshold in enumerate(thresholds):
+            tprs[fold_idx, idx], fprs[fold_idx, idx], _ = calculate_accuracy(threshold, dist_test, actual_issame_test)
 
         _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist_test, actual_issame_test)
 
@@ -575,7 +579,12 @@ def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, dis
     # compute label matrix
     actual_issame = utils.label_matrix(image_paths, diagonal=False)
 
+    print('VAL ({}): '.format(nrof_folds), end='')
+
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+        print('{} '.format(fold_idx), end='')
+        sys.stdout.flush()
+
         if subtract_mean:
             mean = np.mean(embeddings[train_set], axis=0)
         else:
@@ -589,8 +598,8 @@ def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, dis
 
         # Find the threshold that gives FAR = far_target
         far_train = np.zeros(nrof_thresholds)
-        for threshold_idx, threshold in enumerate(thresholds):
-            _, far_train[threshold_idx] = calculate_val_far(threshold, dist_train, actual_issame_train)
+        for idx, threshold in enumerate(thresholds):
+            _, far_train[idx] = calculate_val_far(threshold, dist_train, actual_issame_train)
 
         if np.max(far_train) >= far_target:
             f = interpolate.interp1d(far_train, thresholds, kind='slinear')
