@@ -43,15 +43,15 @@ from scipy import interpolate
 
 
 def main(args):
-    with tf.Graph().as_default():
-      
-        with tf.Session() as sess:
-            # Read the file containing the pairs used for testing
-            pairs = lfw.read_pairs(os.path.expanduser(args.pairs))
 
-            # Get the paths for the corresponding images
-            paths, actual_issame = lfw.get_paths(os.path.expanduser(args.dir), pairs)
-            
+    # Read the file containing the pairs used for testing
+    pairs = lfw.read_pairs(os.path.expanduser(args.pairs))
+
+    # Get the paths for the corresponding images
+    paths, actual_issame = lfw.get_paths(os.path.expanduser(args.dir), pairs)
+
+    with tf.Graph().as_default():
+        with tf.Session() as sess:
             image_paths_placeholder = tf.placeholder(tf.string, shape=(None,1), name='image_paths')
             labels_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='labels')
             batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
@@ -88,7 +88,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
              nrof_folds, distance_metric, subtract_mean, use_flipped_images, use_fixed_image_standardization):
 
     # Run forward pass to calculate embeddings
-    print('Running forward pass on LFW images')
+    print('Running forward pass on images')
     
     # Enqueue one epoch of image paths and labels
     nrof_embeddings = len(actual_issame)*2  # nrof_pairs * nrof_images_per_pair
@@ -108,7 +108,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
     
     embedding_size = int(embeddings.get_shape()[1])
-    assert nrof_images % batch_size == 0, 'The number of LFW images must be an integer multiple of the LFW batch size'
+    assert nrof_images % batch_size == 0, 'The number of images must be an integer multiple of the batch size'
     nrof_batches = nrof_images // batch_size
     emb_array = np.zeros((nrof_images, embedding_size))
     lab_array = np.zeros((nrof_images,))
@@ -132,19 +132,30 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     assert np.array_equal(lab_array, np.arange(nrof_images)), \
         'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
 
-    tpr, fpr, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame,
-                                                         nrof_folds=nrof_folds,
-                                                         distance_metric=distance_metric,
-                                                         subtract_mean=subtract_mean)
-    
-    print('Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
-    print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
+    # Calculate evaluation metrics
+    thresholds = np.arange(0, 4, 0.01)
+
+    tpr, fpr, accuracy = facenet.roc(thresholds, embeddings, image_paths,
+                                     nrof_folds=nrof_folds,
+                                     distance_metric=distance_metric,
+                                     subtract_mean=subtract_mean)
+
+    thresholds = np.arange(0, 4, 0.001)
+
+    val, val_std, far = facenet.val(thresholds, embeddings, image_paths,
+                                    far_target=1e-3,
+                                    nrof_folds=nrof_folds,
+                                    distance_metric=distance_metric,
+                                    subtract_mean=subtract_mean)
+
+    print('Accuracy: {:2.5f}+-{:2.5f}'.format(np.mean(accuracy), np.std(accuracy)))
+    print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
     
     auc = metrics.auc(fpr, tpr)
-    print('Area Under Curve (AUC): %1.3f' % auc)
+    print('Area Under Curve (AUC): {:1.5f}'.format(auc))
 
     eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    print('Equal Error Rate (EER): %1.3f' % eer)
+    print('Equal Error Rate (EER): {:1.5f}'.format(eer))
 
 
 def parse_arguments(argv):
@@ -153,18 +164,18 @@ def parse_arguments(argv):
     parser.add_argument('model', type=str,
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file')
     parser.add_argument('dir', type=str,
-        help='Path to the data directory containing aligned LFW face patches.')
-    parser.add_argument('--batch_size', type=int,
-        help='Number of images to process in a batch in the LFW test set.', default=100)
-    parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=160)
+        help='Path to the data directory containing aligned face patches.')
     parser.add_argument('--pairs', type=str,
         help='The file containing the pairs to use for validation.', default='data/pairs.txt')
+    parser.add_argument('--batch_size', type=int,
+        help='Number of images to process in a batch in the test set.', default=100)
+    parser.add_argument('--image_size', type=int,
+        help='Image size (height, width) in pixels.', default=160)
     parser.add_argument('--nrof_folds', type=int,
         help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
     parser.add_argument('--distance_metric', type=int,
         help='Distance metric  0:euclidian, 1:cosine similarity.', default=0)
-    parser.add_argument('--use_flipped_images', 
+    parser.add_argument('--use_flipped_images',
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--subtract_mean',
         help='Subtract feature mean before calculating distance.', action='store_true')

@@ -9,7 +9,7 @@ echo "datasets directory" ${ds}
 md=~
 echo "model directory" ${md}
 
-python3 -m facenet.validate_on_lfw \
+python3 -m facenet.validate \
     ${md}/models/facenet/pretrained/20190327-175738 \
     ${ds}/datasets/lfw_mtcnnalign_160 \
     --distance_metric 0 \
