@@ -117,10 +117,11 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     for i in range(nrof_batches):
         print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end='')
-        sys.stdout.flush()
 
         if (i+1) == nrof_batches:
             batch_size = nrof_images % args.batch_size
+            if batch_size == 0:
+                batch_size = args.batch_size
 
         feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
