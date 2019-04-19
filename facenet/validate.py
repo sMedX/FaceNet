@@ -5,7 +5,7 @@ in the same directory, and the metagraph should have the extension '.meta'.
 """
 # MIT License
 # 
-# Copyright (c) 2016 David Sandberg
+# Copyright (c) 2019 SMedX
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
