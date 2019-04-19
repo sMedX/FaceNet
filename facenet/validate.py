@@ -46,7 +46,9 @@ from scipy import interpolate
 def main(args):
 
     # Get the paths for the corresponding images
-    paths, _ = utils.get_files(os.path.expanduser(args.dir), args.nrof_folders)
+    dirname = os.path.expanduser(args.dir)
+    print('directory to load images:', dirname)
+    paths, _ = utils.get_files(dirname, args.nrof_folders)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:

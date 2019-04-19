@@ -484,10 +484,8 @@ def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, s
     # compute label matrix
     actual_issame = utils.label_matrix(image_paths, diagonal=False)
 
-    print('ROC ({}): '.format(nrof_folds), end='')
-
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('{} '.format(fold_idx), end='')
+        print('ROC {}/{}'.format(fold_idx,nrof_folds), end='')
         sys.stdout.flush()
 
         if subtract_mean:
@@ -582,10 +580,8 @@ def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, dis
     # compute label matrix
     actual_issame = utils.label_matrix(image_paths, diagonal=False)
 
-    print('VAL ({}): '.format(nrof_folds), end='')
-
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('{} '.format(fold_idx), end='')
+        print('VAL {}/{}'.format(fold_idx, nrof_folds), end='')
         sys.stdout.flush()
 
         if subtract_mean:
