@@ -460,7 +460,8 @@ def distance_matrix(embeddings, distance_metric=0):
         # dist = np.sum(np.square(diff), 1)
     elif distance_metric == 1:
         # Distance based on cosine similarity
-        raise 'Undefined distance metric %d' % distance_metric
+        dist = 1 - spatial.distance.pdist(embeddings, metric='cosine')
+        dist = np.arccos(dist) / math.pi
     else:
         raise 'Undefined distance metric %d' % distance_metric
 
