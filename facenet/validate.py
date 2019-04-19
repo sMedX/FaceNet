@@ -30,6 +30,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import math
 import numpy as np
 import argparse
 from facenet import utils
@@ -75,51 +76,62 @@ def main(args):
             tf.train.start_queue_runners(coord=coord, sess=sess)
 
             evaluate(sess, eval_enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-                     batch_size_placeholder, control_placeholder, embeddings, label_batch, paths,
-                     args.batch_size, args.nrof_folds, args.distance_metric, args.subtract_mean,
-                     args.use_flipped_images, args.use_fixed_image_standardization)
+                     batch_size_placeholder, control_placeholder, embeddings, label_batch, paths, args)
 
 
 def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, batch_size,
-             nrof_folds, distance_metric, subtract_mean, use_flipped_images, use_fixed_image_standardization):
+             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, args):
 
     # Run forward pass to calculate embeddings
     print('Running forward pass on images')
-    
+    print('Numbers of images', len(image_paths), 'and pairs', int(len(image_paths)*(len(image_paths)-1)/2))
+
     # Enqueue one epoch of image paths and labels
     nrof_embeddings = len(image_paths)
-    nrof_flips = 2 if use_flipped_images else 1
+
+    nrof_flips = 2 if args.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
+
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
     image_paths_array = np.expand_dims(np.repeat(np.array(image_paths), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
-    if use_fixed_image_standardization:
+    if args.use_fixed_image_standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
 
-    if use_flipped_images:
+    if args.use_flipped_images:
         # Flip every second image
         control_array += (labels_array % 2)*facenet.FLIP
 
     sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
     
     embedding_size = int(embeddings.get_shape()[1])
-    assert nrof_images % batch_size == 0, 'The number of images must be an integer multiple of the batch size'
-    nrof_batches = nrof_images // batch_size
+
+    batch_size = args.batch_size
+    nrof_batches = math.ceil(nrof_images/args.batch_size)
+
     emb_array = np.zeros((nrof_images, embedding_size))
     lab_array = np.zeros((nrof_images,))
+
+    print('Evaluate ({}): '.format(nrof_batches), end='')
+
     for i in range(nrof_batches):
+        print('{} '.format(i), end='')
+        sys.stdout.flush()
+
+        if (i+1) == nrof_batches:
+            batch_size = nrof_images % args.batch_size
+
         feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
         lab_array[lab] = lab
         emb_array[lab, :] = emb
-        if i % 10 == 9:
-            print('.', end='')
-            sys.stdout.flush()
+
     print('')
+
     embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
-    if use_flipped_images:
+
+    if args.use_flipped_images:
         # Concatenate embeddings for flipped and non flipped version of the images
         embeddings[:, :embedding_size] = emb_array[0::2, :]
         embeddings[:, embedding_size:] = emb_array[1::2, :]
@@ -133,17 +145,17 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     thresholds = np.arange(0, 4, 0.01)
 
     tpr, fpr, accuracy = facenet.roc(thresholds, embeddings, image_paths,
-                                     nrof_folds=nrof_folds,
-                                     distance_metric=distance_metric,
-                                     subtract_mean=subtract_mean)
+                                     nrof_folds=args.nrof_folds,
+                                     distance_metric=args.distance_metric,
+                                     subtract_mean=args.subtract_mean)
 
     thresholds = np.arange(0, 4, 0.001)
 
     val, val_std, far = facenet.val(thresholds, embeddings, image_paths,
                                     far_target=1e-3,
-                                    nrof_folds=nrof_folds,
-                                    distance_metric=distance_metric,
-                                    subtract_mean=subtract_mean)
+                                    nrof_folds=args.nrof_folds,
+                                    distance_metric=args.distance_metric,
+                                    subtract_mean=args.subtract_mean)
 
     print('Accuracy: {:2.5f}+-{:2.5f}'.format(np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
