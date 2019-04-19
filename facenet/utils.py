@@ -4,6 +4,10 @@ import numpy as np
 
 
 def get_files(dirname, nrof_folders=0):
+
+    if os.path.exists(dirname) is False:
+        raise ValueError('Specified directory {} does not exist'.format(dirname))
+
     list_of_files = []
     list_of_dirs = []
 
