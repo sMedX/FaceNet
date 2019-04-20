@@ -468,8 +468,8 @@ def distance_matrix(embeddings, distance_metric=0):
     return dist
 
 
-def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert (embeddings.shape[0] == len(image_paths))
+def roc(thresholds, embeddings, labels, nrof_folds=10, distance_metric=0, subtract_mean=False):
+    assert (embeddings.shape[0] == len(labels))
 
     nrof_thresholds = len(thresholds)
 
@@ -482,10 +482,8 @@ def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, s
     indices = np.arange(embeddings.shape[0])
 
     # compute label matrix
-    actual_issame = utils.label_matrix(image_paths, diagonal=False)
-
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('ROC {}/{}'.format(fold_idx,nrof_folds), end='')
+        print('\rROC {}/{}'.format(fold_idx,nrof_folds), end='')
         sys.stdout.flush()
 
         if subtract_mean:
@@ -494,10 +492,12 @@ def roc(thresholds, embeddings, image_paths, nrof_folds=10, distance_metric=0, s
             mean = 0.0
 
         dist_train = distance_matrix(embeddings[train_set] - mean, distance_metric)
-        actual_issame_train = spatial.distance.squareform(actual_issame[np.ix_(train_set, train_set)])
+        actual_issame_train = utils.label_array(labels[train_set])
+        # actual_issame_train = spatial.distance.squareform(actual_issame[np.ix_(train_set, train_set)])
 
         dist_test = distance_matrix(embeddings[test_set] - mean, distance_metric)
-        actual_issame_test = spatial.distance.squareform(actual_issame[np.ix_(test_set, test_set)])
+        actual_issame_test = utils.label_array(labels[test_set])
+        # actual_issame_test = spatial.distance.squareform(actual_issame[np.ix_(test_set, test_set)])
 
         # Find the best threshold for the fold
         acc_train = np.zeros(nrof_thresholds)
@@ -566,8 +566,8 @@ def calculate_accuracy(threshold, dist, actual_issame):
     return tpr, fpr, acc
 
 
-def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert (embeddings.shape[0] == len(image_paths))
+def val(thresholds, embeddings, labels, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
+    assert (embeddings.shape[0] == len(labels))
 
     nrof_thresholds = len(thresholds)
     k_fold = KFold(n_splits=nrof_folds, shuffle=False)
@@ -578,10 +578,10 @@ def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, dis
     indices = np.arange(embeddings.shape[0])
 
     # compute label matrix
-    actual_issame = utils.label_matrix(image_paths, diagonal=False)
+    # actual_issame = utils.label_matrix(image_paths, diagonal=False)
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('VAL {}/{}'.format(fold_idx, nrof_folds), end='')
+        print('\rVAL {}/{}'.format(fold_idx, nrof_folds), end='')
         sys.stdout.flush()
 
         if subtract_mean:
@@ -590,10 +590,10 @@ def val(thresholds, embeddings, image_paths, far_target=1e-3, nrof_folds=10, dis
             mean = 0.0
 
         dist_train = distance_matrix(embeddings[train_set] - mean, distance_metric)
-        actual_issame_train = spatial.distance.squareform(actual_issame[np.ix_(train_set, train_set)])
+        actual_issame_train = utils.label_array(labels[train_set])
 
         dist_test = distance_matrix(embeddings[test_set] - mean, distance_metric)
-        actual_issame_test = spatial.distance.squareform(actual_issame[np.ix_(test_set, test_set)])
+        actual_issame_test = utils.label_array(labels[test_set])
 
         # Find the threshold that gives FAR = far_target
         far_train = np.zeros(nrof_thresholds)

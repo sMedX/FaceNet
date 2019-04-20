@@ -33,7 +33,7 @@ import tensorflow as tf
 import math
 import numpy as np
 import argparse
-from facenet import utils
+from facenet import utils, stats
 from facenet import facenet
 import sys
 from tensorflow.python.ops import data_flow_ops
@@ -142,16 +142,13 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
 
-    tpr, fpr, accuracy = facenet.roc(thresholds, embeddings, dbase.labels,
+    output = stats.calculate_roc_val(thresholds, embeddings, dbase.labels,
+                                     far_target=1e-3,
                                      nrof_folds=args.nrof_folds,
                                      distance_metric=args.distance_metric,
                                      subtract_mean=args.subtract_mean)
 
-    val, val_std, far = facenet.val(thresholds, embeddings, dbase.labels,
-                                    far_target=1e-3,
-                                    nrof_folds=args.nrof_folds,
-                                    distance_metric=args.distance_metric,
-                                    subtract_mean=args.subtract_mean)
+    tpr, fpr, accuracy, val, val_std, far = output
 
     print('Accuracy: {:2.5f}+-{:2.5f}'.format(np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
@@ -159,8 +156,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     auc = metrics.auc(fpr, tpr)
     print('Area Under Curve (AUC): {:1.5f}'.format(auc))
 
-    eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    print('Equal Error Rate (EER): {:1.5f}'.format(eer))
+    # eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
+    # print('Equal Error Rate (EER): {:1.5f}'.format(eer))
 
 
 def parse_arguments(argv):
