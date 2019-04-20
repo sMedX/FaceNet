@@ -70,24 +70,10 @@ def label_array(labels):
         labels = np.expand_dims(labels, axis=0).transpose()
 
     labels = spatial.distance.pdist(labels, metric='sqeuclidean')
-    labels = np.array(labels < 0.5, np.int)
+    labels = np.array(labels < 0.5, np.uint8)
 
     return labels
 
 
-def label_matrix_(image_paths, diagonal=True):
-
-    basenames = [os.path.basename(os.path.dirname(path)) for path in image_paths]
-
-    labels = np.zeros([len(image_paths), len(image_paths)], dtype=np.uint8)
-
-    for i, basename1 in enumerate(basenames):
-        for k, basename2 in enumerate(basenames[:i]):
-            if basename1 == basename2:
-                labels[i][k] = labels[k][i] = 1
-
-        if diagonal:
-            labels[i][i] = 1
-
-    return labels
-
+def end(start, stop):
+    return '\n' if (start+1) == stop else ''
