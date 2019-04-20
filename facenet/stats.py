@@ -38,7 +38,7 @@ def pairwise_distances(embeddings, metric=0):
     else:
         raise 'Undefined distance metric %d' % metric
 
-    return np.array(dist, dtype=np.float16)
+    return np.array(dist, dtype=np.float32)
 
 
 @jit(nopython=True)
