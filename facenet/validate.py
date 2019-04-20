@@ -29,6 +29,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+import datetime
 import tensorflow as tf
 import math
 import numpy as np
@@ -159,6 +161,18 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
     # print('Equal Error Rate (EER): {:1.5f}'.format(eer))
 
+    # print report
+    with open(os.path.expanduser(args.report), 'at') as f:
+        f.write('\n')
+        f.write('{}\n'.format(datetime.datetime.now()))
+        f.write('{}\n'.format(args.model))
+        f.write('{}\n'.format(args.dir))
+        f.write('\n')
+        f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(np.mean(accuracy), np.std(accuracy)))
+        f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
+        f.write('Area Under Curve (AUC): {:1.5f}\n'.format(auc))
+        # f.write('Equal Error Rate (EER): {:1.5f}'.format(eer))
+
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -167,6 +181,8 @@ def parse_arguments(argv):
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file')
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
+    parser.add_argument('--report', type=str,
+        help='File to write statistical report.', default='report.txt')
     parser.add_argument('--nrof_folders', type=int,
         help='Number of folders to validate model.', default=0)
     parser.add_argument('--batch_size', type=int,
