@@ -158,8 +158,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     auc = metrics.auc(fpr, tpr)
     print('Area Under Curve (AUC): {:1.5f}'.format(auc))
 
-    # eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    # print('Equal Error Rate (EER): {:1.5f}'.format(eer))
+    eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
+    print('Equal Error Rate (EER): {:1.5f}'.format(eer))
 
     # print report
     with open(os.path.expanduser(args.report), 'at') as f:
@@ -171,7 +171,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(np.mean(accuracy), np.std(accuracy)))
         f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
         f.write('Area Under Curve (AUC): {:1.5f}\n'.format(auc))
-        # f.write('Equal Error Rate (EER): {:1.5f}'.format(eer))
+        f.write('Equal Error Rate (EER): {:1.5f}'.format(eer))
 
 
 def parse_arguments(argv):
