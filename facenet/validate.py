@@ -35,7 +35,6 @@ import numpy as np
 import argparse
 from facenet import utils
 from facenet import facenet
-import os
 import sys
 from tensorflow.python.ops import data_flow_ops
 from sklearn import metrics
@@ -46,9 +45,8 @@ from scipy import interpolate
 def main(args):
 
     # Get the paths for the corresponding images
-    dirname = os.path.expanduser(args.dir)
-    print('directory to load images:', dirname)
-    paths, _ = utils.get_files(dirname, args.nrof_folders)
+    dbase = utils.Database(args.dir, args.nrof_folders)
+    print(dbase)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -78,24 +76,23 @@ def main(args):
             tf.train.start_queue_runners(coord=coord, sess=sess)
 
             evaluate(sess, eval_enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-                     batch_size_placeholder, control_placeholder, embeddings, label_batch, paths, args)
+                     batch_size_placeholder, control_placeholder, embeddings, label_batch, dbase, args)
 
 
 def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, args):
+             batch_size_placeholder, control_placeholder, embeddings, labels, dbase, args):
 
     # Run forward pass to calculate embeddings
     print('Running forward pass on images')
-    print('Numbers of images', len(image_paths), 'and pairs', int(len(image_paths)*(len(image_paths)-1)/2))
 
     # Enqueue one epoch of image paths and labels
-    nrof_embeddings = len(image_paths)
+    nrof_embeddings = dbase.nrof_images
 
     nrof_flips = 2 if args.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
 
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(image_paths), nrof_flips), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
     if args.use_fixed_image_standardization:
@@ -145,14 +142,12 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
 
-    tpr, fpr, accuracy = facenet.roc(thresholds, embeddings, image_paths,
+    tpr, fpr, accuracy = facenet.roc(thresholds, embeddings, dbase.labels,
                                      nrof_folds=args.nrof_folds,
                                      distance_metric=args.distance_metric,
                                      subtract_mean=args.subtract_mean)
 
-    thresholds = np.arange(0, 4, 0.001)
-
-    val, val_std, far = facenet.val(thresholds, embeddings, image_paths,
+    val, val_std, far = facenet.val(thresholds, embeddings, dbase.labels,
                                     far_target=1e-3,
                                     nrof_folds=args.nrof_folds,
                                     distance_metric=args.distance_metric,
