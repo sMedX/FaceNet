@@ -61,27 +61,32 @@ def confidence_matrix(threshold, distances, labels):
     return tp, fp, tn, fn
 
 
-def calculate_accuracy(threshold, distances, labels):
-    tp, fp, tn, fn = confidence_matrix(threshold, distances, labels)
+class ConfidenceMatrix:
+    def __init__(self, threshold, distances, labels):
+        self.tp, self.fp, self.tn, self.fn = confidence_matrix(threshold, distances, labels)
 
-    tpr = float(0) if (tp + fn == 0) else float(tp) / float(tp + fn)
-    fpr = float(0) if (fp + tn == 0) else float(fp) / float(fp + tn)
+    @property
+    def accuracy(self):
+        return float(self.tp + self.tn) / float(self.tp + self.fp + self.tn + self.fn)
 
-    acc = float(tp + tn) / float(tp + fp + tn + fn)
+    @property
+    def far(self):
+        return float(1) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
 
-    return tpr, fpr, acc
+    @property
+    def val(self):
+        return float(1) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+
+    @property
+    def tp_rate(self):
+        return float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+
+    @property
+    def fp_rate(self):
+        return float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
 
 
-def calculate_val_far(threshold, distances, labels):
-    tp, fp, tn, fn = confidence_matrix(threshold, distances, labels)
-
-    val = 1 if (tp + fn == 0) else float(tp) / float(tp + fn)
-    far = 1 if (fp + tn == 0) else float(fp) / float(fp + tn)
-
-    return val, far
-
-
-def calculate_roc_val(thresholds, embeddings, labels, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
+def statistics(thresholds, embeddings, labels, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
     assert (embeddings.shape[0] == len(labels))
 
     nrof_thresholds = len(thresholds)
@@ -114,8 +119,9 @@ def calculate_roc_val(thresholds, embeddings, labels, far_target=1e-3, nrof_fold
         far_train = np.zeros(nrof_thresholds)
 
         for idx, threshold in enumerate(thresholds):
-            _, _, acc_train[idx] = calculate_accuracy(threshold, dist_train, labels_train)
-            _, far_train[idx] = calculate_val_far(threshold, dist_train, labels_train)
+            cm = ConfidenceMatrix(threshold, dist_train, labels_train)
+            acc_train[idx] = cm.accuracy
+            far_train[idx] = cm.far
 
         # find the best threshold for the fold
         best_threshold_index = np.argmax(acc_train)
@@ -132,11 +138,16 @@ def calculate_roc_val(thresholds, embeddings, labels, far_target=1e-3, nrof_fold
         labels_test = pairwise_labels(labels[test_set])
 
         for idx, threshold in enumerate(thresholds):
-            tprs[fold_idx, idx], fprs[fold_idx, idx], _ = calculate_accuracy(threshold, dist_test, labels_test)
+            cm = ConfidenceMatrix(threshold, dist_test, labels_test)
+            tprs[fold_idx, idx] = cm.tp_rate
+            fprs[fold_idx, idx] = cm.fp_rate
 
-        _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist_test, labels_test)
+        cm = ConfidenceMatrix(thresholds[best_threshold_index], dist_test, labels_test)
+        accuracy[fold_idx] = cm.accuracy
 
-        val[fold_idx], far[fold_idx] = calculate_val_far(far_threshold, dist_test, labels_test)
+        cm = ConfidenceMatrix(far_threshold, dist_test, labels_test)
+        val[fold_idx] = cm.val
+        far[fold_idx] = cm.far
 
     tpr = np.mean(tprs, 0)
     fpr = np.mean(fprs, 0)
