@@ -35,7 +35,7 @@ import tensorflow as tf
 import math
 import numpy as np
 import argparse
-from facenet import utils, statistics
+from facenet import dataset, statistics
 from facenet import facenet
 import sys
 from tensorflow.python.ops import data_flow_ops
@@ -47,7 +47,7 @@ from scipy import interpolate
 def main(args):
 
     # Get the paths for the corresponding images
-    dbase = utils.Database(args.dir, args.nrof_folders)
+    dbase = dataset.Dataset(args.dir, args.nrof_folders)
     print(dbase)
 
     with tf.Graph().as_default():
