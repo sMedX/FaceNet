@@ -168,10 +168,13 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # print report
     with open(os.path.expanduser(args.report), 'at') as f:
         f.write('\n')
-        f.write('{}\n'.format(datetime.datetime.now()))
-        f.write('{}\n'.format(args.model))
+        f.write('model {}\n'.format(datetime.datetime.now()))
+        f.write('dataset {}\n'.format(args.model))
+        f.write('folders {}\n'.format(args.nrof_folders))
         f.write('{}\n'.format(args.dir))
         f.write('\n')
+        f.write('Distance metric: {}\n'.format(args.distance_metric))
+        f.write('Subtract mean: {}\n'.format(args.subtract_mean))
         f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(np.mean(accuracy), np.std(accuracy)))
         f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
         f.write('Area Under Curve (AUC): {:1.5f}\n'.format(auc))
