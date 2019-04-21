@@ -168,10 +168,11 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # print report
     with open(os.path.expanduser(args.report), 'at') as f:
         f.write('\n')
-        f.write('model {}\n'.format(datetime.datetime.now()))
-        f.write('dataset {}\n'.format(args.model))
-        f.write('folders {}\n'.format(args.nrof_folders))
-        f.write('{}\n'.format(args.dir))
+        f.write('{}\n'.format(datetime.datetime.now()))
+        f.write('Model {}\n'.format(args.model))
+        f.write('Dataset {}\n'.format(dbase.dirname))
+        f.write('Number of folders {}\n'.format(dbase.nrof_folders))
+        f.write('Number of images {}\n'.format(dbase.nrof_images))
         f.write('\n')
         f.write('Distance metric: {}\n'.format(args.distance_metric))
         f.write('Subtract mean: {}\n'.format(args.subtract_mean))
