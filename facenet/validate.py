@@ -37,7 +37,7 @@ import numpy as np
 import argparse
 from facenet import dataset
 from facenet.statistics import statistics
-from facenet import facenet
+from facenet import utils, facenet
 import sys
 from tensorflow.python.ops import data_flow_ops
 from sklearn import metrics
@@ -167,20 +167,22 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     print('Equal Error Rate (EER): {:1.5f}'.format(eer))
 
     # print report
+    git_hash, git_diff = utils.git_hash()
     with open(os.path.expanduser(args.report), 'at') as f:
-        f.write('\n')
         f.write('{}\n'.format(datetime.datetime.now()))
-        f.write('Model {}\n'.format(args.model))
-        f.write('Dataset {}\n'.format(dbase.dirname))
-        f.write('Number of folders {}\n'.format(dbase.nrof_folders))
-        f.write('Number of images {}\n'.format(dbase.nrof_images))
-        f.write('\n')
-        f.write('Distance metric: {}\n'.format(args.distance_metric))
-        f.write('Subtract mean: {}\n'.format(args.subtract_mean))
+        f.write('git hash: {}\n'.format(git_hash))
+        f.write('git diff: {}\n'.format(git_diff))
+        f.write('model: {}\n'.format(os.path.expanduser(args.model)))
+        f.write('dataset: {}\n'.format(dbase.dirname))
+        f.write('number of folders {}\n'.format(dbase.nrof_folders))
+        f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
+        f.write('distance metric: {}\n'.format(args.distance_metric))
+        f.write('subtract mean: {}\n'.format(args.subtract_mean))
         f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(np.mean(accuracy), np.std(accuracy)))
         f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
         f.write('Area Under Curve (AUC): {:1.5f}\n'.format(auc))
-        f.write('Equal Error Rate (EER): {:1.5f}'.format(eer))
+        f.write('Equal Error Rate (EER): {:1.5f}\n'.format(eer))
+        f.write('\n')
 
 
 def parse_arguments(argv):

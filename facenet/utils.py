@@ -1,4 +1,6 @@
 
+import os
+from subprocess import Popen, PIPE
 import numpy as np
 from scipy import spatial
 
@@ -22,3 +24,36 @@ def label_array(labels):
 
 def end(start, stop):
     return '\n' if (start+1) == stop else ''
+
+
+def git_hash():
+    src_path, _ = os.path.split(os.path.realpath(__file__))
+
+    try:
+        # Get git hash
+        cmd = ['git', 'rev-parse', 'HEAD']
+        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        (stdout, _) = gitproc.communicate()
+        git_hash = stdout.strip()
+    except OSError as e:
+        git_hash = ' '.join(cmd) + ': ' + e.strerror
+
+    try:
+        # Get local changes
+        cmd = ['git', 'diff', 'HEAD']
+        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        (stdout, _) = gitproc.communicate()
+        git_diff = stdout.strip()
+    except OSError as e:
+        git_diff = ' '.join(cmd) + ': ' + e.strerror
+
+    return git_hash, git_diff
+
+    # Store a text file in the log directory
+    rev_info_filename = os.path.join(output_dir, 'revision_info.txt')
+    with open(rev_info_filename, "w") as text_file:
+        text_file.write('arguments: %s\n--------------------\n' % arg_string)
+        text_file.write('tensorflow version: %s\n--------------------\n' % tf.__version__)  # @UndefinedVariable
+        text_file.write('git hash: %s\n--------------------\n' % git_hash)
+        text_file.write('%s' % git_diff)
+
