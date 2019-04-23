@@ -194,7 +194,7 @@ def main(args):
                 if args.lfw_dir:
                     evaluate(sess, lfw_paths, embeddings, labels_batch, image_paths_placeholder, labels_placeholder, 
                             batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, actual_issame, args.batch_size, 
-                            args.lfw_nrof_folds, log_dir, step, summary_writer, args.embedding_size)
+                            args.lfw_nrof_folds, log_dir, step, summary_writer, args.embedding_size, args)
 
     return model_dir
 
@@ -343,7 +343,7 @@ def sample_people(dataset, people_per_batch, images_per_person):
 
 def evaluate(sess, image_paths, embeddings, labels_batch, image_paths_placeholder, labels_placeholder, 
         batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, actual_issame, batch_size, 
-        nrof_folds, log_dir, step, summary_writer, embedding_size):
+        nrof_folds, log_dir, step, summary_writer, embedding_size, args):
     start_time = time.time()
     # Run forward pass to calculate embeddings
     print('Running forward pass on LFW images: ', end='')
@@ -366,8 +366,8 @@ def evaluate(sess, image_paths, embeddings, labels_batch, image_paths_placeholde
     
     assert(np.all(label_check_array==1))
     
-    _, _, accuracy, val, val_std, far = lfw.evaluate(emb_array, actual_issame, nrof_folds=nrof_folds)
-    
+    _, _, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame, nrof_folds=nrof_folds, distance_metric=args.distance_metric, subtract_mean=args.subtract_mean)
+
     print('Accuracy: %1.3f+-%1.3f' % (np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
     lfw_time = time.time() - start_time
@@ -480,8 +480,17 @@ def parse_arguments(argv):
         help='The file containing the pairs to use for validation.', default='data/pairs.txt')
     parser.add_argument('--lfw_dir', type=str,
         help='Path to the data directory containing aligned face patches.', default='')
+    parser.add_argument('--lfw_batch_size', type=int,
+        help='Number of images to process in a batch in the LFW test set.', default=100)
     parser.add_argument('--lfw_nrof_folds', type=int,
         help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
+    parser.add_argument('--lfw_distance_metric', type=int,
+        help='Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.', default=0)
+    parser.add_argument('--lfw_use_flipped_images',
+        help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
+    parser.add_argument('--lfw_subtract_mean',
+        help='Subtract feature mean before calculating distance.', action='store_true')
+
     return parser.parse_args(argv)
   
 

@@ -19,9 +19,7 @@ python3 -m facenet.train_tripletloss \
     --learning_rate -1 \
     --max_nrof_epochs 500 \
     --keep_probability 0.4 \
-    --random_rotate \
     --random_flip \
-    --use_fixed_image_standardization \
     --weight_decay 5e-4 \
     --embedding_size 512 \
     --lfw_dir ${ds}/datasets/lfw_mtcnnalign_160 \
