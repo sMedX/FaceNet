@@ -1,9 +1,14 @@
 
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+import sys
+
 from numba import jit
 import os
 import datetime
 import numpy as np
-from skimage import io, transform
+from skimage import io
 from sklearn import metrics
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
@@ -209,33 +214,43 @@ class Validation:
         else:
             mean = 0.0
 
-        predictions = pairwise_distances(self.embeddings - mean, self.distance_metric) < self.best_threshold
-        nrof_labels = len(self.labels)
-        count = 0
-
-        def write_image(file1, file2, dirname):
+        def write_image(info, file1, file2, dirname, fsize=16):
             if dirname is None:
                 return
             img1 = io.imread(file1)
             img2 = io.imread(file2)
-            img = np.concatenate([img1, img2], axis=1)
+
+            img = Image.fromarray(np.concatenate([img1, img2], axis=1))
+            if sys.platform == 'win32':
+                font = ImageFont.truetype("arial.ttf", fsize)
+            else:
+                font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
+
+            draw = ImageDraw.Draw(img)
+            draw.text((0, 0), info, (0, 255, 0), font=font)
 
             name1 = os.path.splitext(os.path.basename(file1))[0]
             name2 = os.path.splitext(os.path.basename(file2))[0]
             fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
 
-            io.imsave(fname, img)
+            img.save(fname)
+
+        distances = pairwise_distances(self.embeddings - mean, self.distance_metric)
+        nrof_labels = len(self.labels)
+        count = 0
 
         for i in range(nrof_labels):
             for k in range(i + 1, nrof_labels):
-                if predictions[count]:
+                info = '{:2.3f}/{:2.3f}'.format(distances[count],self.best_threshold)
+
+                if distances[count] < self.best_threshold:
                     # false positives
                     if self.labels[i] != self.labels[k]:
-                        write_image(files[i], files[k], fpos_dir)
+                        write_image(info, files[i], files[k], fpos_dir)
                 else:
                     # false negatives
                     if self.labels[i] == self.labels[k]:
-                        write_image(files[i], files[k], fneg_dir)
+                        write_image(info, files[i], files[k], fneg_dir)
 
                 count += 1
 
