@@ -1,7 +1,12 @@
+
 from numba import jit
+import os
+import datetime
 import numpy as np
+from sklearn import metrics
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
+from scipy.optimize import brentq
 import math
 
 from facenet import utils
@@ -86,74 +91,112 @@ class ConfidenceMatrix:
         return float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
 
 
-def statistics(thresholds, embeddings, labels, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert (embeddings.shape[0] == len(labels))
+class Statistics:
+    def __init__(self, thresholds, embeddings, labels,
+                 far_target=1e-3, nrof_folds=10,
+                 distance_metric=0, subtract_mean=False):
+        assert (embeddings.shape[0] == len(labels))
 
-    nrof_thresholds = len(thresholds)
+        nrof_thresholds = len(thresholds)
 
-    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
+        k_fold = KFold(n_splits=nrof_folds, shuffle=False)
 
-    tprs = np.zeros((nrof_folds, nrof_thresholds))
-    fprs = np.zeros((nrof_folds, nrof_thresholds))
+        tprs = np.zeros((nrof_folds, nrof_thresholds))
+        fprs = np.zeros((nrof_folds, nrof_thresholds))
 
-    accuracy = np.zeros(nrof_folds)
+        self.best_thresholds = np.zeros(nrof_folds)
+        accuracy = np.zeros(nrof_folds)
 
-    val = np.zeros(nrof_folds)
-    far = np.zeros(nrof_folds)
+        val = np.zeros(nrof_folds)
+        far = np.zeros(nrof_folds)
 
-    indices = np.arange(len(labels))
+        indices = np.arange(len(labels))
 
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('\rROC/VAL {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
+        for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+            print('\rROC/VAL {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
-        if subtract_mean:
-            mean = np.mean(embeddings[train_set], axis=0)
-        else:
-            mean = 0.0
+            if subtract_mean:
+                mean = np.mean(embeddings[train_set], axis=0)
+            else:
+                mean = 0.0
 
-        # evaluations with train set
-        dist_train = pairwise_distances(embeddings[train_set] - mean, distance_metric)
-        labels_train = pairwise_labels(labels[train_set])
+            # evaluations with train set
+            dist_train = pairwise_distances(embeddings[train_set] - mean, distance_metric)
+            labels_train = pairwise_labels(labels[train_set])
 
-        acc_train = np.zeros(nrof_thresholds)
-        far_train = np.zeros(nrof_thresholds)
+            acc_train = np.zeros(nrof_thresholds)
+            far_train = np.zeros(nrof_thresholds)
 
-        for idx, threshold in enumerate(thresholds):
-            cm = ConfidenceMatrix(threshold, dist_train, labels_train)
-            acc_train[idx] = cm.accuracy
-            far_train[idx] = cm.far
+            for idx, threshold in enumerate(thresholds):
+                cm = ConfidenceMatrix(threshold, dist_train, labels_train)
+                acc_train[idx] = cm.accuracy
+                far_train[idx] = cm.far
 
-        # find the best threshold for the fold
-        best_threshold_index = np.argmax(acc_train)
+            # find the best threshold for the fold
+            self.best_thresholds[fold_idx] = thresholds[np.argmax(acc_train)]
 
-        # find the threshold that gives FAR = far_target
-        if np.max(far_train) >= far_target:
-            f = interpolate.interp1d(far_train, thresholds, kind='slinear')
-            far_threshold = f(far_target)
-        else:
-            far_threshold = 0.0
+            # find the threshold that gives FAR = far_target
+            if np.max(far_train) >= far_target:
+                f = interpolate.interp1d(far_train, thresholds, kind='slinear')
+                far_threshold = f(far_target)
+            else:
+                far_threshold = 0.0
 
-        # evaluations with test set
-        dist_test = pairwise_distances(embeddings[test_set] - mean, distance_metric)
-        labels_test = pairwise_labels(labels[test_set])
+            # evaluations with test set
+            dist_test = pairwise_distances(embeddings[test_set] - mean, distance_metric)
+            labels_test = pairwise_labels(labels[test_set])
 
-        for idx, threshold in enumerate(thresholds):
-            cm = ConfidenceMatrix(threshold, dist_test, labels_test)
-            tprs[fold_idx, idx] = cm.tp_rate
-            fprs[fold_idx, idx] = cm.fp_rate
+            for idx, threshold in enumerate(thresholds):
+                cm = ConfidenceMatrix(threshold, dist_test, labels_test)
+                tprs[fold_idx, idx] = cm.tp_rate
+                fprs[fold_idx, idx] = cm.fp_rate
 
-        cm = ConfidenceMatrix(thresholds[best_threshold_index], dist_test, labels_test)
-        accuracy[fold_idx] = cm.accuracy
+            cm = ConfidenceMatrix(self.best_thresholds[fold_idx], dist_test, labels_test)
+            accuracy[fold_idx] = cm.accuracy
 
-        cm = ConfidenceMatrix(far_threshold, dist_test, labels_test)
-        val[fold_idx] = cm.val
-        far[fold_idx] = cm.far
+            cm = ConfidenceMatrix(far_threshold, dist_test, labels_test)
+            val[fold_idx] = cm.val
+            far[fold_idx] = cm.far
 
-    tpr = np.mean(tprs, 0)
-    fpr = np.mean(fprs, 0)
+        self.tp_rate = np.mean(tprs, 0)
+        self.fp_rate = np.mean(fprs, 0)
 
-    val_mean = np.mean(val)
-    far_mean = np.mean(far)
-    val_std = np.std(val)
+        self.accuracy = accuracy
+        self.accuracy_mean = np.mean(self.accuracy)
+        self.accuracy_std = np.std(self.accuracy)
 
-    return tpr, fpr, accuracy, val_mean, val_std, far_mean
+        self.val = np.mean(val)
+        self.val_std = np.std(val)
+        self.far = np.mean(far)
+        self.auc = metrics.auc(self.fp_rate, self.tp_rate)
+
+        try:
+            self.eer = brentq(lambda x: 1. - x - interpolate.interp1d(self.fp_rate, self.tp_rate)(x), 0., 1.)
+        except Exception:
+            self.eer = -1
+
+    def print(self):
+        print('Accuracy: {:2.5f}+-{:2.5f}'.format(self.accuracy_mean, self.accuracy_std))
+        print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(self.val, self.val_std, self.far))
+        print('Area Under Curve (AUC): {:1.5f}'.format(self.auc))
+        print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
+        print('Threshold: {:2.5f}+-{:2.5f}'.format(np.mean(self.best_thresholds), np.std(self.best_thresholds)))
+
+    def write_report(self, file, dbase, args):
+        git_hash, git_diff = utils.git_hash()
+        with open(os.path.expanduser(file), 'at') as f:
+            f.write('{}\n'.format(datetime.datetime.now()))
+            f.write('git hash: {}\n'.format(git_hash))
+            f.write('git diff: {}\n'.format(git_diff))
+            f.write('model: {}\n'.format(os.path.expanduser(args.model)))
+            f.write('dataset: {}\n'.format(dbase.dirname))
+            f.write('number of folders {}\n'.format(dbase.nrof_folders))
+            f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
+            f.write('distance metric: {}\n'.format(args.distance_metric))
+            f.write('subtract mean: {}\n'.format(args.subtract_mean))
+            f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(self.accuracy_mean, self.accuracy_std))
+            f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(self.val, self.val_std, self.far))
+            f.write('Area Under Curve (AUC): {:1.5f}\n'.format(self.auc))
+            f.write('Equal Error Rate (EER): {:1.5f}\n'.format(self.eer))
+            f.write('\n')
+

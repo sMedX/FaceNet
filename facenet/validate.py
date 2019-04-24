@@ -29,20 +29,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import datetime
 import tensorflow as tf
 import math
 import numpy as np
 import argparse
 from facenet import dataset
-from facenet.statistics import statistics
-from facenet import utils, facenet
+from facenet.statistics import Statistics
+from facenet import facenet
 import sys
 from tensorflow.python.ops import data_flow_ops
-from sklearn import metrics
-from scipy.optimize import brentq
-from scipy import interpolate
 
 
 def main(args):
@@ -145,44 +140,14 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
 
-    output = statistics(thresholds, embeddings, dbase.labels,
-                        far_target=1e-3,
-                        nrof_folds=args.nrof_folds,
-                        distance_metric=args.distance_metric,
-                        subtract_mean=args.subtract_mean)
+    stats = Statistics(thresholds, embeddings, dbase.labels,
+                       far_target=1e-3,
+                       nrof_folds=args.nrof_folds,
+                       distance_metric=args.distance_metric,
+                       subtract_mean=args.subtract_mean)
 
-    tpr, fpr, accuracy, val, val_std, far = output
-
-    print('Accuracy: {:2.5f}+-{:2.5f}'.format(np.mean(accuracy), np.std(accuracy)))
-    print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
-    
-    auc = metrics.auc(fpr, tpr)
-    print('Area Under Curve (AUC): {:1.5f}'.format(auc))
-
-    try:
-        eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    except Exception:
-        eer = -1
-
-    print('Equal Error Rate (EER): {:1.5f}'.format(eer))
-
-    # print report
-    git_hash, git_diff = utils.git_hash()
-    with open(os.path.expanduser(args.report), 'at') as f:
-        f.write('{}\n'.format(datetime.datetime.now()))
-        f.write('git hash: {}\n'.format(git_hash))
-        f.write('git diff: {}\n'.format(git_diff))
-        f.write('model: {}\n'.format(os.path.expanduser(args.model)))
-        f.write('dataset: {}\n'.format(dbase.dirname))
-        f.write('number of folders {}\n'.format(dbase.nrof_folders))
-        f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
-        f.write('distance metric: {}\n'.format(args.distance_metric))
-        f.write('subtract mean: {}\n'.format(args.subtract_mean))
-        f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(np.mean(accuracy), np.std(accuracy)))
-        f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
-        f.write('Area Under Curve (AUC): {:1.5f}\n'.format(auc))
-        f.write('Equal Error Rate (EER): {:1.5f}\n'.format(eer))
-        f.write('\n')
+    stats.print()
+    stats.write_report(args.report, dbase, args)
 
 
 def parse_arguments(argv):
