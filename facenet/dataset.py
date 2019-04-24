@@ -1,19 +1,19 @@
 
 import os
 import numpy as np
-from scipy import spatial
 
 
 class Dataset:
     def __init__(self, dirname, nrof_folders=0):
         self.dirname = os.path.expanduser(dirname)
 
-        files, labels, dirs = get_files(self.dirname, nrof_folders=nrof_folders)
+        self.files = []
+        self.dirs = []
+        self.labels = []
 
-        self.files = files
-        self.labels = np.array(labels)
-        self.dirs = dirs
-        self.nrof_folders = len(dirs)
+        self._get_files(self.dirname, nrof_folders=nrof_folders)
+
+        self.nrof_folders = len(self.dirs)
 
     def __repr__(self):
         """Representation of the database"""
@@ -31,28 +31,23 @@ class Dataset:
     def nrof_pairs(self):
         return int(self.nrof_images * (self.nrof_images - 1) / 2)
 
+    def _get_files(self,dirname, nrof_folders=0):
 
-def get_files(dirname, nrof_folders=0):
+        if os.path.exists(dirname) is False:
+            raise ValueError('Specified directory {} does not exist'.format(dirname))
 
-    if os.path.exists(dirname) is False:
-        raise ValueError('Specified directory {} does not exist'.format(dirname))
+        count = 0
 
-    list_of_files = []
-    list_of_dirs = []
+        if nrof_folders == 0:
+            nrof_folders = np.Inf
 
-    list_of_labels = []
-    count = 0
+        for root, dirs, files in os.walk(dirname):
+            if len(dirs) < nrof_folders:
+                if len(dirs) == 0 and len(self.dirs) < nrof_folders:
+                    self.files += [os.path.join(root, file) for file in files]
+                    self.dirs.append(root)
 
-    if nrof_folders == 0:
-        nrof_folders = np.Inf
+                    self.labels += [count]*len(files)
+                    count += 1
 
-    for root, dirs, files in os.walk(dirname):
-        if len(dirs) < nrof_folders:
-            if len(dirs) == 0 and len(list_of_dirs) < nrof_folders:
-                list_of_files += [os.path.join(root, file) for file in files]
-                list_of_dirs.append(root)
-
-                list_of_labels += [count]*len(files)
-                count += 1
-
-    return list_of_files, list_of_labels, list_of_dirs
+        self.labels = np.array(self.labels)
