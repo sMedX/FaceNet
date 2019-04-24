@@ -70,28 +70,14 @@ class ConfidenceMatrix:
     def __init__(self, threshold, distances, labels):
         self.tp, self.fp, self.tn, self.fn = confidence_matrix(threshold, distances, labels)
 
-    @property
-    def accuracy(self):
-        return float(self.tp + self.tn) / float(self.tp + self.fp + self.tn + self.fn)
-
-    @property
-    def far(self):
-        return float(1) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
-
-    @property
-    def val(self):
-        return float(1) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
-
-    @property
-    def tp_rate(self):
-        return float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
-
-    @property
-    def fp_rate(self):
-        return float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
+        self.accuracy = float(self.tp + self.tn) / float(self.tp + self.fp + self.tn + self.fn)
+        self.far = float(1) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
+        self.val = float(1) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+        self.tp_rate = float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+        self.fp_rate = float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
 
 
-class Statistics:
+class Validation:
     def __init__(self, thresholds, embeddings, labels,
                  far_target=1e-3, nrof_folds=10,
                  distance_metric=0, subtract_mean=False):
@@ -113,7 +99,7 @@ class Statistics:
         indices = np.arange(len(labels))
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            print('\rROC/VAL {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
+            print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             if subtract_mean:
                 mean = np.mean(embeddings[train_set], axis=0)
@@ -198,5 +184,6 @@ class Statistics:
             f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(self.val, self.val_std, self.far))
             f.write('Area Under Curve (AUC): {:1.5f}\n'.format(self.auc))
             f.write('Equal Error Rate (EER): {:1.5f}\n'.format(self.eer))
+            f.write('Threshold: {:2.5f}+-{:2.5f}'.format(np.mean(self.best_thresholds), np.std(self.best_thresholds)))
             f.write('\n')
 

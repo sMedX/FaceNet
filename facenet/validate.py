@@ -34,7 +34,7 @@ import math
 import numpy as np
 import argparse
 from facenet import dataset
-from facenet.statistics import Statistics
+from facenet.statistics import Validation
 from facenet import facenet
 import sys
 from tensorflow.python.ops import data_flow_ops
@@ -140,7 +140,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
 
-    stats = Statistics(thresholds, embeddings, dbase.labels,
+    stats = Validation(thresholds, embeddings, dbase.labels,
                        far_target=1e-3,
                        nrof_folds=args.nrof_folds,
                        distance_metric=args.distance_metric,
