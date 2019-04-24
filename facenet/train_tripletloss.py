@@ -366,7 +366,7 @@ def evaluate(sess, image_paths, embeddings, labels_batch, image_paths_placeholde
     
     assert(np.all(label_check_array==1))
     
-    _, _, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame, nrof_folds=nrof_folds, distance_metric=args.distance_metric, subtract_mean=args.subtract_mean)
+    _, _, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame, nrof_folds=nrof_folds, distance_metric=args.lfw_distance_metric, subtract_mean=args.lfw_subtract_mean)
 
     print('Accuracy: %1.3f+-%1.3f' % (np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
