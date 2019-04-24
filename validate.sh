@@ -10,7 +10,7 @@ md=~
 echo "model directory" ${md}
 
 python3 -m facenet.validate \
-    ${md}/models/facenet/pretrained/20190327-175738 \
+    ${md}/models/facenet/pretrained/20190410-013706 \
     ${ds}/datasets/megaface/megaface_mtcnnaligned_160 \
     --nrof_folders 0 \
     --distance_metric 0 \
