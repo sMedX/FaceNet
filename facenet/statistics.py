@@ -3,6 +3,7 @@ from numba import jit
 import os
 import datetime
 import numpy as np
+from skimage import io, transform
 from sklearn import metrics
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
@@ -70,11 +71,11 @@ class ConfidenceMatrix:
     def __init__(self, threshold, distances, labels):
         self.tp, self.fp, self.tn, self.fn = confidence_matrix(threshold, distances, labels)
 
+        self.tp_rate = float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+        self.fp_rate = float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
         self.accuracy = float(self.tp + self.tn) / float(self.tp + self.fp + self.tn + self.fn)
         self.far = float(1) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
         self.val = float(1) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
-        self.tp_rate = float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
-        self.fp_rate = float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
 
 
 class Validation:
@@ -82,6 +83,11 @@ class Validation:
                  far_target=1e-3, nrof_folds=10,
                  distance_metric=0, subtract_mean=False):
         assert (embeddings.shape[0] == len(labels))
+
+        self.embeddings = embeddings
+        self.labels = labels
+        self.subtract_mean = subtract_mean
+        self.distance_metric = distance_metric
 
         nrof_thresholds = len(thresholds)
 
@@ -156,6 +162,9 @@ class Validation:
         self.far = np.mean(far)
         self.auc = metrics.auc(self.fp_rate, self.tp_rate)
 
+        self.best_threshold = np.mean(self.best_thresholds)
+        self.best_threshold_std = np.std(self.best_thresholds)
+
         try:
             self.eer = brentq(lambda x: 1. - x - interpolate.interp1d(self.fp_rate, self.tp_rate)(x), 0., 1.)
         except Exception:
@@ -166,7 +175,7 @@ class Validation:
         print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(self.val, self.val_std, self.far))
         print('Area Under Curve (AUC): {:1.5f}'.format(self.auc))
         print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
-        print('Threshold: {:2.5f}+-{:2.5f}'.format(np.mean(self.best_thresholds), np.std(self.best_thresholds)))
+        print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
 
     def write_report(self, file, dbase, args):
         git_hash, git_diff = utils.git_hash()
@@ -184,6 +193,52 @@ class Validation:
             f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(self.val, self.val_std, self.far))
             f.write('Area Under Curve (AUC): {:1.5f}\n'.format(self.auc))
             f.write('Equal Error Rate (EER): {:1.5f}\n'.format(self.eer))
-            f.write('Threshold: {:2.5f}+-{:2.5f}'.format(np.mean(self.best_thresholds), np.std(self.best_thresholds)))
+            f.write('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
             f.write('\n')
+
+    def write_false_pairs(self, files, fpos_dir, fneg_dir):
+
+        if not os.path.isdir(fpos_dir):
+            os.makedirs(fpos_dir)
+
+        if not os.path.isdir(fneg_dir):
+            os.makedirs(fneg_dir)
+
+        if self.subtract_mean:
+            mean = np.mean(self.embeddings, axis=0)
+        else:
+            mean = 0.0
+
+        predictions = pairwise_distances(self.embeddings - mean, self.distance_metric) < self.best_threshold
+        nrof_labels = len(self.labels)
+        count = 0
+
+        def write_image(file1, file2, dirname):
+            if dirname is None:
+                return
+            img1 = io.imread(file1)
+            img2 = io.imread(file2)
+            img = np.concatenate([img1, img2], axis=1)
+
+            name1 = os.path.splitext(os.path.basename(file1))[0]
+            name2 = os.path.splitext(os.path.basename(file2))[0]
+            fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
+
+            io.imsave(fname, img)
+
+        for i in range(nrof_labels):
+            for k in range(i + 1, nrof_labels):
+                if predictions[count]:
+                    # false positives
+                    if self.labels[i] != self.labels[k]:
+                        write_image(files[i], files[k], fpos_dir)
+                else:
+                    # false negatives
+                    if self.labels[i] == self.labels[k]:
+                        write_image(files[i], files[k], fneg_dir)
+
+                count += 1
+
+
+
 
