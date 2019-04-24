@@ -23,8 +23,3 @@ python3 -m facenet.train_tripletloss \
     --weight_decay 5e-4 \
     --embedding_size 512 \
     --lfw_dir ${ds}/datasets/lfw_mtcnnalign_160 \
-    --lfw_distance_metric 1 \
-    --lfw_use_flipped_images \
-    --lfw_subtract_mean \
-    --validation_set_split_ratio 0.01 \
-    --validate_every_n_epochs 5
