@@ -242,7 +242,7 @@ class Validation:
 
         for i in range(nrof_labels):
             for k in range(i + 1, nrof_labels):
-                info = '{:2.3f}/{:2.3f}'.format(distances[count],self.best_threshold)
+                info = '{:2.3f}/{:2.3f}'.format(distances[count], self.best_threshold)
 
                 if distances[count] < self.best_threshold:
                     # false positives
