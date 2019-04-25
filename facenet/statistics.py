@@ -217,6 +217,11 @@ class Validation:
         def write_image(info, file1, file2, dirname, fsize=16):
             if dirname is None:
                 return
+
+            name1 = os.path.splitext(os.path.basename(file1))[0]
+            name2 = os.path.splitext(os.path.basename(file2))[0]
+            fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
+
             img1 = io.imread(file1)
             img2 = io.imread(file2)
 
@@ -227,11 +232,7 @@ class Validation:
                 font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
 
             draw = ImageDraw.Draw(img)
-            draw.text((0, 0), info, (0, 255, 0), font=font)
-
-            name1 = os.path.splitext(os.path.basename(file1))[0]
-            name2 = os.path.splitext(os.path.basename(file2))[0]
-            fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
+            draw.text((0, 0), '{} & {}\n{}'.format(name1, name2, info), (0, 255, 0), font=font)
 
             img.save(fname)
 
