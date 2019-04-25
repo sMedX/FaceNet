@@ -84,15 +84,17 @@ class ConfidenceMatrix:
 
 
 class Validation:
-    def __init__(self, thresholds, embeddings, labels,
+    def __init__(self, thresholds, embeddings, dbase,
                  far_target=1e-3, nrof_folds=10,
                  distance_metric=0, subtract_mean=False):
-        assert (embeddings.shape[0] == len(labels))
 
+        self.dbase = dbase
         self.embeddings = embeddings
-        self.labels = labels
         self.subtract_mean = subtract_mean
         self.distance_metric = distance_metric
+
+        labels = dbase.labels
+        assert (embeddings.shape[0] == len(labels))
 
         nrof_thresholds = len(thresholds)
 
@@ -201,7 +203,7 @@ class Validation:
             f.write('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
             f.write('\n')
 
-    def write_false_pairs(self, files, fpos_dir, fneg_dir):
+    def write_false_pairs(self, fpos_dir, fneg_dir):
 
         if not os.path.isdir(fpos_dir):
             os.makedirs(fpos_dir)
@@ -236,21 +238,24 @@ class Validation:
 
             img.save(fname)
 
+        files = self.dbase.files
+        labels = self.dbase.labels
+        nrof_images = self.dbase.nrof_images
+
         distances = pairwise_distances(self.embeddings - mean, self.distance_metric)
-        nrof_labels = len(self.labels)
         count = 0
 
-        for i in range(nrof_labels):
-            for k in range(i + 1, nrof_labels):
+        for i in range(nrof_images):
+            for k in range(i + 1, nrof_images):
                 info = '{:2.3f}/{:2.3f}'.format(distances[count], self.best_threshold)
 
                 if distances[count] < self.best_threshold:
                     # false positives
-                    if self.labels[i] != self.labels[k]:
+                    if labels[i] != labels[k]:
                         write_image(info, files[i], files[k], fpos_dir)
                 else:
                     # false negatives
-                    if self.labels[i] == self.labels[k]:
+                    if labels[i] == labels[k]:
                         write_image(info, files[i], files[k], fneg_dir)
 
                 count += 1
