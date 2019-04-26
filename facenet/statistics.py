@@ -38,14 +38,20 @@ def pairwise_labels(labels):
     return output
 
 
-def pairwise_distances(embeddings, metric=0):
+def pairwise_distances(xa, xb=None, metric=0):
     if metric == 0:
         # squared Euclidian distance
-        dist = spatial.distance.pdist(embeddings, metric='sqeuclidean')
+        if xb is None:
+            dist = spatial.distance.pdist(xa, metric='sqeuclidean')
+        else:
+            dist = spatial.distance.cdist(xa, xb, metric='sqeuclidean')
     elif metric == 1:
         # Distance based on cosine similarity
-        dist = 1 - spatial.distance.pdist(embeddings, metric='cosine')
-        dist = np.arccos(dist) / math.pi
+        if xb is None:
+            dist = spatial.distance.pdist(xa, metric='cosine')
+        else:
+            dist = spatial.distance.cdist(xa, xb, metric='cosine')
+        dist = np.arccos(1 - dist) / math.pi
     else:
         raise 'Undefined distance metric %d' % metric
 
@@ -120,7 +126,7 @@ class Validation:
                 mean = 0.0
 
             # evaluations with train set
-            dist_train = pairwise_distances(embeddings[train_set] - mean, distance_metric)
+            dist_train = pairwise_distances(embeddings[train_set] - mean, metric=distance_metric)
             labels_train = pairwise_labels(labels[train_set])
 
             acc_train = np.zeros(nrof_thresholds)
@@ -142,7 +148,7 @@ class Validation:
                 far_threshold = 0.0
 
             # evaluations with test set
-            dist_test = pairwise_distances(embeddings[test_set] - mean, distance_metric)
+            dist_test = pairwise_distances(embeddings[test_set] - mean, metric=distance_metric)
             labels_test = pairwise_labels(labels[test_set])
 
             for idx, threshold in enumerate(thresholds):
@@ -203,7 +209,25 @@ class Validation:
             f.write('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
             f.write('\n')
 
-    def write_false_pairs(self, fpos_dir, fneg_dir):
+    def write_image(self, info, file1, file2, dirname, fsize=14):
+        name1 = os.path.splitext(os.path.basename(file1))[0]
+        name2 = os.path.splitext(os.path.basename(file2))[0]
+        fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
+
+        img1 = io.imread(file1)
+        img2 = io.imread(file2)
+
+        img = Image.fromarray(np.concatenate([img1, img2], axis=1))
+        if sys.platform == 'win32':
+            font = ImageFont.truetype("arial.ttf", fsize)
+        else:
+            font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
+
+        draw = ImageDraw.Draw(img)
+        draw.text((0, 0), '{} & {}\n{}'.format(name1, name2, info), (0, 255, 0), font=font)
+        img.save(fname)
+
+    def write_false_pairs(self, fpos_dir, fneg_dir, nrof_images=5):
 
         if not os.path.isdir(fpos_dir):
             os.makedirs(fpos_dir)
@@ -216,50 +240,66 @@ class Validation:
         else:
             mean = 0.0
 
-        def write_image(info, file1, file2, dirname, fsize=16):
-            if dirname is None:
-                return
+        for folder1 in range(self.dbase.nrof_folders):
+            files1, embeddings1 = self.dbase.extract_data(folder1, self.embeddings)
 
-            name1 = os.path.splitext(os.path.basename(file1))[0]
-            name2 = os.path.splitext(os.path.basename(file2))[0]
-            fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
+            # search false negative pairs
+            distances = pairwise_distances(embeddings1 - mean, metric=self.distance_metric)
+            distances = spatial.distance.squareform(distances)
 
-            img1 = io.imread(file1)
-            img2 = io.imread(file2)
+            for n in range(nrof_images):
+                # find maximal distances
+                i, k = np.unravel_index(np.argmax(distances), distances.shape)
 
-            img = Image.fromarray(np.concatenate([img1, img2], axis=1))
-            if sys.platform == 'win32':
-                font = ImageFont.truetype("arial.ttf", fsize)
-            else:
-                font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
-
-            draw = ImageDraw.Draw(img)
-            draw.text((0, 0), '{} & {}\n{}'.format(name1, name2, info), (0, 255, 0), font=font)
-
-            img.save(fname)
-
-        files = self.dbase.files
-        labels = self.dbase.labels
-        nrof_images = self.dbase.nrof_images
-
-        distances = pairwise_distances(self.embeddings - mean, self.distance_metric)
-        count = 0
-
-        for i in range(nrof_images):
-            for k in range(i + 1, nrof_images):
-                info = '{:2.3f}/{:2.3f}'.format(distances[count], self.best_threshold)
-
-                if distances[count] < self.best_threshold:
-                    # false positives
-                    if labels[i] != labels[k]:
-                        write_image(info, files[i], files[k], fpos_dir)
+                if distances[i, k] > self.best_threshold:
+                    info = '{:2.3f}/{:2.3f}'.format(distances[i, k], self.best_threshold)
+                    self.write_image(info, files1[i], files1[k], fneg_dir)
+                    distances[i, :] = -1
+                    distances[:, k] = -1
                 else:
-                    # false negatives
-                    if labels[i] == labels[k]:
-                        write_image(info, files[i], files[k], fneg_dir)
+                    break
 
-                count += 1
+            # search false positive pairs
+            for folder2 in range(folder1+1, self.dbase.nrof_folders):
+                files2, embeddings2 = self.dbase.extract_data(folder2, self.embeddings)
 
+                distances = pairwise_distances(embeddings1-mean, embeddings2-mean, metric=self.distance_metric)
+
+                for n in range(nrof_images):
+                    # find minimal distances
+                    i, k = np.unravel_index(np.argmin(distances), distances.shape)
+
+                    if distances[i, k] < self.best_threshold:
+                        info = '{:2.3f}/{:2.3f}'.format(distances[i, k], self.best_threshold)
+                        self.write_image(info, files1[i], files2[k], fpos_dir)
+                        distances[i, :] = np.Inf
+                        distances[:, k] = np.Inf
+                    else:
+                        break
+
+
+
+        # files = self.dbase.files
+        # labels = self.dbase.labels
+        # nrof_images = self.dbase.nrof_images
+        # distances = pairwise_distances(self.embeddings - mean, self.distance_metric)
+        # count = 0
+        #
+        # for i in range(nrof_images):
+        #     for k in range(i + 1, nrof_images):
+        #         info = '{:2.3f}/{:2.3f}'.format(distances[count], self.best_threshold)
+        #
+        #         if distances[count] < self.best_threshold:
+        #             # false positives
+        #             if labels[i] != labels[k]:
+        #                 self.write_image(info, files[i], files[k], fpos_dir)
+        #         else:
+        #             # false negatives
+        #             if labels[i] == labels[k]:
+        #                 self.write_image(info, files[i], files[k], fneg_dir)
+        #
+        #         count += 1
+        #
 
 
 

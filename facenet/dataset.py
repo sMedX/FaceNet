@@ -51,3 +51,12 @@ class Dataset:
                     count += 1
 
         self.labels = np.array(self.labels)
+
+    def extract_data(self, folder_idx, embeddings=None):
+        indices = np.where(self.labels == folder_idx)[0]
+        files = [self.files[idx] for idx in indices]
+
+        if embeddings is None:
+            return files
+        else:
+            return files, embeddings[indices]
