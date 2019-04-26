@@ -43,7 +43,7 @@ class Dataset:
 
         for root, dirs, files in os.walk(dirname):
             if len(dirs) < nrof_folders:
-                if len(dirs) == 0 and len(self.dirs) < nrof_folders:
+                if len(dirs) == 0 and len(files) != 0 and len(self.dirs) < nrof_folders:
                     self.files += [os.path.join(root, file) for file in files]
                     self.dirs.append(root)
 
