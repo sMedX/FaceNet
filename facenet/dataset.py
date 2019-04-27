@@ -24,6 +24,16 @@ class Dataset:
         return info
 
     @property
+    def name(self):
+        return os.path.basename(self.dirname)
+
+    def filenames(self, mode='with_dir'):
+        if mode == 'with_dir':
+            return [os.path.join(os.path.basename(os.path.dirname(file)), os.path.basename(file)) for file in self.files]
+        else:
+            raise 'Undefined mode {} to return list of file names'.format(mode)
+
+    @property
     def nrof_images(self):
         return len(self.files)
 
