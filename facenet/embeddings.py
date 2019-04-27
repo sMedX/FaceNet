@@ -59,8 +59,15 @@ def main(args):
                                         dtypes=[tf.string, tf.int32, tf.int32],
                                         shapes=[(1,), (1,), (1,)],
                                         shared_name=None, name=None)
-            eval_enqueue_op = eval_input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name='eval_enqueue_op')
-            image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)
+
+            eval_enqueue_op = eval_input_queue.enqueue_many([image_paths_placeholder,
+                                                             labels_placeholder,
+                                                             control_placeholder], name='eval_enqueue_op')
+
+            image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue,
+                                                                     image_size,
+                                                                     nrof_preprocess_threads,
+                                                                     batch_size_placeholder)
      
             # Load the model
             input_map = {'image_batch': image_batch, 'label_batch': label_batch, 'phase_train': phase_train_placeholder}
@@ -99,7 +106,9 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         # Flip every second image
         control_array += (labels_array % 2)*facenet.FLIP
 
-    sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
+    sess.run(enqueue_op, {image_paths_placeholder: image_paths_array,
+                          labels_placeholder: labels_array,
+                          control_placeholder: control_array})
     
     embedding_size = int(embeddings.get_shape()[1])
 
@@ -147,7 +156,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         os.mkdir(os.path.dirname(tfrecord))
 
     # write tf record file
-    utils.write_tfrecord(tfrecord, dbase.filenames(mode='with_dir'), embeddings)
+    utils.write_tfrecord(tfrecord, dbase.filenames(mode='with_dir'), dbase.labels, embeddings)
 
 
 def parse_arguments(argv):

@@ -72,15 +72,11 @@ def bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 
 
-def write_tfrecord(tfrecord, files, embeddings):
-
-    # tf record file name
-    if os.path.isfile(tfrecord):
-        os.remove(tfrecord)
+def write_tfrecord(tfrecord, files, labels, embeddings):
 
     with tf.python_io.TFRecordWriter(tfrecord) as tfwriter:
-        for i, (file, embedding) in enumerate(zip(files, embeddings)):
-            add_to_tfrecord(tfwriter, file.encode(), embedding.tostring())
+        for i, (file, label, embedding) in enumerate(zip(files, labels, embeddings)):
+            add_to_tfrecord(tfwriter, file.encode(), label, embedding.tolist())
 
             if (i+1) % 100 == 0:
                 print('\r{}/{} samples have been added to tfrecord file.'.format(i+1, len(files)), end='')
@@ -88,12 +84,39 @@ def write_tfrecord(tfrecord, files, embeddings):
     print('\rtfrecord file {} has been written, number of samples is {}.'.format(tfrecord, len(files)))
 
 
-def add_to_tfrecord(tfwriter, file, embedding):
+def add_to_tfrecord(tfwriter, file, label, embedding):
     example = tf.train.Example(
         features=tf.train.Features(feature={
             'filename': bytes_feature(file),
-            'embedding': bytes_feature(embedding)
+            'label': int64_feature(label),
+            'embedding': float_feature(embedding)
             }))
 
     tfwriter.write(example.SerializeToString())
 
+
+def read_tfrecord(tfrecord, mode='array'):
+    tfrecord = os.path.expanduser(tfrecord)
+    record_iterator = tf.python_io.tf_record_iterator(path=tfrecord)
+
+    files = []
+    labels = []
+    embeddings = []
+
+    for string_record in record_iterator:
+        example = tf.train.Example()
+        example.ParseFromString(string_record)
+        feature = example.features.feature
+
+        file = feature['filename'].bytes_list.value[0]
+        files.append(file)
+
+        label = feature['label'].int64_list.value[0]
+        labels.append(label)
+
+        embedding = feature['embedding'].float_list.value
+        embeddings.append(embedding)
+
+    embeddings = np.array(embeddings)
+
+    return files, labels, embeddings
