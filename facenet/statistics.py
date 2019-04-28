@@ -209,25 +209,16 @@ class Validation:
             f.write('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
             f.write('\n')
 
-    def write_image(self, info, file1, file2, dirname, fsize=14):
-        name1 = os.path.splitext(os.path.basename(file1))[0]
-        name2 = os.path.splitext(os.path.basename(file2))[0]
-        fname = os.path.join(dirname, '{}_{}.png'.format(name1, name2))
 
-        img1 = io.imread(file1)
-        img2 = io.imread(file2)
+class FalseExamples:
+    def __init__(self, dbase, tfrecord, threshold, metric=0, subtract_mean=False):
+        self.dbase = dbase
+        self.embeddings = tfrecord.embeddings
+        self.threshold = threshold
+        self.metric = metric
+        self.subtract_mean = subtract_mean
 
-        img = Image.fromarray(np.concatenate([img1, img2], axis=1))
-        if sys.platform == 'win32':
-            font = ImageFont.truetype("arial.ttf", fsize)
-        else:
-            font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
-
-        draw = ImageDraw.Draw(img)
-        draw.text((0, 0), '{} & {}\n{}'.format(name1, name2, info), (0, 255, 0), font=font)
-        img.save(fname)
-
-    def write_false_pairs(self, fpos_dir, fneg_dir, nrof_images=5):
+    def write_false_pairs(self, fpos_dir, fneg_dir, nrof_images=10):
 
         if not os.path.isdir(fpos_dir):
             os.makedirs(fpos_dir)
@@ -238,24 +229,26 @@ class Validation:
         if self.subtract_mean:
             mean = np.mean(self.embeddings, axis=0)
         else:
-            mean = 0.0
+            mean = 0
 
         for folder1 in range(self.dbase.nrof_folders):
+            print('\rWrite false examples {}/{}'.format(folder1, self.dbase.nrof_folders),
+                  end=utils.end(folder1, self.dbase.nrof_folders))
+
             files1, embeddings1 = self.dbase.extract_data(folder1, self.embeddings)
 
             # search false negative pairs
-            distances = pairwise_distances(embeddings1 - mean, metric=self.distance_metric)
+            distances = pairwise_distances(embeddings1 - mean, metric=self.metric)
             distances = spatial.distance.squareform(distances)
 
             for n in range(nrof_images):
                 # find maximal distances
                 i, k = np.unravel_index(np.argmax(distances), distances.shape)
 
-                if distances[i, k] > self.best_threshold:
-                    info = '{:2.3f}/{:2.3f}'.format(distances[i, k], self.best_threshold)
-                    self.write_image(info, files1[i], files1[k], fneg_dir)
-                    distances[i, :] = -1
-                    distances[:, k] = -1
+                if distances[i, k] > self.threshold:
+                    self.write_image(distances[i, k], files1[i], files1[k], fneg_dir)
+                    distances[[i, k], :] = -1
+                    distances[:, [i, k]] = -1
                 else:
                     break
 
@@ -263,43 +256,49 @@ class Validation:
             for folder2 in range(folder1+1, self.dbase.nrof_folders):
                 files2, embeddings2 = self.dbase.extract_data(folder2, self.embeddings)
 
-                distances = pairwise_distances(embeddings1-mean, embeddings2-mean, metric=self.distance_metric)
+                distances = pairwise_distances(embeddings1-mean, embeddings2-mean, metric=self.metric)
 
-                for n in range(nrof_images):
+                for n in range(nrof_images//4):
                     # find minimal distances
                     i, k = np.unravel_index(np.argmin(distances), distances.shape)
 
-                    if distances[i, k] < self.best_threshold:
-                        info = '{:2.3f}/{:2.3f}'.format(distances[i, k], self.best_threshold)
-                        self.write_image(info, files1[i], files2[k], fpos_dir)
+                    if distances[i, k] < self.threshold:
+                        self.write_image(distances[i, k], files1[i], files2[k], fpos_dir)
                         distances[i, :] = np.Inf
                         distances[:, k] = np.Inf
                     else:
                         break
 
+    def generate_filename(self, dirname, distance, file1, file2):
+        dir1 = os.path.basename(os.path.dirname(file1))
+        name1 = os.path.splitext(os.path.basename(file1))[0]
 
+        dir2 = os.path.basename(os.path.dirname(file2))
+        name2 = os.path.splitext(os.path.basename(file2))[0]
 
-        # files = self.dbase.files
-        # labels = self.dbase.labels
-        # nrof_images = self.dbase.nrof_images
-        # distances = pairwise_distances(self.embeddings - mean, self.distance_metric)
-        # count = 0
-        #
-        # for i in range(nrof_images):
-        #     for k in range(i + 1, nrof_images):
-        #         info = '{:2.3f}/{:2.3f}'.format(distances[count], self.best_threshold)
-        #
-        #         if distances[count] < self.best_threshold:
-        #             # false positives
-        #             if labels[i] != labels[k]:
-        #                 self.write_image(info, files[i], files[k], fpos_dir)
-        #         else:
-        #             # false negatives
-        #             if labels[i] == labels[k]:
-        #                 self.write_image(info, files[i], files[k], fneg_dir)
-        #
-        #         count += 1
-        #
+        return os.path.join(dirname, '{:2.3f} & {}|{} & {}|{}.png'.format(distance, dir1, name1, dir2, name2))
 
+    def generate_text(self, distance, file1, file2):
 
+        def text(file):
+            return os.path.join(os.path.basename(os.path.dirname(file)), os.path.splitext(os.path.basename(file))[0])
 
+        return '{} & {}\n{:2.3f}/{:2.3f}'.format(text(file1), text(file2), distance, self.threshold)
+
+    def write_image(self, distance, file1, file2, dirname, fsize=13):
+        fname = self.generate_filename(dirname, distance, file1, file2)
+        text = self.generate_text(distance, file1, file2)
+
+        img1 = io.imread(file1)
+        img2 = io.imread(file2)
+        img = Image.fromarray(np.concatenate([img1, img2], axis=1))
+
+        if sys.platform == 'win32':
+            font = ImageFont.truetype("arial.ttf", fsize)
+        else:
+            font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
+
+        draw = ImageDraw.Draw(img)
+        draw.text((0, 0), text, (0, 255, 0), font=font)
+
+        img.save(fname)
