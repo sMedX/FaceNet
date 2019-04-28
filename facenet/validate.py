@@ -148,7 +148,6 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     stats.print()
     stats.write_report(args.report, dbase, args)
-    stats.write_false_pairs(args.false_positive_dir, args.false_negative_dir)
 
 
 def parse_arguments(argv):
@@ -176,10 +175,6 @@ def parse_arguments(argv):
         help='Subtract feature mean before calculating distance.', action='store_true')
     parser.add_argument('--use_fixed_image_standardization', 
         help='Performs fixed standardization of images.', action='store_true')
-    parser.add_argument('--false_positive_dir', type=str,
-        help='Directory to save false positive pairs.', default='')
-    parser.add_argument('--false_negative_dir', type=str,
-        help='Directory to save false negative pairs.', default='')
     return parser.parse_args(argv[1:])
 
 
