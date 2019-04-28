@@ -120,3 +120,16 @@ def read_tfrecord(tfrecord, mode='array'):
     embeddings = np.array(embeddings)
 
     return files, labels, embeddings
+
+
+class TFRecord:
+    def __init__(self, tffile):
+        self.tffile = tffile
+        self.files, self.labels, self.embeddings = read_tfrecord(self.tffile)
+
+    def __repr__(self):
+        """Representation of the database"""
+        info = ('class {}\n'.format(self.__class__.__name__) +
+                'TFReccord {}\n'.format(self.tffile) +
+                'Embeddings [{}, {}]\n'.format(self.embeddings.shape[0], self.embeddings.shape[1]))
+        return info
