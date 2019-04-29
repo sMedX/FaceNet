@@ -150,7 +150,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     if os.path.splitext(tfrecord)[1] != '.tfrecord':
         model = os.path.splitext(os.path.basename(args.model))[0]
-        tfrecord = os.path.join(tfrecord, dbase.name + model + '.tfrecord')
+        tfrecord = os.path.join(tfrecord, '{}_{}.tfrecord'.format(dbase.name, model))
 
     if not os.path.isdir(os.path.dirname(tfrecord)):
         os.mkdir(os.path.dirname(tfrecord))
