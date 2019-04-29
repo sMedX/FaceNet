@@ -218,7 +218,7 @@ class FalseExamples:
         self.metric = metric
         self.subtract_mean = subtract_mean
 
-    def write_false_pairs(self, fpos_dir, fneg_dir, nrof_images=10):
+    def write_false_pairs(self, fpos_dir, fneg_dir, nrof_fpos_images=10, nrof_fneg_images=2):
 
         if not os.path.isdir(fpos_dir):
             os.makedirs(fpos_dir)
@@ -241,7 +241,7 @@ class FalseExamples:
             distances = pairwise_distances(embeddings1 - mean, metric=self.metric)
             distances = spatial.distance.squareform(distances)
 
-            for n in range(nrof_images):
+            for n in range(nrof_fpos_images):
                 # find maximal distances
                 i, k = np.unravel_index(np.argmax(distances), distances.shape)
 
@@ -258,7 +258,7 @@ class FalseExamples:
 
                 distances = pairwise_distances(embeddings1-mean, embeddings2-mean, metric=self.metric)
 
-                for n in range(nrof_images//4):
+                for n in range(nrof_fneg_images):
                     # find minimal distances
                     i, k = np.unravel_index(np.argmin(distances), distances.shape)
 

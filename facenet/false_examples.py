@@ -48,7 +48,9 @@ def main(args):
                              threshold=args.threshold,
                              metric=args.distance_metric,
                              subtract_mean=args.subtract_mean)
-    examples.write_false_pairs(args.false_positive_dir, args.false_negative_dir)
+    examples.write_false_pairs(args.false_positive_dir, args.false_negative_dir,
+                               nrof_fpos_images=args.nrof_fpos_images,
+                               nrof_fneg_images=args.nrof_fneg_images)
 
 
 def parse_arguments(argv):
@@ -66,8 +68,12 @@ def parse_arguments(argv):
         help='Subtract feature mean before calculating distance.', action='store_true')
     parser.add_argument('--false_positive_dir', type=str,
         help='Directory to save false positive pairs.', default='')
+    parser.add_argument('--nrof_fpos_images', type=int,
+        help='Number of false positive pairs per folder.', default=10)
     parser.add_argument('--false_negative_dir', type=str,
         help='Directory to save false negative pairs.', default='')
+    parser.add_argument('--nrof_fneg_images', type=int,
+        help='Number of false negative pairs per folder.', default=2)
     return parser.parse_args(argv[1:])
 
 
