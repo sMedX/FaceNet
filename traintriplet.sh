@@ -14,7 +14,7 @@ python3 -m facenet.train_tripletloss \
     --data_dir ${ds}/datasets/vggface2/train_mtcnn_182 \
     --image_size 160 \
     --models_base_dir ${md}/models/facenet \
-    --learning_rate_schedule_file learning_rate_schedule_classifier_vggface2.txt \
+    --learning_rate_schedule_file learning_rate_schedule_classifier_tripletloss.txt \
     --optimizer ADAM \
     --learning_rate -1 \
     --max_nrof_epochs 500 \
