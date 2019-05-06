@@ -28,17 +28,20 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
 from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
 from skimage import io, transform
 from sklearn.model_selection import KFold
-from scipy import interpolate
+from scipy import spatial, interpolate
 from tensorflow.python.training import training
 import random
 import re
 from tensorflow.python.platform import gfile
 import math
+
+from facenet import utils
 
 
 def triplet_loss(anchor, positive, negative, alpha):
@@ -449,6 +452,73 @@ def distance(embeddings1, embeddings2, distance_metric=0):
     return dist
 
 
+def distance_matrix(embeddings, distance_metric=0):
+    if distance_metric == 0:
+        # squared Euclidian distance
+        dist = spatial.distance.pdist(embeddings, metric='sqeuclidean')
+        # diff = np.subtract(embeddings1, embeddings2)
+        # dist = np.sum(np.square(diff), 1)
+    elif distance_metric == 1:
+        # Distance based on cosine similarity
+        dist = 1 - spatial.distance.pdist(embeddings, metric='cosine')
+        dist = np.arccos(dist) / math.pi
+    else:
+        raise 'Undefined distance metric %d' % distance_metric
+
+    return dist
+
+
+def roc(thresholds, embeddings, labels, nrof_folds=10, distance_metric=0, subtract_mean=False):
+    assert (embeddings.shape[0] == len(labels))
+
+    nrof_thresholds = len(thresholds)
+
+    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
+
+    tprs = np.zeros((nrof_folds, nrof_thresholds))
+    fprs = np.zeros((nrof_folds, nrof_thresholds))
+    accuracy = np.zeros(nrof_folds)
+
+    indices = np.arange(embeddings.shape[0])
+
+    # compute label matrix
+    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+        print('\rROC {}/{}'.format(fold_idx,nrof_folds), end='')
+        sys.stdout.flush()
+
+        if subtract_mean:
+            mean = np.mean(embeddings[train_set], axis=0)
+        else:
+            mean = 0.0
+
+        dist_train = distance_matrix(embeddings[train_set] - mean, distance_metric)
+        actual_issame_train = utils.label_array(labels[train_set])
+        # actual_issame_train = spatial.distance.squareform(actual_issame[np.ix_(train_set, train_set)])
+
+        dist_test = distance_matrix(embeddings[test_set] - mean, distance_metric)
+        actual_issame_test = utils.label_array(labels[test_set])
+        # actual_issame_test = spatial.distance.squareform(actual_issame[np.ix_(test_set, test_set)])
+
+        # Find the best threshold for the fold
+        acc_train = np.zeros(nrof_thresholds)
+        for idx, threshold in enumerate(thresholds):
+            _, _, acc_train[idx] = calculate_accuracy(threshold, dist_train, actual_issame_train)
+
+        best_threshold_index = np.argmax(acc_train)
+
+        for idx, threshold in enumerate(thresholds):
+            tprs[fold_idx, idx], fprs[fold_idx, idx], _ = calculate_accuracy(threshold, dist_test, actual_issame_test)
+
+        _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist_test, actual_issame_test)
+
+    print()
+
+    tpr = np.mean(tprs, 0)
+    fpr = np.mean(fprs, 0)
+
+    return tpr, fpr, accuracy
+
+
 def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_folds=10, distance_metric=0, subtract_mean=False):
     assert(embeddings1.shape[0] == embeddings2.shape[0])
     assert(embeddings1.shape[1] == embeddings2.shape[1])
@@ -495,7 +565,58 @@ def calculate_accuracy(threshold, dist, actual_issame):
     acc = float(tp+tn)/dist.size
     return tpr, fpr, acc
 
-  
+
+def val(thresholds, embeddings, labels, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
+    assert (embeddings.shape[0] == len(labels))
+
+    nrof_thresholds = len(thresholds)
+    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
+
+    val = np.zeros(nrof_folds)
+    far = np.zeros(nrof_folds)
+
+    indices = np.arange(embeddings.shape[0])
+
+    # compute label matrix
+    # actual_issame = utils.label_matrix(image_paths, diagonal=False)
+
+    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+        print('\rVAL {}/{}'.format(fold_idx, nrof_folds), end='')
+        sys.stdout.flush()
+
+        if subtract_mean:
+            mean = np.mean(embeddings[train_set], axis=0)
+        else:
+            mean = 0.0
+
+        dist_train = distance_matrix(embeddings[train_set] - mean, distance_metric)
+        actual_issame_train = utils.label_array(labels[train_set])
+
+        dist_test = distance_matrix(embeddings[test_set] - mean, distance_metric)
+        actual_issame_test = utils.label_array(labels[test_set])
+
+        # Find the threshold that gives FAR = far_target
+        far_train = np.zeros(nrof_thresholds)
+        for idx, threshold in enumerate(thresholds):
+            _, far_train[idx] = calculate_val_far(threshold, dist_train, actual_issame_train)
+
+        if np.max(far_train) >= far_target:
+            f = interpolate.interp1d(far_train, thresholds, kind='slinear')
+            threshold = f(far_target)
+        else:
+            threshold = 0.0
+
+        val[fold_idx], far[fold_idx] = calculate_val_far(threshold, dist_test, actual_issame_test)
+
+    print()
+
+    val_mean = np.mean(val)
+    far_mean = np.mean(far)
+    val_std = np.std(val)
+
+    return val_mean, val_std, far_mean
+
+
 def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_target, nrof_folds=10, distance_metric=0, subtract_mean=False):
     assert(embeddings1.shape[0] == embeddings2.shape[0])
     assert(embeddings1.shape[1] == embeddings2.shape[1])
@@ -539,8 +660,8 @@ def calculate_val_far(threshold, dist, actual_issame):
     false_accept = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     n_same = np.sum(actual_issame)
     n_diff = np.sum(np.logical_not(actual_issame))
-    val = float(true_accept) / float(n_same)
-    far = float(false_accept) / float(n_diff)
+    val = 1 if n_same == 0 else float(true_accept) / float(n_same)
+    far = 1 if n_diff == 0 else float(false_accept) / float(n_diff)
     return val, far
 
 
