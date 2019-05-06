@@ -196,6 +196,9 @@ def main(args):
                             batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, actual_issame, args.batch_size, 
                             args.lfw_nrof_folds, log_dir, step, summary_writer, args.embedding_size)
 
+    print('Model directory: %s' % model_dir)
+    print('Log directory: %s' % log_dir)
+
     return model_dir
 
 

@@ -270,7 +270,9 @@ def main(args):
                     for key, value in stat.items():
                         f.create_dataset(key, data=value)
 
-    print('model directory', model_dir)
+    print('Model directory: %s' % model_dir)
+    print('Log directory: %s' % log_dir)
+
     return model_dir
 
 
