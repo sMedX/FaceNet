@@ -404,20 +404,6 @@ def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_n
     summary_writer.add_summary(summary, step)
   
   
-def get_learning_rate_from_file(filename, epoch):
-    with open(filename, 'r') as f:
-        for line in f.readlines():
-            line = line.split('#', 1)[0]
-            if line:
-                par = line.strip().split(':')
-                e = int(par[0])
-                lr = float(par[1])
-                if e <= epoch:
-                    learning_rate = lr
-                else:
-                    return learning_rate
-    
-
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
