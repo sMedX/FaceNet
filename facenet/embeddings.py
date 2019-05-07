@@ -119,7 +119,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     lab_array = np.zeros((nrof_images,))
 
     for i in range(nrof_batches):
-        print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end='')
+        print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end=utils.end(i, nrof_batches))
 
         if (i+1) == nrof_batches:
             batch_size = nrof_images % args.batch_size
@@ -130,8 +130,6 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
         lab_array[lab] = lab
         emb_array[lab, :] = emb
-
-    print('')
 
     embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
 
