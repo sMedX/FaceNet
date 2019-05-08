@@ -116,7 +116,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     nrof_batches = math.ceil(nrof_images/args.batch_size)
 
     emb_array = np.zeros((nrof_images, embedding_size))
-    lab_array = np.zeros((nrof_images,), dtype=np.int32)
+    lab_array = np.zeros((nrof_images,), dtype=np.int64)
 
     for i in range(nrof_batches):
         print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end=utils.end(i, nrof_batches))
