@@ -131,7 +131,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         lab_array[lab] = lab
         emb_array[lab, :] = emb
 
-    embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
+    embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips), dtype=emb_array.dtype)
 
     if args.use_flipped_images:
         # Concatenate embeddings for flipped and non flipped version of the images
