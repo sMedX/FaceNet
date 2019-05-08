@@ -55,10 +55,10 @@ def main(args):
  
             nrof_preprocess_threads = 4
             image_size = (args.image_size, args.image_size)
-            eval_input_queue = data_flow_ops.FIFOQueue(capacity=2000000,
-                                        dtypes=[tf.string, tf.int32, tf.int32],
-                                        shapes=[(1,), (1,), (1,)],
-                                        shared_name=None, name=None)
+            eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
+                                                       dtypes=[tf.string, tf.int32, tf.int32],
+                                                       shapes=[(1,), (1,), (1,)],
+                                                       shared_name=None, name=None)
 
             eval_enqueue_op = eval_input_queue.enqueue_many([image_paths_placeholder,
                                                              labels_placeholder,
@@ -116,7 +116,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     nrof_batches = math.ceil(nrof_images/args.batch_size)
 
     emb_array = np.zeros((nrof_images, embedding_size))
-    lab_array = np.zeros((nrof_images,))
+    lab_array = np.zeros((nrof_images,), dtype=np.int32)
 
     for i in range(nrof_batches):
         print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end=utils.end(i, nrof_batches))
