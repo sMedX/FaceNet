@@ -100,10 +100,6 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     if args.use_fixed_image_standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
 
-    if args.use_flipped_images:
-        # Flip every second image
-        control_array += (labels_array % 2)*facenet.FLIP
-
     sess.run(enqueue_op, {image_paths_placeholder: image_paths_array,
                           labels_placeholder: labels_array,
                           control_placeholder: control_array})
