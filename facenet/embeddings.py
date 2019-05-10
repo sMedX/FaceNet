@@ -91,12 +91,10 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     # Enqueue one epoch of image paths and labels
     nrof_embeddings = dbase.nrof_images
-
-    nrof_flips = 2 if args.use_flipped_images else 1
-    nrof_images = nrof_embeddings * nrof_flips
+    nrof_images = dbase.nrof_images
 
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
+    image_paths_array = np.expand_dims(np.array(dbase.files), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
     if args.use_fixed_image_standardization:
@@ -131,15 +129,6 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         lab_array[lab] = lab
         emb_array[lab, :] = emb
 
-    embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips), dtype=emb_array.dtype)
-
-    if args.use_flipped_images:
-        # Concatenate embeddings for flipped and non flipped version of the images
-        embeddings[:, :embedding_size] = emb_array[0::2, :]
-        embeddings[:, embedding_size:] = emb_array[1::2, :]
-    else:
-        embeddings = emb_array
-
     assert np.array_equal(lab_array, np.arange(nrof_images)), \
         'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
 
@@ -154,7 +143,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         os.mkdir(os.path.dirname(tfrecord))
 
     # write tf record file
-    utils.write_tfrecord(tfrecord, dbase.filenames(mode='with_dir'), dbase.labels, embeddings)
+    utils.write_tfrecord(tfrecord, dbase.filenames(mode='with_dir'), dbase.labels, emb_array)
 
 
 def parse_arguments(argv):
@@ -172,8 +161,6 @@ def parse_arguments(argv):
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,
         help='Image size (height, width) in pixels.', default=160)
-    parser.add_argument('--use_flipped_images',
-        help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--use_fixed_image_standardization',
         help='Performs fixed standardization of images.', action='store_true')
     return parser.parse_args(argv[1:])
