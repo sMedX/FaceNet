@@ -5,7 +5,7 @@ size=160
 margin=32
 detector=frcnnv3
 
-python facenet/apps/extract_faces.py \
+python -m facenet.apps.extract_faces \
  ~/datasets/vggface2/train/ \
  ~/datasets/vggface2/train_${detector}extracted_${size} \
  --detector ${detector} \
