@@ -100,9 +100,9 @@ def parse_arguments(argv):
     parser.add_argument('--detector', type=str,
                         help='Detector to extract faces, pypimtcnn or frcnnv3.', default='frcnnv3')
     parser.add_argument('--image_size', type=int,
-                        help='Image size (height, width) in pixels.', default=182)
-    parser.add_argument('--margin', type=float,
-                        help='Margin for the crop around the bounding box (height, width) in pixels.', default=0.2)
+                        help='Image size (height, width) in pixels.', default=160)
+    parser.add_argument('--margin', type=int,
+                        help='Margin for the crop around the bounding box (height, width) in pixels.', default=32)
     parser.add_argument('--random_order',
                         help='Shuffles the order of images to enable alignment using multiple processes.', action='store_true')
     parser.add_argument('--gpu_memory_fraction', type=float,

@@ -1,8 +1,8 @@
 #!/bin/bash 
 echo "align VGGFace2 datasets using extract_faces"
 
-size=182
-margin=0.2
+size=160
+margin=32
 detector=frcnnv3
 
 python apps/extract_faces.py \

@@ -11,13 +11,16 @@ def image_processing(image, box, size, margin=0):
         raise ValueError('Input must be type PIL.Image')
 
     if isinstance(size, int):
-        size = (size, size)
+        size = [size, size]
 
-    width_offset = round(box.width * margin/2)
-    height_offset = round(box.height * margin/2)
+    height_margin = round(box.height*margin/size[0])
+    width_margin = round(box.width*margin/size[1])
 
-    cropped = image.crop((box.left - width_offset, box.top - height_offset,
-                          box.right + width_offset, box.bottom + height_offset))
+    size[0] = size[0] + 2*margin
+    size[1] = size[1] + 2*margin
+
+    cropped = image.crop((box.left - width_margin, box.top - height_margin,
+                          box.right + width_margin, box.bottom + height_margin))
 
     resized = cropped.resize(size, Image.ANTIALIAS)
 
