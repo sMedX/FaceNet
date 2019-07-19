@@ -8,6 +8,7 @@ import os
 import argparse
 import numpy as np
 import random
+import pathlib as plib
 
 from facenet import ioutils
 from facenet import facenet
@@ -66,13 +67,8 @@ def main(args):
 
     output_file = args.output
     if output_file is None:
-        input_dir = args.input_dir
-        if input_dir == os.path.sep:
-            input_dir = input_dir[:-1]
-
-        dirname = os.path.dirname(os.path.expanduser(input_dir))
-        basename = os.path.basename(os.path.expanduser(input_dir))
-        output_file = os.path.join(dirname, '{}_{}_statistics.txt'.format(basename, args.detector))
+        input_dir = plib.Path(args.input_dir).expanduser()
+        output_file = input_dir.parent.joinpath('{}_{}_statistics.txt'.format(input_dir.name, args.detector))
 
     print('Output statistic file', output_file)
 
