@@ -6,7 +6,6 @@
 import sys
 import os
 import argparse
-import numpy as np
 
 from facenet import ioutils
 from facenet import facenet
@@ -27,9 +26,7 @@ def main(args):
     detector = FaceDetector(detector=args.detector, gpu_memory_fraction=args.gpu_memory_fraction)
     print(detector)
 
-    # add a random key to the filename to allow alignment using multiple processes
-    random_key = np.random.randint(0, high=99999)
-    bounding_boxes_filename = os.path.join(output_dir, 'bounding_boxes_%05d.txt' % random_key)
+    bounding_boxes_filename = os.path.join(output_dir, 'bounding_boxes.txt')
     
     with open(bounding_boxes_filename, 'w') as text_file:
         nrof_images_total = 0
