@@ -3,9 +3,43 @@ __author__ = 'Ruslan N. Kosarev'
 
 import os
 import time
-from PIL import Image
 import numpy as np
 import pathlib as plib
+import datetime
+import tensorflow as tf
+from PIL import Image
+from subprocess import Popen, PIPE
+
+
+def store_revision_info(src_path, output_filename, arg_string, mode='w'):
+    if os.path.isdir(output_filename):
+        output_filename = os.path.join(output_filename, 'revision_info.txt')
+
+    try:
+        # Get git hash
+        cmd = ['git', 'rev-parse', 'HEAD']
+        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        (stdout, _) = gitproc.communicate()
+        git_hash = stdout.strip()
+    except OSError as e:
+        git_hash = ' '.join(cmd) + ': ' + e.strerror
+
+    try:
+        # Get local changes
+        cmd = ['git', 'diff', 'HEAD']
+        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        (stdout, _) = gitproc.communicate()
+        git_diff = stdout.strip()
+    except OSError as e:
+        git_diff = ' '.join(cmd) + ': ' + e.strerror
+
+    # Store a text file in the log directory
+    with open(output_filename, mode) as f:
+        f.write('{}\n'.format(datetime.datetime.now()))
+        f.write('arguments: %s\n--------------------\n' % arg_string)
+        f.write('tensorflow version: %s\n--------------------\n' % tf.__version__)  # @UndefinedVariable
+        f.write('git hash: %s\n--------------------\n' % git_hash)
+        f.write('%s' % git_diff)
 
 
 def makedirs(dirname):
