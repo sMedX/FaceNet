@@ -7,16 +7,13 @@ import sys
 import os
 import argparse
 import numpy as np
-from time import sleep
-import random
 
 from facenet import ioutils
 from facenet import facenet
-from facenet.align.face_detector import image_processing, FaceDetector
+from facenet.detectors.face_detector import image_processing, FaceDetector
 
 
 def main(args):
-    sleep(random.random())
     output_dir = os.path.expanduser(args.output_dir)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -38,16 +35,10 @@ def main(args):
         nrof_images_total = 0
         nrof_successfully_aligned = 0
 
-        if args.random_order:
-            random.shuffle(dataset)
-
         for cls in dataset:
             # define output class directory if exists skip this class
             output_class_dir = os.path.join(output_dir, cls.name)
-            if os.path.exists(output_class_dir):
-                continue
-
-            os.makedirs(output_class_dir)
+            ioutils.makedirs(output_class_dir)
 
             for image_path in cls.image_paths:
                 nrof_images_total += 1
@@ -103,8 +94,6 @@ def parse_arguments(argv):
                         help='Image size (height, width) in pixels.', default=160)
     parser.add_argument('--margin', type=int,
                         help='Margin for the crop around the bounding box (height, width) in pixels.', default=32)
-    parser.add_argument('--random_order',
-                        help='Shuffles the order of images to enable alignment using multiple processes.', action='store_true')
     parser.add_argument('--gpu_memory_fraction', type=float,
                         help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
     parser.add_argument('--detect_multiple_faces', type=bool,

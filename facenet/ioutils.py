@@ -8,7 +8,7 @@ import numpy as np
 import pathlib as plib
 
 
-def mkdir(dirname):
+def makedirs(dirname):
     dirname = plib.Path(dirname)
 
     if not dirname.exists():
@@ -19,7 +19,7 @@ def write_image(image, filename, prefix=None, mode='RGB'):
     if prefix is not None:
         filename = os.path.join(str(prefix), str(filename))
 
-    mkdir(os.path.dirname(filename))
+    makedirs(os.path.dirname(filename))
 
     if isinstance(image, np.ndarray):
         image = array2pil(image, mode=mode)
