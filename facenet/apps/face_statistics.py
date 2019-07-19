@@ -66,8 +66,12 @@ def main(args):
 
     output_file = args.output
     if output_file is None:
-        dirname = os.path.dirname(os.path.expanduser(args.input_dir))
-        basename = os.path.basename(os.path.expanduser(args.input_dir))
+        input_dir = args.input_dir
+        if input_dir == os.path.sep:
+            input_dir = input_dir[:-1]
+
+        dirname = os.path.dirname(os.path.expanduser(input_dir))
+        basename = os.path.basename(os.path.expanduser(input_dir))
         output_file = os.path.join(dirname, '{}_{}_statistics.txt'.format(basename, args.detector))
 
     print('Output statistic file', output_file)
