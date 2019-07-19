@@ -39,7 +39,7 @@ def store_revision_info(src_path, output_filename, arg_string, mode='w'):
         f.write('arguments: %s\n--------------------\n' % arg_string)
         f.write('tensorflow version: %s\n--------------------\n' % tf.__version__)  # @UndefinedVariable
         f.write('git hash: %s\n--------------------\n' % git_hash)
-        f.write('%s\n' % git_diff)
+        f.write('git diff: %s\n' % git_diff)
         f.write('\n')
 
 
