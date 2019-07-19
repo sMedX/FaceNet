@@ -8,4 +8,4 @@ detector=frcnnv3
 python -m facenet.apps.face_statistics \
  ~/datasets/vggface2/train \
  --detector ${detector} \
- --nrof_images 100000
+ --nrof_images 10000
