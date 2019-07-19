@@ -40,6 +40,7 @@ def store_revision_info(src_path, output_filename, arg_string, mode='w'):
         f.write('tensorflow version: %s\n--------------------\n' % tf.__version__)  # @UndefinedVariable
         f.write('git hash: %s\n--------------------\n' % git_hash)
         f.write('%s' % git_diff)
+        f.write('\n')
 
 
 def makedirs(dirname):
