@@ -81,10 +81,13 @@ def main(args):
         f.write('detector {}\n'.format(args.detector))
         f.write('\n')
 
+        levels = np.linspace(0, 1, 11)
+
         for name, array in zip(['width', 'height'], [width, height]):
             f.write('statistics for {}\n'.format(name))
             f.write('mean {}\n'.format(np.mean(array)))
             f.write('median {}\n'.format(np.median(array)))
+            f.write('quantiles {} /{}\n'.format(np.quantile(array, levels), levels))
             f.write('range {}\n'.format([min(array), max(array)]))
             f.write('\n')
 
