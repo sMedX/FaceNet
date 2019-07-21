@@ -99,7 +99,7 @@ def main(args):
             pretrained_model = config.pretrained_model
         else:
             pretrained_model = os.path.expanduser(args.pretrained_model)
-        print('Pre-trained model: {}'.format(pretrained_model))
+        print('Pre-trained model: {}'.format(str(pretrained_model)))
     
     if args.lfw_dir:
         print('LFW directory: %s' % args.lfw_dir)
