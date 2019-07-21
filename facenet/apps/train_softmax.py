@@ -95,9 +95,10 @@ def main(args):
     print('Log directory: %s' % log_dir)
     pretrained_model = None
     if args.pretrained_model:
-        pretrained_model = os.path.expanduser(args.pretrained_model)
         if args.pretrained_model == 'default':
             pretrained_model = config.pretrained_model
+        else:
+            pretrained_model = os.path.expanduser(args.pretrained_model)
         print('Pre-trained model: {}'.format(pretrained_model))
     
     if args.lfw_dir:
