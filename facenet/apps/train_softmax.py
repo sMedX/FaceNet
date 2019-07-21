@@ -43,10 +43,14 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
 from facenet import lfw
+from facenet.config import DefaultConfig
 from facenet import facenet
+
+config = DefaultConfig()
 
 
 def main(args):
+
     print('import model \'{}\''.format(args.model_def))
     network = importlib.import_module(args.model_def)
     image_size = (args.image_size, args.image_size)
@@ -92,7 +96,9 @@ def main(args):
     pretrained_model = None
     if args.pretrained_model:
         pretrained_model = os.path.expanduser(args.pretrained_model)
-        print('Pre-trained model: %s' % pretrained_model)
+        if args.pretrained_model == 'default':
+            pretrained_model = config.pretrained_model
+        print('Pre-trained model: {}'.format(pretrained_model))
     
     if args.lfw_dir:
         print('LFW directory: %s' % args.lfw_dir)
@@ -516,7 +522,7 @@ def parse_arguments(argv):
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch.', default=90)
     parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=160)
+        help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--epoch_size', type=int,
         help='Number of batches per epoch.', default=1000)
     parser.add_argument('--embedding_size', type=int,
@@ -586,7 +592,8 @@ def parse_arguments(argv):
     parser.add_argument('--lfw_nrof_folds', type=int,
         help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
     parser.add_argument('--lfw_distance_metric', type=int,
-        help='Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.', default=0)
+                        help='Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.',
+                        default=config.distance_metric)
     parser.add_argument('--lfw_use_flipped_images', 
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--lfw_subtract_mean', 
