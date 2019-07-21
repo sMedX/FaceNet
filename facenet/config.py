@@ -4,14 +4,12 @@ __author__ = 'Ruslan N. Kosarev'
 import os
 import pathlib as plib
 
-dirname = os.path.dirname(__file__)
+basedir = plib.Path(__file__).parents[1]
 
 
 class DefaultConfig:
     def __init__(self):
-        self.pretrained_model = plib.Path(dirname).joinpath('models',
-                                                            '20190410-013706',
-                                                            '20190410-013706.pb')
+        self.pretrained_model = basedir.joinpath('models', '20190410-013706', '20190410-013706.pb')
 
         # type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance
         self.distance_metric = 1
