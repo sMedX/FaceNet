@@ -29,15 +29,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import sys
 import tensorflow as tf
+from tensorflow.python.ops import data_flow_ops
 import math
 import numpy as np
 import argparse
+import pathlib as plib
+
 from facenet import dataset
 from facenet.statistics import Validation
 from facenet import facenet
-import sys
-from tensorflow.python.ops import data_flow_ops
+
+from facenet.config import DefaultConfig
+config = DefaultConfig()
 
 
 def main(args):
@@ -63,7 +68,13 @@ def main(args):
             eval_enqueue_op = eval_input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name='eval_enqueue_op')
             image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)
      
-            # Load the model
+            # load the model to validate
+            if args.model == 'default':
+                args.model = config.model
+            else:
+                args.model = plib.Path(args.model).expanduser()
+            print('Pre-trained model: {}'.format(args.model))
+
             input_map = {'image_batch': image_batch, 'label_batch': label_batch, 'phase_train': phase_train_placeholder}
             facenet.load_model(args.model, input_map=input_map)
 
@@ -153,8 +164,9 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('model', type=str,
-        help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file')
+    parser.add_argument('--model', type=str,
+        help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
+        default='default')
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
     parser.add_argument('--report', type=str,
@@ -164,11 +176,11 @@ def parse_arguments(argv):
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=160)
+        help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--nrof_folds', type=int,
-        help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
+        help='Number of folds to use for cross validation. Mainly used for testing.', default=0)
     parser.add_argument('--distance_metric', type=int,
-        help='Distance metric  0:euclidian, 1:cosine similarity.', default=0)
+        help='Distance metric  0:euclidian, 1:cosine similarity.', default=config.distance_metric)
     parser.add_argument('--use_flipped_images',
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--subtract_mean',
