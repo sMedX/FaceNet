@@ -40,6 +40,7 @@ import random
 import re
 from tensorflow.python.platform import gfile
 import math
+import pathlib
 
 from facenet import utils
 
@@ -384,30 +385,31 @@ def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
 
 
 def load_model(model, input_map=None):
-    # Check if the model is a model directory (containing a metagraph and a checkpoint file) or if it is
-    # a protobuf file with a frozen graph
-    model_exp = os.path.expanduser(model)
+    # Check if the model is a model directory (containing a metagraph and a checkpoint file) or
+    # if it is a protobuf file with a frozen graph
 
-    if os.path.isfile(model_exp):
+    model_exp = pathlib.Path(model).expanduser()
+
+    if model_exp.is_file:
         print('Model filename: {}'.format(model_exp))
-        with gfile.FastGFile(model_exp, 'rb') as f:
+        with gfile.FastGFile(str(model_exp), 'rb') as f:
             graph_def = tf.GraphDef()
             graph_def.ParseFromString(f.read())
             tf.import_graph_def(graph_def, input_map=input_map, name='')
     else:
-        pb_file = os.path.join(model_exp, os.path.basename(model_exp) + '.pb')
+        pb_file = model_exp.joinpath(model_exp.name + '.pb')
 
-        if os.path.isfile(pb_file):
+        if pb_file.is_file:
             load_model(pb_file, input_map=input_map)
         else:
             print('Model directory: {}'.format(model_exp))
-            meta_file, ckpt_file = get_model_filenames(model_exp)
+            meta_file, ckpt_file = get_model_filenames(str(model_exp))
         
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
       
-            saver = tf.train.import_meta_graph(os.path.join(model_exp, meta_file), input_map=input_map)
-            saver.restore(tf.get_default_session(), os.path.join(model_exp, ckpt_file))
+            saver = tf.train.import_meta_graph(str(model_exp.joinpath(meta_file)), input_map=input_map)
+            saver.restore(tf.get_default_session(), str(model_exp.joinpath(ckpt_file)))
 
 
 def get_model_filenames(model_dir):
