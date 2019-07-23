@@ -93,14 +93,15 @@ def main(args):
     
     print('Model directory: %s' % model_dir)
     print('Log directory: %s' % log_dir)
-    pretrained_model = None
+
     if args.pretrained_model:
-        if args.pretrained_model == 'default':
-            pretrained_model = config.pretrained_model
-        else:
-            pretrained_model = os.path.expanduser(args.pretrained_model)
-        print('Pre-trained model: {}'.format(pretrained_model))
-    
+        pretrained_model = args.pretrained_model
+        if pretrained_model == 'default':
+            pretrained_model = config.model
+    else:
+        pretrained_model = None
+    print('Pre-trained model: {}'.format(pretrained_model))
+
     if args.lfw_dir:
         print('LFW directory: %s' % args.lfw_dir)
         # Read the file containing the pairs used for testing
@@ -214,8 +215,8 @@ def main(args):
 
         with sess.as_default():
 
-            if pretrained_model:
-                print('Restoring pretrained model: %s' % pretrained_model)
+            if pretrained_model is not None:
+                print('Restoring pretrained model: {}'.format(pretrained_model))
                 saver.restore(sess, str(pretrained_model))
 
             # Training and validation loop
@@ -512,7 +513,7 @@ def parse_arguments(argv):
     parser.add_argument('--gpu_memory_fraction', type=float,
         help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
     parser.add_argument('--pretrained_model', type=str,
-        help='Load a pretrained model before training starts.')
+        help='Load a pretrained model before training starts.', default='default')
     parser.add_argument('--data_dir', type=str,
         help='Path to the data directory containing aligned face patches.',
         default='~/datasets/casia/casia_maxpy_mtcnnalign_182_160')
