@@ -178,7 +178,7 @@ def parse_arguments(argv):
     parser.add_argument('--image_size', type=int,
         help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--nrof_folds', type=int,
-        help='Number of folds to use for cross validation. Mainly used for testing.', default=0)
+        help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
     parser.add_argument('--distance_metric', type=int,
         help='Distance metric  0:euclidian, 1:cosine similarity.', default=config.distance_metric)
     parser.add_argument('--use_flipped_images',
