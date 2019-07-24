@@ -57,7 +57,7 @@ def main(args):
                         print('Unable to find dace "{}"'.format(image_path))
                         text_file.write('{}\n'.format(output_filename))
                     elif nrof_faces > 1 and not args.detect_multiple_faces:
-                        print('The number of detected  faces more than one "{}"'.format(image_path))
+                        print('The number of detected faces more than one "{}"'.format(image_path))
                         text_file.write('{}\n'.format(output_filename))
                     else:
                         nrof_successfully_aligned += 1
