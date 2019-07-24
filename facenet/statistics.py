@@ -81,12 +81,17 @@ def confidence_matrix(threshold, distances, labels):
 class ConfidenceMatrix:
     def __init__(self, threshold, distances, labels):
         self.tp, self.fp, self.tn, self.fn = confidence_matrix(threshold, distances, labels)
+        # self.tp_rate = float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+        # self.fp_rate = float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
 
-        self.tp_rate = float(0) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
-        self.fp_rate = float(0) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
-        self.accuracy = float(self.tp + self.tn) / float(self.tp + self.fp + self.tn + self.fn)
-        self.far = float(1) if (self.fp + self.tn == 0) else float(self.fp) / float(self.fp + self.tn)
-        self.val = float(1) if (self.tp + self.fn == 0) else float(self.tp) / float(self.tp + self.fn)
+        self.precision = float(1) if (self.tp + self.fp == 0) else self.tp / (self.tp + self.fp)
+        self.accuracy = (self.tp + self.tn) / (self.tp + self.fp + self.tn + self.fn)
+
+        # true positive rate, validation rate, sensitivity or recall
+        self.tp_rate = float(1) if (self.tp + self.fn == 0) else self.tp / (self.tp + self.fn)
+
+        # false positive rate, false alarm rate, 1 - specificity
+        self.fp_rate = float(0) if (self.fp + self.tn == 0) else self.fp / (self.fp + self.tn)
 
 
 class Validation:
@@ -106,14 +111,15 @@ class Validation:
 
         k_fold = KFold(n_splits=nrof_folds, shuffle=False)
 
+        self.best_thresholds = np.zeros(nrof_folds)
+        accuracy = np.zeros(nrof_folds)
+        precision = np.zeros(nrof_folds)
+
         tprs = np.zeros((nrof_folds, nrof_thresholds))
         fprs = np.zeros((nrof_folds, nrof_thresholds))
 
-        self.best_thresholds = np.zeros(nrof_folds)
-        accuracy = np.zeros(nrof_folds)
-
-        val = np.zeros(nrof_folds)
-        far = np.zeros(nrof_folds)
+        tp_rate = np.zeros(nrof_folds)
+        fp_rate = np.zeros(nrof_folds)
 
         indices = np.arange(len(labels))
 
@@ -130,22 +136,22 @@ class Validation:
             labels_train = pairwise_labels(labels[train_set])
 
             acc_train = np.zeros(nrof_thresholds)
-            far_train = np.zeros(nrof_thresholds)
+            fp_rate_train = np.zeros(nrof_thresholds)
 
             for idx, threshold in enumerate(thresholds):
                 cm = ConfidenceMatrix(threshold, dist_train, labels_train)
                 acc_train[idx] = cm.accuracy
-                far_train[idx] = cm.far
+                fp_rate_train[idx] = cm.fp_rate
 
             # find the best threshold for the fold
             self.best_thresholds[fold_idx] = thresholds[np.argmax(acc_train)]
 
             # find the threshold that gives FAR = far_target
-            if np.max(far_train) >= far_target:
-                f = interpolate.interp1d(far_train, thresholds, kind='slinear')
-                far_threshold = f(far_target)
+            if np.max(fp_rate_train) >= far_target:
+                f = interpolate.interp1d(fp_rate_train, thresholds, kind='slinear')
+                fp_rate_threshold = f(far_target)
             else:
-                far_threshold = 0.0
+                fp_rate_threshold = 0.0
 
             # evaluations with test set
             dist_test = pairwise_distances(embeddings[test_set] - mean, metric=distance_metric)
@@ -158,34 +164,47 @@ class Validation:
 
             cm = ConfidenceMatrix(self.best_thresholds[fold_idx], dist_test, labels_test)
             accuracy[fold_idx] = cm.accuracy
+            precision[fold_idx] = cm.precision
 
-            cm = ConfidenceMatrix(far_threshold, dist_test, labels_test)
-            val[fold_idx] = cm.val
-            far[fold_idx] = cm.far
-
-        self.tp_rate = np.mean(tprs, 0)
-        self.fp_rate = np.mean(fprs, 0)
+            cm = ConfidenceMatrix(fp_rate_threshold, dist_test, labels_test)
+            tp_rate[fold_idx] = cm.tp_rate
+            fp_rate[fold_idx] = cm.fp_rate
 
         self.accuracy = accuracy
         self.accuracy_mean = np.mean(self.accuracy)
         self.accuracy_std = np.std(self.accuracy)
 
-        self.val = np.mean(val)
-        self.val_std = np.std(val)
-        self.far = np.mean(far)
-        self.auc = metrics.auc(self.fp_rate, self.tp_rate)
+        self.precision = precision
+        self.precision_mean = np.mean(self.precision)
+        self.precision_std = np.std(self.precision)
+
+        self.tp_rate = tp_rate
+        self.tpr_mean = np.mean(tp_rate)
+        self.tpr_std = np.std(tp_rate)
+
+        self.fp_rate = fp_rate
+        self.fpr_mean = np.mean(fp_rate)
+        self.fpr_std = np.std(fp_rate)
 
         self.best_threshold = np.mean(self.best_thresholds)
         self.best_threshold_std = np.std(self.best_thresholds)
 
+        tprs = np.mean(tprs, 0)
+        fprs = np.mean(fprs, 0)
+
         try:
-            self.eer = brentq(lambda x: 1. - x - interpolate.interp1d(self.fp_rate, self.tp_rate)(x), 0., 1.)
+            self.auc = metrics.auc(tprs, fprs)
+        except Exception:
+            self.auc = -1
+
+        try:
+            self.eer = brentq(lambda x: 1. - x - interpolate.interp1d(tprs, fprs)(x), 0., 1.)
         except Exception:
             self.eer = -1
 
     def print(self):
         print('Accuracy: {:2.5f}+-{:2.5f}'.format(self.accuracy_mean, self.accuracy_std))
-        print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(self.val, self.val_std, self.far))
+        print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(self.tpr_mean, self.tpr_std, self.fpr_mean))
         print('Area Under Curve (AUC): {:1.5f}'.format(self.auc))
         print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
         print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
@@ -202,11 +221,16 @@ class Validation:
             f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
             f.write('distance metric: {}\n'.format(args.distance_metric))
             f.write('subtract mean: {}\n'.format(args.subtract_mean))
+            f.write('\n')
             f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(self.accuracy_mean, self.accuracy_std))
-            f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(self.val, self.val_std, self.far))
+            f.write('Precision: {:2.5f}+-{:2.5f}\n'.format(self.precision_mean, self.precision_std))
+            f.write('Sensitivity (TPR): {:2.5f}+-{:2.5f}\n'.format(self.tpr_mean, self.tpr_std))
+            f.write('Specificity (TNR): {:2.5f}+-{:2.5f}\n'.format(1-self.fpr_mean, self.fpr_std))
+            f.write('\n')
+            f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(self.tpr_mean, self.tpr_std, self.fpr_mean))
             f.write('Area Under Curve (AUC): {:1.5f}\n'.format(self.auc))
             f.write('Equal Error Rate (EER): {:1.5f}\n'.format(self.eer))
-            f.write('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
+            f.write('Threshold: {:2.5f}+-{:2.5f}\n'.format(self.best_threshold, self.best_threshold_std))
             f.write('\n')
 
 
