@@ -124,19 +124,7 @@ class ImageLoader:
 
 
 def pil2array(image, mode='RGB'):
-
-    if image.mode == mode.upper():
-        return np.array(image)
-
-    output = []
-    for channel in mode.upper():
-        if channel in image.getbands():
-            output.append(np.array(image.getchannel(channel)))
-        else:
-            output.append(np.array(image.getchannel('L')))
-
-    output = np.stack(output, axis=2)
-    return output
+    return np.array(image.convert(mode.upper()))
 
 
 def array2pil(image, mode='RGB'):
