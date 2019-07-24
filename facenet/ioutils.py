@@ -129,12 +129,14 @@ def pil2array(image, mode='RGB'):
         return np.array(image)
 
     output = []
-
     for channel in mode.upper():
-        output.append(np.array(image.getchannel(channel)))
+        if channel in image.getbands():
+            output.append(np.array(image.getchannel(channel)))
+        else:
+            print(image.getbands())
+            output.append(np.array(image.getchannel('L')))
 
     output = np.stack(output, axis=2)
-
     return output
 
 
