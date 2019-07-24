@@ -210,6 +210,8 @@ class Validation:
         print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
 
     def write_report(self, file, dbase, args):
+        print('Report has been printed to the file: {}'.format(file))
+
         git_hash, git_diff = utils.git_hash()
         with open(os.path.expanduser(file), 'at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
