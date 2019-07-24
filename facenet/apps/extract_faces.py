@@ -48,7 +48,7 @@ def main(args):
                     # this function returns PIL.Image object
                     img = ioutils.read_image(image_path, mode='RGB')
                 except (IOError, ValueError, IndexError) as e:
-                    print('{}: {}'.format(image_path, e))
+                    print(e)
                 else:
                     bounding_boxes = detector.detect(img)
                     nrof_faces = len(bounding_boxes)
