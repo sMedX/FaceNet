@@ -54,10 +54,10 @@ def main(args):
                     nrof_faces = len(bounding_boxes)
 
                     if nrof_faces == 0:
-                        print('Unable to align "{}"'.format(image_path))
+                        print('Unable to find dace "{}"'.format(image_path))
                         text_file.write('{}\n'.format(output_filename))
                     elif nrof_faces > 1 and not args.detect_multiple_faces:
-                        print('Unable to align "{}"'.format(image_path))
+                        print('To match faces "{}"'.format(image_path))
                         text_file.write('{}\n'.format(output_filename))
                     else:
                         nrof_successfully_aligned += 1
