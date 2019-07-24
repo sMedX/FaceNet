@@ -46,7 +46,7 @@ def main(args):
 
                 try:
                     # this function returns PIL.Image object
-                    img = ioutils.read_image(image_path)
+                    img = ioutils.read_image(image_path, mode='RGB')
                 except (IOError, ValueError, IndexError) as e:
                     print('{}: {}'.format(image_path, e))
                 else:

@@ -63,11 +63,14 @@ def write_image(image, filename, prefix=None, mode='RGB'):
         raise IOError('while writing the file {}'.format(filename))
 
 
-def read_image(filename, prefix=None):
+def read_image(filename, prefix=None, mode=None):
     if prefix is not None:
         image = Image.open(os.path.join(str(prefix), str(filename)))
     else:
         image = Image.open(str(filename))
+
+    if mode is not None:
+        image = image.convert(mode)
 
     return image
 
