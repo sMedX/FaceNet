@@ -390,7 +390,7 @@ def load_model(model, input_map=None):
 
     model_exp = pathlib.Path(model).expanduser()
 
-    if model_exp.is_file:
+    if model_exp.is_file():
         print('Model filename: {}'.format(model_exp))
         with gfile.FastGFile(str(model_exp), 'rb') as f:
             graph_def = tf.GraphDef()
@@ -399,7 +399,7 @@ def load_model(model, input_map=None):
     else:
         pb_file = model_exp.joinpath(model_exp.name + '.pb')
 
-        if pb_file.is_file:
+        if pb_file.is_file():
             load_model(pb_file, input_map=input_map)
         else:
             print('Model directory: {}'.format(model_exp))
