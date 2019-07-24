@@ -193,12 +193,12 @@ class Validation:
         fprs = np.mean(fprs, 0)
 
         try:
-            self.auc = metrics.auc(tprs, fprs)
+            self.auc = metrics.auc(fprs, tprs)
         except Exception:
             self.auc = -1
 
         try:
-            self.eer = brentq(lambda x: 1. - x - interpolate.interp1d(tprs, fprs)(x), 0., 1.)
+            self.eer = brentq(lambda x: 1. - x - interpolate.interp1d(fprs, tprs)(x), 0., 1.)
         except Exception:
             self.eer = -1
 
