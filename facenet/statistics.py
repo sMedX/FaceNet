@@ -14,6 +14,7 @@ from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
 from scipy.optimize import brentq
 import math
+import pathlib as plib
 
 from facenet import utils
 
@@ -213,11 +214,11 @@ class Validation:
         print('Report has been printed to the file: {}'.format(file))
 
         git_hash, git_diff = utils.git_hash()
-        with open(os.path.expanduser(file), 'at') as f:
+        with open(str(plib.Path(file).expanduser()), 'at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(git_hash))
             f.write('git diff: {}\n'.format(git_diff))
-            f.write('model: {}\n'.format(os.path.expanduser(args.model)))
+            f.write('model: {}\n'.format(str(args.model)))
             f.write('dataset: {}\n'.format(dbase.dirname))
             f.write('number of folders {}\n'.format(dbase.nrof_folders))
             f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
