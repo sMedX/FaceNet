@@ -23,27 +23,30 @@ and exports the model as a graphdef protobuf
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from tensorflow.python.framework import graph_util
 import tensorflow as tf
 import argparse
 import os
 import sys
+import pathlib as plib
 from facenet import facenet
 
 
 def main(args):
+
+    if args.output_file is None:
+        output_file = plib.Path(args.model_dir).joinpath(plib.Path(args.model_dir).name + '.pb')
+    else:
+        output_file = plib.Path(args.output_file).expanduser()
+
     with tf.Graph().as_default():
         with tf.Session() as sess:
             # Load the model metagraph and checkpoint
-            print('Model directory: %s' % args.model_dir)
+            print('Model directory: {}'.format(args.model_dir))
             meta_file, ckpt_file = facenet.get_model_filenames(os.path.expanduser(args.model_dir))
             
-            print('Metagraph file: %s' % meta_file)
-            print('Checkpoint file: %s' % ckpt_file)
+            print('Metagraph file: {}'.format(meta_file))
+            print('Checkpoint file: {}'.format(ckpt_file))
 
             model_dir_exp = os.path.expanduser(args.model_dir)
             saver = tf.train.import_meta_graph(os.path.join(model_dir_exp, meta_file), clear_devices=True)
@@ -58,9 +61,9 @@ def main(args):
             output_graph_def = freeze_graph_def(sess, input_graph_def, 'embeddings,label_batch')
 
         # Serialize and dump the output graph to the filesystem
-        with tf.gfile.GFile(args.output_file, 'wb') as f:
+        with tf.gfile.GFile(str(output_file), 'wb') as f:
             f.write(output_graph_def.SerializeToString())
-        print("%d ops in the final graph: %s" % (len(output_graph_def.node), args.output_file))
+        print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
 
 
 def freeze_graph_def(sess, input_graph_def, output_node_names):
@@ -97,8 +100,8 @@ def parse_arguments(argv):
     
     parser.add_argument('model_dir', type=str, 
         help='Directory with the metagraph (.meta) file and the checkpoint (ckpt) file containing model parameters')
-    parser.add_argument('output_file', type=str, 
-        help='Filename for the exported graphdef protobuf (.pb)')
+    parser.add_argument('--output_file', type=str,
+        help='Filename for the exported graphdef protobuf (.pb)', default=None)
     return parser.parse_args(argv[1:])
 
 
