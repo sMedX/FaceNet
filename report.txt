@@ -1,0 +1,83 @@
+2019-07-24 23:49:39.115548
+git hash: b'9331d46589811544d12713132cea711f8542a857'
+git diff: b'diff --git a/validate.sh b/validate.sh\nindex 381708d..ad76446 100755\n--- a/validate.sh\n+++ b/validate.sh\n@@ -10,6 +10,7 @@ md=~\n echo "model directory" ${md}\n \n python3 -m facenet.apps.validate \\\n-    ${ds}/datasets/vggface2/test_frcnnv3extracted_160 \\\n+    ${ds}/datasets/megaface/megaface_frcnnv3extracted_160 \\\n     --model default \\\n     --use_fixed_image_standardization \\\n+    --nrof_folders 5'
+model: /home/korus/Workspace/Faces/FaceNet/models/20190410-013706/20190410-013706.pb
+dataset: /home/korus/datasets/megaface/megaface_frcnnv3extracted_160
+number of folders 5
+numbers of images 970 and pairs 469965
+distance metric: 1
+subtract mean: False
+
+Accuracy: 0.95846+-0.03468
+Precision: 1.00000+-0.00000
+Sensitivity (TPR): 0.88005+-0.07832
+Specificity (TNR): 1.00000+-0.00000
+
+Validation rate: 0.88005+-0.07832 @ FAR=0.00000
+Area Under Curve (AUC): 0.39772
+Equal Error Rate (EER): -1.00000
+Threshold: 0.33200+-0.00400
+
+2019-07-25 00:17:13.387815
+git hash: b'9331d46589811544d12713132cea711f8542a857'
+git diff: b'diff --git a/facenet/apps/validate.py b/facenet/apps/validate.py\nindex a6e706a..26770f7 100644\n--- a/facenet/apps/validate.py\n+++ b/facenet/apps/validate.py\n@@ -25,10 +25,6 @@ in the same directory, and the metagraph should have the extension \'.meta\'.\n # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n # SOFTWARE.\n \n-from __future__ import absolute_import\n-from __future__ import division\n-from __future__ import print_function\n-\n import sys\n import tensorflow as tf\n from tensorflow.python.ops import data_flow_ops\n@@ -62,9 +58,9 @@ def main(args):\n             nrof_preprocess_threads = 4\n             image_size = (args.image_size, args.image_size)\n             eval_input_queue = data_flow_ops.FIFOQueue(capacity=2000000,\n-                                        dtypes=[tf.string, tf.int32, tf.int32],\n-                                        shapes=[(1,), (1,), (1,)],\n-                                        shared_name=None, name=None)\n+                                                       dtypes=[tf.string, tf.int32, tf.int32],\n+                                                       shapes=[(1,), (1,), (1,)],\n+                                                       shared_name=None, name=None)\n             eval_enqueue_op = eval_input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name=\'eval_enqueue_op\')\n             image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)\n      \ndiff --git a/validate.sh b/validate.sh\nindex 381708d..22fcad1 100755\n--- a/validate.sh\n+++ b/validate.sh\n@@ -10,6 +10,8 @@ md=~\n echo "model directory" ${md}\n \n python3 -m facenet.apps.validate \\\n-    ${ds}/datasets/vggface2/test_frcnnv3extracted_160 \\\n+    ${ds}/datasets/megaface/megaface_frcnnv3extracted_160 \\\n     --model default \\\n     --use_fixed_image_standardization \\\n+    --nrof_folders 5\n+'
+model: /home/korus/Workspace/Faces/FaceNet/models/20190410-013706/20190410-013706.pb
+dataset: /home/korus/datasets/megaface/megaface_frcnnv3extracted_160
+number of folders 5
+numbers of images 970 and pairs 469965
+distance metric: 1
+subtract mean: False
+
+Accuracy: 0.95846+-0.03468
+Precision: 1.00000+-0.00000
+Sensitivity (TPR): 0.88005+-0.07832
+Specificity (TNR): 1.00000+-0.00000
+
+Validation rate: 0.88005+-0.07832 @ FAR=0.00000
+Area Under Curve (AUC): 0.39772
+Equal Error Rate (EER): -1.00000
+Threshold: 0.33200+-0.00400
+
+2019-07-25 01:17:14.975065
+git hash: b'9331d46589811544d12713132cea711f8542a857'
+git diff: b"diff --git a/facenet/apps/validate.py b/facenet/apps/validate.py\nindex a6e706a..0522058 100644\n--- a/facenet/apps/validate.py\n+++ b/facenet/apps/validate.py\n@@ -25,10 +25,6 @@ in the same directory, and the metagraph should have the extension '.meta'.\n # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n # SOFTWARE.\n \n-from __future__ import absolute_import\n-from __future__ import division\n-from __future__ import print_function\n-\n import sys\n import tensorflow as tf\n from tensorflow.python.ops import data_flow_ops\ndiff --git a/validate.sh b/validate.sh\nindex 381708d..11e8808 100755\n--- a/validate.sh\n+++ b/validate.sh\n@@ -13,3 +13,5 @@ python3 -m facenet.apps.validate \\\n     ${ds}/datasets/vggface2/test_frcnnv3extracted_160 \\\n     --model default \\\n     --use_fixed_image_standardization \\\n+    --nrof_folders 5\n+"
+model: /home/korus/Workspace/Faces/FaceNet/models/20190410-013706/20190410-013706.pb
+dataset: /home/korus/datasets/vggface2/test_frcnnv3extracted_160
+number of folders 5
+numbers of images 1518 and pairs 1151403
+distance metric: 1
+subtract mean: False
+
+Accuracy: 0.94964+-0.02923
+Precision: 0.99979+-0.00041
+Sensitivity (TPR): 0.87388+-0.05132
+Specificity (TNR): 1.00000+-0.00000
+
+Validation rate: 0.87388+-0.05132 @ FAR=0.00000
+Area Under Curve (AUC): 0.39900
+Equal Error Rate (EER): -1.00000
+Threshold: 0.37500+-0.00671
+
+2019-07-25 18:32:30.127929
+git hash: b'9331d46589811544d12713132cea711f8542a857'
+git diff: b"diff --git a/facenet/apps/validate.py b/facenet/apps/validate.py\nindex a6e706a..0522058 100644\n--- a/facenet/apps/validate.py\n+++ b/facenet/apps/validate.py\n@@ -25,10 +25,6 @@ in the same directory, and the metagraph should have the extension '.meta'.\n # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n # SOFTWARE.\n \n-from __future__ import absolute_import\n-from __future__ import division\n-from __future__ import print_function\n-\n import sys\n import tensorflow as tf\n from tensorflow.python.ops import data_flow_ops\ndiff --git a/validate.sh b/validate.sh\nindex 381708d..11e8808 100755\n--- a/validate.sh\n+++ b/validate.sh\n@@ -13,3 +13,5 @@ python3 -m facenet.apps.validate \\\n     ${ds}/datasets/vggface2/test_frcnnv3extracted_160 \\\n     --model default \\\n     --use_fixed_image_standardization \\\n+    --nrof_folders 5\n+"
+model: /home/korus/Workspace/Faces/FaceNet/models/20190410-013706/20190410-013706.pb
+dataset: /home/korus/datasets/vggface2/test_frcnnv3extracted_160
+number of folders 5
+numbers of images 1518 and pairs 1151403
+distance metric: 1
+subtract mean: False
+
+Accuracy: 0.94964+-0.02923
+Precision: 0.99979+-0.00041
+Sensitivity (TPR): 0.87388+-0.05132
+Specificity (TNR): 1.00000+-0.00000
+
+Validation rate: 0.87388+-0.05132 @ FAR=0.00000
+Area Under Curve (AUC): 0.39900
+Equal Error Rate (EER): -1.00000
+Threshold: 0.37500+-0.00671
+
+2019-07-25 18:38:31.314414
+git hash: b'9331d46589811544d12713132cea711f8542a857'
+git diff: b"diff --git a/facenet/apps/validate.py b/facenet/apps/validate.py\nindex a6e706a..0522058 100644\n--- a/facenet/apps/validate.py\n+++ b/facenet/apps/validate.py\n@@ -25,10 +25,6 @@ in the same directory, and the metagraph should have the extension '.meta'.\n # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n # SOFTWARE.\n \n-from __future__ import absolute_import\n-from __future__ import division\n-from __future__ import print_function\n-\n import sys\n import tensorflow as tf\n from tensorflow.python.ops import data_flow_ops\ndiff --git a/validate.sh b/validate.sh\nindex 381708d..11e8808 100755\n--- a/validate.sh\n+++ b/validate.sh\n@@ -13,3 +13,5 @@ python3 -m facenet.apps.validate \\\n     ${ds}/datasets/vggface2/test_frcnnv3extracted_160 \\\n     --model default \\\n     --use_fixed_image_standardization \\\n+    --nrof_folders 5\n+"
