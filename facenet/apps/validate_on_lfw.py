@@ -135,7 +135,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     accuracy_mean = np.mean(accuracy)
     accuracy_std = np.std(accuracy)
 
-    print('model: {}\n'.format(args.model))
+    print('model: {}'.format(args.model))
     print('Accuracy: {:2.5f}+-{:2.5f}'.format(accuracy_mean, accuracy_std))
     print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
     
