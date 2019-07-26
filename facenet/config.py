@@ -9,7 +9,7 @@ basedir = plib.Path(__file__).parents[1]
 
 class DefaultConfig:
     def __init__(self):
-        self.model = basedir.joinpath('models', '20190721-142131')
+        self.model = str(basedir.joinpath('models', '20190721-142131'))
 
         # type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance
         self.distance_metric = 1

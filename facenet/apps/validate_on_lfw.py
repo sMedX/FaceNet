@@ -135,6 +135,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     accuracy_mean = np.mean(accuracy)
     accuracy_std = np.std(accuracy)
 
+    print('model: {}\n'.format(args.model))
     print('Accuracy: {:2.5f}+-{:2.5f}'.format(accuracy_mean, accuracy_std))
     print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
     
@@ -145,6 +146,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     print('Equal Error Rate (EER): {:1.3f}'.format(eer))
 
     with open(os.path.expanduser(args.report), 'at') as f:
+        f.write('model: {}\n'.format(args.model))
         f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(accuracy_mean, accuracy_std))
         f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
         f.write('Area Under Curve (AUC): {:1.3f}\n'.format(auc))
