@@ -136,21 +136,32 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     accuracy_std = np.std(accuracy)
 
     print('model: {}'.format(args.model))
-    print('Accuracy: {:2.5f}+-{:2.5f}'.format(accuracy_mean, accuracy_std))
-    print('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
-    
-    auc = metrics.auc(fpr, tpr)
-    print('Area Under Curve (AUC): {:1.3f}'.format(auc))
+    print('distance metric: {}\n'.format(args.distance_metric))
+    print('subtract mean: {}\n'.format(args.subtract_mean))
 
-    eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
-    print('Equal Error Rate (EER): {:1.3f}'.format(eer))
+    print('accuracy: {:2.5f}+-{:2.5f}'.format(accuracy_mean, accuracy_std))
+    print('validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}'.format(val, val_std, far))
+    
+    try:
+        auc = metrics.auc(fpr, tpr)
+    except Exception:
+        auc = -1
+    print('area under curve (AUC): {:1.3f}'.format(auc))
+
+    try:
+        eer = brentq(lambda x: 1. - x - interpolate.interp1d(fpr, tpr)(x), 0., 1.)
+    except Exception:
+        eer = -1
+    print('equal error rate (EER): {:1.3f}'.format(eer))
 
     with open(os.path.expanduser(args.report), 'at') as f:
         f.write('model: {}\n'.format(args.model))
-        f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(accuracy_mean, accuracy_std))
-        f.write('Validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
-        f.write('Area Under Curve (AUC): {:1.3f}\n'.format(auc))
-        f.write('Equal Error Rate (EER): {:1.3f}\n'.format(eer))
+        f.write('distance metric: {}\n'.format(args.distance_metric))
+        f.write('subtract mean: {}\n'.format(args.subtract_mean))
+        f.write('accuracy: {:2.5f}+-{:2.5f}\n'.format(accuracy_mean, accuracy_std))
+        f.write('validation rate: {:2.5f}+-{:2.5f} @ FAR={:2.5f}\n'.format(val, val_std, far))
+        f.write('area under curve (AUC): {:1.3f}\n'.format(auc))
+        f.write('equal error rate (EER): {:1.3f}\n'.format(eer))
         f.write('\n')
 
 
