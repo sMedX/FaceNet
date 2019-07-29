@@ -9,11 +9,7 @@ echo "datasets directory" ${ds}
 md=~
 echo "model directory" ${md}
 
-python3 -m facenet.validate \
-    ${md}/models/facenet/pretrained/20190410-013706 \
-    ${ds}/datasets/megaface/megaface_mtcnnaligned_160 \
-    --nrof_folders 0 \
-    --distance_metric 0 \
+python3 -m facenet.apps.validate \
+    ${ds}/datasets/vggface2/test_frcnnv3extracted_160 \
+    --model default \
     --use_fixed_image_standardization \
-    --false_positive_dir ${ds}/datasets/megaface_false_positive_pairs \
-    --false_negative_dir ${ds}/datasets/megaface_false_negative_pairs
