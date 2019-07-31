@@ -12,7 +12,7 @@ class DefaultConfig:
         self.model = str(basedir.joinpath('models', '20190721-142131'))
 
         # type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance
-        self.distance_metric = 1
+        self.distance_metric = 0
 
         # image size (height, width) in pixels
         self.image_size = 160
