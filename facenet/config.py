@@ -16,3 +16,8 @@ class DefaultConfig:
 
         # image size (height, width) in pixels
         self.image_size = 160
+
+        # image standardisation
+        # False: tf.image.per_image_standardization(image)
+        # True: (tf.cast(image, tf.float32) - 127.5) / 128.0
+        self.image_standardization = True

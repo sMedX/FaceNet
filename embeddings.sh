@@ -10,8 +10,6 @@ md=~
 echo "model directory" ${md}
 
 python3 -m facenet.embeddings \
-    ${md}/models/facenet/pretrained/20190410-013706 \
-    ${ds}/datasets/vggface2/train_mtcnnaligned_160 \
+    ${ds}/datasets/vggface2/train_frcnnv3extracted_160 \
     --nrof_folders 0 \
-    --tfrecord ${ds}/datasets/vggface2 \
-    --use_fixed_image_standardization \
+    --tfrecord ${ds}/datasets/vggface2

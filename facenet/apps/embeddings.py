@@ -25,10 +25,6 @@ in the same directory, and the metagraph should have the extension '.meta'.
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import sys, os
 import tensorflow as tf
 import math
@@ -37,6 +33,9 @@ import argparse
 from facenet import dataset, utils
 from facenet import facenet
 from tensorflow.python.ops import data_flow_ops
+
+from facenet.config import DefaultConfig
+config = DefaultConfig()
 
 
 def main(args):
@@ -145,10 +144,11 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('model', type=str,
-        help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file')
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
+    parser.add_argument('--model', type=str,
+        help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
+        default=config.model)
     parser.add_argument('--tfrecord', type=str,
         help='Path to save tf record file.', default='~/datasets')
     parser.add_argument('--nrof_folders', type=int,
@@ -156,9 +156,10 @@ def parse_arguments(argv):
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=160)
-    parser.add_argument('--use_fixed_image_standardization',
-        help='Performs fixed standardization of images.', action='store_true')
+        help='Image size (height, width) in pixels.', default=config.image_size)
+    parser.add_argument('--image_standardization', type=bool,
+        help='Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation.',
+        default=config.image_standardization)
     return parser.parse_args(argv[1:])
 
 
