@@ -56,7 +56,7 @@ def pairwise_distances(xa, xb=None, metric=0):
     else:
         raise 'Undefined distance metric %d' % metric
 
-    dist = np.array(dist, dtype=np.float32)
+    # dist = np.array(dist, dtype=np.float32)
     return dist
 
 
