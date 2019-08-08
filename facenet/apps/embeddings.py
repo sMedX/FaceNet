@@ -103,6 +103,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     embedding_size = int(embeddings.get_shape()[1])
 
     for cls_index, cls in enumerate(dbase):
+        print("============================================")
+        print(cls.name)
         nrof_images = len(cls.image_paths)
         labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
         control_array = np.zeros_like(labels_array, np.int32)

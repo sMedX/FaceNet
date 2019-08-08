@@ -1,6 +1,7 @@
 
 import os
 import numpy as np
+from facenet import config
 
 
 class ImageClass:
@@ -21,8 +22,10 @@ class ImageClass:
 def get_image_paths(facedir):
     image_paths = []
     if os.path.isdir(facedir):
-        images = os.listdir(facedir)
-        image_paths = [os.path.join(facedir, img) for img in images]
+        for file in os.listdir(facedir):
+            _, extension = os.path.splitext(file)
+            if extension == config.file_extension:
+                image_paths.append(os.path.join(facedir, file))
     return image_paths
 
 
