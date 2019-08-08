@@ -19,26 +19,31 @@ class ImageClass:
         return len(self.image_paths)
 
 
+def list_names(dirname):
+    names = os.listdir(dirname)
+    names.sort()
+    return names
+
+
 def listfiles(dirname, extension=None):
     dirname = os.path.expanduser(dirname)
     files = []
 
     if os.path.isdir(dirname):
-        for file in os.listdir(dirname):
+        for file in list_names(dirname):
             if extension is None:
                 files.append(os.path.join(dirname, file))
             else:
                 _, ext = os.path.splitext(file)
                 if ext == extension:
                     files.append(os.path.join(dirname, file))
-    files.sort()
     return files
 
 
 def dataset(path, nrof_classes=0, has_class_directories=True):
     ds = []
     path_exp = os.path.expanduser(path)
-    classes = [path for path in os.listdir(path_exp) if os.path.isdir(os.path.join(path_exp, path))]
+    classes = [path for path in list_names(path_exp) if os.path.isdir(os.path.join(path_exp, path))]
 
     if nrof_classes > 0:
         classes = classes[:nrof_classes]
