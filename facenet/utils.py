@@ -78,7 +78,7 @@ def write_tfrecord(tfrecord, files, labels, embeddings):
         for i, (file, label, embedding) in enumerate(zip(files, labels, embeddings)):
             add_to_tfrecord(tfwriter, file.encode(), label, embedding.tolist())
 
-            if (i+1) % 100 == 0:
+            if (i+1) % 1000 == 0:
                 print('\r{}/{} samples have been added to tfrecord file.'.format(i+1, len(files)), end='')
 
     print('\rtfrecord file {} has been written, number of samples is {}.'.format(tfrecord, len(files)))

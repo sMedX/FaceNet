@@ -104,7 +104,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     for cls_index, cls in enumerate(dbase):
         print("============================================")
-        print(cls.name)
+        print('({}/{}) {}'.format(cls_index, len(dbase), cls.name))
         nrof_images = len(cls.image_paths)
         labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
         control_array = np.zeros_like(labels_array, np.int32)
@@ -158,7 +158,7 @@ def parse_arguments(argv):
     parser.add_argument('--nrof_classes', type=int,
         help='Number of classes to evaluate embeddings.', default=0)
     parser.add_argument('--batch_size', type=int,
-        help='Number of images to process in a batch in the test set.', default=100)
+        help='Number of images to process in a batch in the test set.', default=500)
     parser.add_argument('--image_size', type=int,
         help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--image_standardization', type=bool,
