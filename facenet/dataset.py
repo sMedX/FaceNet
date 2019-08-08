@@ -19,14 +19,20 @@ class ImageClass:
         return len(self.image_paths)
 
 
-def get_image_paths(facedir):
-    image_paths = []
-    if os.path.isdir(facedir):
-        for file in os.listdir(facedir):
-            _, extension = os.path.splitext(file)
-            if extension == config.file_extension:
-                image_paths.append(os.path.join(facedir, file))
-    return image_paths
+def listfiles(dirname, extension=None):
+    dirname = os.path.expanduser(dirname)
+    files = []
+
+    if os.path.isdir(dirname):
+        for file in os.listdir(dirname):
+            if extension is None:
+                files.append(os.path.join(dirname, file))
+            else:
+                _, ext = os.path.splitext(file)
+                if ext == extension:
+                    files.append(os.path.join(dirname, file))
+    files.sort()
+    return files
 
 
 def dataset(path, nrof_classes=0, has_class_directories=True):
@@ -41,7 +47,7 @@ def dataset(path, nrof_classes=0, has_class_directories=True):
     for i in range(nrof_classes):
         class_name = classes[i]
         facedir = os.path.join(path_exp, class_name)
-        image_paths = get_image_paths(facedir)
+        image_paths = listfiles(facedir, extension=config.file_extension)
 
         if len(image_paths) > 0:
             ds.append(ImageClass(class_name, image_paths))
