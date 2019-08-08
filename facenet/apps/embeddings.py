@@ -106,7 +106,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     for cls_index, cls in enumerate(dbase):
         print("============================================")
-        print('({}/{}) {}'.format(cls_index, len(dbase), cls.name))
+        print('({}/{}) ({}) {}'.format(cls_index, len(dbase), len(cls.image_paths), cls.name))
         nrof_images = len(cls.image_paths)
         labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
         control_array = np.zeros_like(labels_array, np.int32)
