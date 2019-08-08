@@ -42,7 +42,9 @@ def dataset(path, nrof_classes=0, has_class_directories=True):
         class_name = classes[i]
         facedir = os.path.join(path_exp, class_name)
         image_paths = get_image_paths(facedir)
-        ds.append(ImageClass(class_name, image_paths))
+
+        if len(image_paths) > 0:
+            ds.append(ImageClass(class_name, image_paths))
 
     return ds
 
