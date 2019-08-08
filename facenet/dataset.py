@@ -25,7 +25,7 @@ def list_names(dirname):
     return names
 
 
-def listfiles(dirname, extension=None):
+def list_files(dirname, extension=None):
     dirname = os.path.expanduser(dirname)
     files = []
 
@@ -52,7 +52,7 @@ def dataset(path, nrof_classes=0, has_class_directories=True):
     for i in range(nrof_classes):
         class_name = classes[i]
         facedir = os.path.join(path_exp, class_name)
-        image_paths = listfiles(facedir, extension=config.file_extension)
+        image_paths = list_files(facedir, extension=config.file_extension)
 
         if len(image_paths) > 0:
             ds.append(ImageClass(class_name, image_paths))
