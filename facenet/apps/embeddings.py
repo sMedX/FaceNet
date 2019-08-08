@@ -143,6 +143,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
             'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
 
         # write tf record file
+        emb_array = (emb_array.transpose() / np.linalg.norm(emb_array, axis=1)).transpose()
+
         tf_file = os.path.join(tf_dir, cls.name + '.tfrecord')
         utils.write_tfrecord(tf_file, cls.image_paths, [cls_index]*nrof_images, emb_array)
 
