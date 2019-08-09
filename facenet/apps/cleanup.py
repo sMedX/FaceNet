@@ -40,7 +40,6 @@ def main(args):
 
     if args.h5file is None:
         args.h5file = args.dir + '.h5'
-    args.h5file = plib.Path(args.h5file).expanduser()
 
     # Get the paths for the corresponding images
     files = dataset.list_files(args.dir, extension='.tfrecord')

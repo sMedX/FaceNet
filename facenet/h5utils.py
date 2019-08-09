@@ -23,9 +23,10 @@ def write_image(hf, name, image, mode='a', check_name=True):
 
 
 def write(filename, name, data, mode='a'):
+    filename = os.path.expanduser(str(filename))
     name = str(name)
 
-    with h5py.File(str(filename), mode=mode) as hf:
+    with h5py.File(filename, mode=mode) as hf:
         if name in hf:
             del hf[name]
 
