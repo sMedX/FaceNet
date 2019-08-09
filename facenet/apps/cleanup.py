@@ -32,25 +32,12 @@ import pathlib as plib
 from facenet import dataset, utils, ioutils, h5utils
 
 
-def main(args):
-
-    if args.outdir is None:
-        args.outdir = args.dir + '_identical_faces'
-    ioutils.makedirs(args.outdir)
-
-    if args.h5file is None:
-        args.h5file = args.dir + '.h5'
-
-    # Get the paths for the corresponding images
-    files = dataset.list_files(args.dir, extension='.tfrecord')
-    print('dataset', args.dir)
-    print('number of tf records', len(files))
-
-    for i, file1 in enumerate(files):
-        print('\r{}/{}'.format(i, len(files)), end=utils.end(i, len(files)))
+def cleanup_identical_images(tf_files, args):
+    for i, file1 in enumerate(tf_files):
+        print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
 
         tf1 = utils.TFRecord(file1)
-        for k, file2 in enumerate(files[:i]):
+        for k, file2 in enumerate(tf_files[:i]):
             tf2 = utils.TFRecord(file2)
             dist = tf1.embeddings @ tf2.embeddings.transpose()
 
@@ -72,6 +59,23 @@ def main(args):
                     file = plib.Path(file)
                     key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
                     h5utils.write(args.h5file, key, False)
+
+
+def main(args):
+
+    if args.outdir is None:
+        args.outdir = args.dir + '_discarded'
+    ioutils.makedirs(args.outdir)
+
+    if args.h5file is None:
+        args.h5file = args.dir + '.h5'
+
+    # Get the paths for the corresponding images
+    tf_files = dataset.list_files(args.dir, extension='.tfrecord')
+    print('dataset', args.dir)
+    print('number of tf records', len(tf_files))
+
+    cleanup_identical_images(tf_files, args)
 
 
 def parse_arguments(argv):
