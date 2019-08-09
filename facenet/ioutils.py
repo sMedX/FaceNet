@@ -44,7 +44,7 @@ def store_revision_info(src_path, output_filename, arg_string, mode='w'):
 
 
 def makedirs(dirname):
-    dirname = plib.Path(dirname)
+    dirname = plib.Path(dirname).expanduser()
 
     if not dirname.exists():
         dirname.mkdir(parents=True)
