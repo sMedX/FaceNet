@@ -47,9 +47,10 @@ def main(args):
     print('number of tf records', len(files))
 
     for i, file1 in enumerate(files):
+        print('\r{}/{}'.format(i, len(files)), end=utils.end(i, len(files)))
+
         tf1 = utils.TFRecord(file1)
         for k, file2 in enumerate(files[:i]):
-            print('\r{}/{} ({})'.format(k, i, len(files)), end=utils.end(i, len(files)))
             tf2 = utils.TFRecord(file2)
             dist = tf1.embeddings @ tf2.embeddings.transpose()
 
