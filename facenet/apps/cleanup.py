@@ -35,7 +35,7 @@ from facenet import dataset, utils, ioutils, h5utils
 def main(args):
 
     if args.outdir is None:
-        args.outdir = args.dir + '_same_images'
+        args.outdir = args.dir + '_identical_faces'
     ioutils.makedirs(args.outdir)
 
     if args.h5file is None:
@@ -77,9 +77,9 @@ def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
     parser.add_argument('dir', type=str,
-        help='Path to the data directory containing extracted face patches.')
+        help='Path to the directory with tf records files.')
     parser.add_argument('--outdir', type=str,
-        help='Directory to save examples.', default=None)
+        help='Directory to save examples with identical images.', default=None)
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file to save information about false images.', default=None)
     parser.add_argument('--threshold', type=float,
