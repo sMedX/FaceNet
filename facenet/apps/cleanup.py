@@ -53,7 +53,7 @@ def main(args):
             tf2 = utils.TFRecord(file2)
             dist = tf1.embeddings @ tf2.embeddings.transpose()
 
-            while dist.max() > 0.98:
+            while dist.max() > args.threshold:
                 n, m = np.unravel_index(dist.argmax(), dist.shape)
                 same_images = (tf1.files[n], tf2.files[m])
 
@@ -82,6 +82,8 @@ def parse_arguments(argv):
         help='Directory to save examples.', default=None)
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file to save information about false images.', default=None)
+    parser.add_argument('--threshold', type=float,
+        help='Threshold to identify identical faces.', default=0.98)
     return parser.parse_args(argv[1:])
 
 
