@@ -63,8 +63,8 @@ def main(args):
 
                 print()
                 print(dist[n, m])
-                print(tf1.files[n])
-                print(tf2.files[m])
+                print(same_images[0])
+                print(same_images[1])
 
                 dist[n, m] = -np.Inf
 
