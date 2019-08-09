@@ -7,6 +7,8 @@ from scipy import spatial
 import tensorflow as tf
 from PIL import Image, ImageFont, ImageDraw
 
+from facenet import ioutils
+
 
 def file2text(file):
     return os.path.join(os.path.basename(os.path.dirname(file)), os.path.splitext(os.path.basename(file))[0])
@@ -28,8 +30,8 @@ class ConcatenateImages:
         self.file2 = file2
         self.distance = distance
 
-        img1 = Image.open(file1)
-        img2 = Image.open(file2)
+        img1 = ioutils.read_image(file1)
+        img2 = ioutils.read_image(file2)
         self.img = Image.fromarray(np.concatenate([np.array(img1), np.array(img2)], axis=1))
 
         text = '{} & {}\n{:2.3f}'.format(file2text(file1), file2text(file2), distance)
@@ -44,7 +46,7 @@ class ConcatenateImages:
 
     def save(self, outdir):
         filename = generate_filename(outdir, self.distance, self.file1, self.file2)
-        self.img.save(filename)
+        ioutils.write_image(self.img, filename)
 
 
 def label_array(labels):

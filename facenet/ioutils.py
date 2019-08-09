@@ -52,9 +52,8 @@ def makedirs(dirname):
 
 def write_image(image, filename, prefix=None, mode='RGB'):
     if prefix is not None:
-        filename = os.path.join(str(prefix), str(filename))
-
-    makedirs(os.path.dirname(filename))
+        filename = plib.Path(prefix).joinpath(filename)
+    filename = plib.Path(filename).expanduser()
 
     if isinstance(image, np.ndarray):
         image = array2pil(image, mode=mode)
