@@ -32,7 +32,7 @@ import pathlib as plib
 from facenet import dataset, utils, ioutils, h5utils
 
 
-def cleanup_identical_images(tf_files, args):
+def find_identical_images(tf_files, args):
     for i, file1 in enumerate(tf_files):
         print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
 
@@ -75,7 +75,48 @@ def main(args):
     print('dataset', args.dir)
     print('number of tf records', len(tf_files))
 
-    cleanup_identical_images(tf_files, args)
+    find_identical_images(tf_files, args)
+
+    for i, file1 in enumerate(tf_files):
+        print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
+
+        tf1 = utils.TFRecord(file1)
+        # for file2 in tf_files[:i]:
+        #     tf2 = utils.TFRecord(file2)
+        #     dist = tf1.embeddings @ tf2.embeddings.transpose()
+        #
+        #     while np.nanmax(dist) > args.threshold:
+        #         n, m = np.unravel_index(np.nanargmax(dist), dist.shape)
+        #         same_images = (tf1.files[n], tf2.files[m])
+        #
+        #         image = utils.ConcatenateImages(same_images[0], same_images[1], dist[n, m])
+        #         image.save(args.outdir)
+        #
+        #         print()
+        #         print(dist[n, m])
+        #         print(same_images[0])
+        #         print(same_images[1])
+        #
+        #         dist[n, m] = np.nan
+        #
+        #         for file in same_images:
+        #             file = plib.Path(file)
+        #             key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
+        #             h5utils.write(args.h5file, key, False)
+
+        dist = 1 - tf1.embeddings @ tf1.embeddings.transpose()
+        mean_values = np.mean(dist, axis=0)
+        mean_face_index = np.argmin(mean_values)
+        print(tf1.files[mean_face_index])
+
+        while np.nanmax(mean_values) > 0.8:
+            index = np.nanargmax(mean_values)
+            image = utils.ConcatenateImages(tf1.files[mean_face_index], tf1.files[index], mean_values[index])
+            image.save(args.outdir)
+            print()
+            print(mean_values[index])
+            print(tf1.files[index])
+            mean_values[index] = np.nan
 
 
 def parse_arguments(argv):
