@@ -14,14 +14,18 @@ def file2text(file):
     return os.path.join(os.path.basename(os.path.dirname(file)), os.path.splitext(os.path.basename(file))[0])
 
 
-def generate_filename(dirname, distance, file1, file2):
+def generate_filename(dirname, value, file1, file2):
     dir1 = os.path.basename(os.path.dirname(file1))
     name1 = os.path.splitext(os.path.basename(file1))[0]
 
     dir2 = os.path.basename(os.path.dirname(file2))
     name2 = os.path.splitext(os.path.basename(file2))[0]
 
-    return os.path.join(dirname, '{:2.3f} & {}|{} & {}|{}.png'.format(distance, dir1, name1, dir2, name2))
+    if dir1 == dir2:
+        s = os.path.join(dirname, '{}|{} & {} & {:2.3f}.png'.format(dir1, name1, name2, value))
+    else:
+        s = os.path.join(dirname, '{}|{} & {}|{} & {:2.3f}.png'.format(dir1, name1, dir2, name2, value))
+    return s
 
 
 class ConcatenateImages:

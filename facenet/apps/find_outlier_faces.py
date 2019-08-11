@@ -52,26 +52,24 @@ def main(args):
         tf = utils.TFRecord(file)
 
         dist = 2*(1 - tf.embeddings @ tf.embeddings.transpose())
+        face_index = np.argmin(np.mean(dist, axis=0))
 
-        dist[np.diag_indices(dist.shape[0])] = np.nan
-        values = np.nanmean(dist, axis=0)
-        mean_face_index = values.argmin()
+        while np.nanmax(dist[face_index]) > args.threshold:
+            index = np.nanargmax(dist[face_index])
 
-        while np.nanmax(dist[mean_face_index]) > args.threshold:
-            index = np.nanargmax(dist[mean_face_index])
-
-            image = utils.ConcatenateImages(tf.files[mean_face_index], tf.files[index], dist[mean_face_index, index])
+            image = utils.ConcatenateImages(tf.files[face_index], tf.files[index], dist[face_index, index])
             image.save(args.outdir)
 
             print()
-            print(dist[mean_face_index, index])
+            print(dist[face_index, index])
             print(tf.files[index])
 
-            dist[mean_face_index, index] = np.nan
+            dist[face_index, index] = np.nan
 
-        if i == 5:
-            break
-
+            if args.h5file:
+                file = plib.Path(tf.files[index])
+                key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
+                h5utils.write(args.h5file, key, False)
 
 
 def parse_arguments(argv):
@@ -84,7 +82,7 @@ def parse_arguments(argv):
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file to save information about false images.', default=None)
     parser.add_argument('--threshold', type=float,
-        help='Threshold to identify outlier faces.', default=1.80)
+        help='Threshold to identify outlier faces.', default=1.6)
     return parser.parse_args(argv[1:])
 
 
