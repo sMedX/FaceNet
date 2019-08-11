@@ -82,7 +82,7 @@ def parse_arguments(argv):
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file to save information about false images.', default=None)
     parser.add_argument('--threshold', type=float,
-        help='Threshold to identify outlier faces.', default=1.6)
+        help='Threshold to classify outlier faces.', default=1.6)
     return parser.parse_args(argv[1:])
 
 

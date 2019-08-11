@@ -52,23 +52,23 @@ def main(args):
         tf1 = utils.TFRecord(file1)
         for file2 in tf_files[i+1:]:
             tf2 = utils.TFRecord(file2)
-            dist = tf1.embeddings @ tf2.embeddings.transpose()
+            dist = 2*(1 - tf1.embeddings @ tf2.embeddings.transpose())
 
-            while np.nanmax(dist) > args.threshold:
-                n, m = np.unravel_index(np.nanargmax(dist), dist.shape)
-                same_images = (tf1.files[n], tf2.files[m])
+            while np.nanmin(dist) < args.threshold:
+                n, m = np.unravel_index(np.nanargmin(dist), dist.shape)
+                identical_faces = (tf1.files[n], tf2.files[m])
 
-                image = utils.ConcatenateImages(same_images[0], same_images[1], dist[n, m])
+                image = utils.ConcatenateImages(identical_faces[0], identical_faces[1], dist[n, m])
                 image.save(args.outdir)
 
                 print()
                 print(dist[n, m])
-                print(same_images[0])
-                print(same_images[1])
+                print(identical_faces[0])
+                print(identical_faces[1])
 
                 dist[n, m] = np.nan
 
-                for file in same_images:
+                for file in identical_faces:
                     file = plib.Path(file)
                     key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
                     h5utils.write(args.h5file, key, False)
@@ -84,7 +84,7 @@ def parse_arguments(argv):
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file to save information about false images.', default=None)
     parser.add_argument('--threshold', type=float,
-        help='Threshold to identify identical faces.', default=0.98)
+        help='Threshold to classify identical faces.', default=0.10)
     return parser.parse_args(argv[1:])
 
 
