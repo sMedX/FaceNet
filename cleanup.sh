@@ -1,5 +1,5 @@
 #!/bin/bash 
-echo "write false examples"
+echo "clean up dataset"
 
 # input datasets directory
 ds=~

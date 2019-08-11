@@ -41,8 +41,8 @@ def cleanup_identical_images(tf_files, args):
             tf2 = utils.TFRecord(file2)
             dist = tf1.embeddings @ tf2.embeddings.transpose()
 
-            while dist.max() > args.threshold:
-                n, m = np.unravel_index(dist.argmax(), dist.shape)
+            while np.nanmax(dist) > args.threshold:
+                n, m = np.unravel_index(np.nanargmax(dist), dist.shape)
                 same_images = (tf1.files[n], tf2.files[m])
 
                 image = utils.ConcatenateImages(same_images[0], same_images[1], dist[n, m])
@@ -53,7 +53,7 @@ def cleanup_identical_images(tf_files, args):
                 print(same_images[0])
                 print(same_images[1])
 
-                dist[n, m] = -np.Inf
+                dist[n, m] = np.nan
 
                 for file in same_images:
                     file = plib.Path(file)
@@ -64,7 +64,7 @@ def cleanup_identical_images(tf_files, args):
 def main(args):
 
     if args.outdir is None:
-        args.outdir = args.dir + '_discarded'
+        args.outdir = args.dir + '_false_examples'
     ioutils.makedirs(args.outdir)
 
     if args.h5file is None:
