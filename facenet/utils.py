@@ -1,6 +1,7 @@
 
 import os
 import sys
+import pathlib as plib
 from subprocess import Popen, PIPE
 import numpy as np
 from scipy import spatial
@@ -143,7 +144,7 @@ def add_to_tfrecord(tfwriter, file, label, embedding):
 
 
 def read_tfrecord(tfrecord, mode='array'):
-    tfrecord = os.path.expanduser(tfrecord)
+    tfrecord = str(plib.Path(tfrecord).expanduser())
     record_iterator = tf.python_io.tf_record_iterator(path=tfrecord)
 
     files = []
