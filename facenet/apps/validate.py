@@ -96,7 +96,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     print('Running forward pass on images')
 
     # Enqueue one epoch of image paths and labels
-    nrof_embeddings = dbase.nrof_images
+    nrof_embeddings = sum(len(x) for x in dbase)
 
     nrof_flips = 2 if args.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
