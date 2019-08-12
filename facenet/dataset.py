@@ -1,7 +1,8 @@
 
 import os
+import pathlib as plib
 import numpy as np
-from facenet import config
+from facenet import config, h5utils
 
 
 class ImageClass:
@@ -40,7 +41,9 @@ def list_files(dirname, extension=None):
     return files
 
 
-def dataset(path, nrof_classes=0, has_class_directories=True):
+def dataset(path, nrof_classes=0, has_class_directories=True, h5file=None):
+    h5file = str(plib.Path(h5file).expanduser())
+
     ds = []
     path_exp = os.path.expanduser(path)
     classes = [path for path in list_names(path_exp) if os.path.isdir(os.path.join(path_exp, path))]
@@ -48,14 +51,15 @@ def dataset(path, nrof_classes=0, has_class_directories=True):
     if nrof_classes > 0:
         classes = classes[:nrof_classes]
 
-    nrof_classes = len(classes)
-    for i in range(nrof_classes):
-        class_name = classes[i]
-        facedir = os.path.join(path_exp, class_name)
-        image_paths = list_files(facedir, extension=config.file_extension)
+    for class_name in classes:
+        dirname = os.path.join(path_exp, class_name)
+        files = list_files(dirname, extension=config.file_extension)
 
-        if len(image_paths) > 0:
-            ds.append(ImageClass(class_name, image_paths))
+        if h5file is not None:
+            files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
+
+        if len(files) > 0:
+            ds.append(ImageClass(class_name, files))
 
     return ds
 

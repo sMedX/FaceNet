@@ -33,7 +33,7 @@ import numpy as np
 import argparse
 import pathlib as plib
 
-from facenet import dataset
+from facenet import dataset, h5utils
 from facenet.statistics import Validation
 from facenet import facenet
 
@@ -44,8 +44,12 @@ config = DefaultConfig()
 def main(args):
 
     # Get the paths for the corresponding images
-    dbase = dataset.Dataset(args.dir, args.nrof_folders)
-    print(dbase)
+    dbase = dataset.dataset(args.dir, args.nrof_classes, h5file=args.h5file)
+    nrof_images = sum(len(x) for x in dbase)
+
+    print('dataset', args.dir)
+    print('number of classes', len(dbase))
+    print('number of images', nrof_images)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -100,7 +104,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
-    if args.use_fixed_image_standardization:
+    if args.image_standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
 
     if args.use_flipped_images:
@@ -167,8 +171,8 @@ def parse_arguments(argv):
         help='Path to the data directory containing aligned face patches.')
     parser.add_argument('--report', type=str,
         help='File to write statistical report.', default='report.txt')
-    parser.add_argument('--nrof_folders', type=int,
-        help='Number of folders to validate model.', default=0)
+    parser.add_argument('--nrof_classes', type=int,
+        help='Number of classes to validate model.', default=0)
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,
@@ -181,8 +185,11 @@ def parse_arguments(argv):
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--subtract_mean',
         help='Subtract feature mean before calculating distance.', action='store_true')
-    parser.add_argument('--use_fixed_image_standardization', 
-        help='Performs fixed standardization of images.', action='store_true')
+    parser.add_argument('--image_standardization', type=bool,
+        help='Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation.',
+        default=config.image_standardization)
+    parser.add_argument('--h5file', type=str,
+        help='Path to h5 file with information about valid images.', default=None)
     return parser.parse_args(argv[1:])
 
 
