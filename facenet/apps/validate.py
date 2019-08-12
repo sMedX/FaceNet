@@ -44,13 +44,14 @@ config = DefaultConfig()
 def main(args):
 
     # Get the paths for the corresponding images
+    print('dataset', args.dir)
+    print('h5file', args.h5file)
+
     dbase = dataset.dataset(args.dir, args.nrof_classes, h5file=args.h5file)
     nrof_images = sum(len(x) for x in dbase)
 
-    print('dataset', args.dir)
     print('number of classes', len(dbase))
     print('number of images', nrof_images)
-    print('h5file', args.h5file)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
