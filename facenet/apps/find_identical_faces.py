@@ -68,10 +68,11 @@ def main(args):
 
                 dist[n, m] = np.nan
 
-                for file in identical_faces:
-                    file = plib.Path(file)
-                    key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
-                    h5utils.write(args.h5file, key, False)
+                if args.h5file:
+                    for file in identical_faces:
+                        file = plib.Path(file)
+                        key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
+                        h5utils.write(args.h5file, key, False)
 
 
 def parse_arguments(argv):
