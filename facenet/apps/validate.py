@@ -101,8 +101,12 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     nrof_flips = 2 if args.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
 
+    ds_files = []
+    for cls in dbase:
+        ds_files += cls.image_paths
+
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(ds_files), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
     if args.image_standardization:
