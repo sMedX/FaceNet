@@ -45,7 +45,7 @@ def main(args):
 
     # Get the paths for the corresponding images
     print('dataset', args.dir)
-    print('h5file', args.h5file)
+    print('h5file ', args.h5file)
 
     dbase = dataset.dataset(args.dir, args.nrof_classes, h5file=args.h5file)
     nrof_images = sum(len(x) for x in dbase)
