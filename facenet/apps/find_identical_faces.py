@@ -29,7 +29,7 @@ import sys
 import argparse
 import numpy as np
 import pathlib as plib
-from facenet import dataset, utils, ioutils, h5utils
+from facenet import utils, ioutils, h5utils
 
 
 def main(args):
@@ -43,14 +43,14 @@ def main(args):
     args.h5file = plib.Path(args.h5file).expanduser()
 
     # Get the paths for the corresponding images
-    tf_files = dataset.list_files(args.dir, extension='.tfrecord')
-    print('dataset', args.dir)
-    print('number of tf records', len(tf_files))
+    tf_files = plib.Path(args.dir).expanduser().glob('*.tfrecord')
 
     tf_records = [utils.TFRecord(file) for file in tf_files]
+    print('directory of dataset', args.dir)
+    print('number of tf records', len(tf_records))
 
     for i, tf1 in enumerate(tf_records):
-        print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
+        print('\r{}/{}'.format(i, len(tf_records)), end=utils.end(i, len(tf_records)))
 
         for tf2 in tf_records[i+1:]:
             dist = 2*(1 - tf1.embeddings @ tf2.embeddings.transpose())
