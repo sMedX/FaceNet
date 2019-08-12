@@ -40,6 +40,7 @@ def main(args):
 
     if args.h5file is None:
         args.h5file = args.dir + '.h5'
+    args.h5file = plib.Path(args.h5file).expanduser()
 
     # Get the paths for the corresponding images
     tf_files = dataset.list_files(args.dir, extension='.tfrecord')
@@ -67,9 +68,7 @@ def main(args):
             dist[face_index, index] = np.nan
 
             if args.h5file:
-                file = plib.Path(tf.files[index])
-                key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
-                h5utils.write(args.h5file, key, False)
+                h5utils.write(args.h5file, h5utils.filename2key(tf.files[index], 'is_valid'), False)
 
 
 def parse_arguments(argv):
@@ -80,7 +79,7 @@ def parse_arguments(argv):
     parser.add_argument('--outdir', type=str,
         help='Directory to save examples with false examples.', default=None)
     parser.add_argument('--h5file', type=str,
-        help='Path to h5 file to save information about false images.', default=None)
+        help='Path to h5 file to write information about false images.', default=None)
     parser.add_argument('--threshold', type=float,
         help='Threshold to classify outlier faces.', default=1.6)
     return parser.parse_args(argv[1:])

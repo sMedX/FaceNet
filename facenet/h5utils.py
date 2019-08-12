@@ -2,8 +2,14 @@
 __author__ = 'Ruslan N. Kosarev'
 
 import os
+import pathlib as plib
 import numpy as np
 import h5py
+
+
+def filename2key(filename, key):
+    file = plib.Path(filename)
+    return str(plib.Path(file.parent.stem).joinpath(file.stem, key))
 
 
 def write_image(hf, name, image, mode='a', check_name=True):
@@ -37,13 +43,15 @@ def write(filename, name, data, mode='a'):
                           compression='gzip',
                           dtype=data.dtype)
 
-    fullkey = os.path.join(str(filename), name)
-    print('dataset \'{}\' has been written to the file {} (length {})'.format(name, fullkey, len(data)))
+    print('dataset \'{}\' has been written to the file {} (length {})'.format(name, filename, len(data)))
 
 
-def read(filename, name):
+def read(filename, name, default=None):
     with h5py.File(str(filename), mode='r') as hf:
-        return hf[name][...]
+        if name in hf:
+            return hf[name][...]
+        else:
+            return default
 
 
 def keys(h5file):
