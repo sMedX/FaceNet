@@ -47,10 +47,10 @@ def main(args):
     print('dataset', args.dir)
     print('number of tf records', len(tf_files))
 
-    for i, file in enumerate(tf_files):
-        print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
+    tf_records = [utils.TFRecord(file) for file in tf_files]
 
-        tf = utils.TFRecord(file)
+    for i, tf in enumerate(tf_records):
+        print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
 
         dist = 2*(1 - tf.embeddings @ tf.embeddings.transpose())
         face_index = np.argmin(np.mean(dist, axis=0))

@@ -47,12 +47,12 @@ def main(args):
     print('dataset', args.dir)
     print('number of tf records', len(tf_files))
 
-    for i, file1 in enumerate(tf_files):
+    tf_records = [utils.TFRecord(file) for file in tf_files]
+
+    for i, tf1 in enumerate(tf_records):
         print('\r{}/{}'.format(i, len(tf_files)), end=utils.end(i, len(tf_files)))
 
-        tf1 = utils.TFRecord(file1)
-        for file2 in tf_files[i+1:]:
-            tf2 = utils.TFRecord(file2)
+        for tf2 in tf_records[i+1:]:
             dist = 2*(1 - tf1.embeddings @ tf2.embeddings.transpose())
 
             while np.nanmin(dist) < args.threshold:
@@ -71,9 +71,7 @@ def main(args):
 
                 if args.h5file:
                     for file in identical_faces:
-                        file = plib.Path(file)
-                        key = plib.Path(file.parent.stem).joinpath(file.stem, 'is_valid')
-                        h5utils.write(args.h5file, key, False)
+                        h5utils.write(args.h5file, h5utils.filename2key(file, 'is_valid'), False)
 
 
 def parse_arguments(argv):
