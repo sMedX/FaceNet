@@ -50,6 +50,7 @@ def main(args):
     print('dataset', args.dir)
     print('number of classes', len(dbase))
     print('number of images', nrof_images)
+    print('h5file', args.h5file)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
