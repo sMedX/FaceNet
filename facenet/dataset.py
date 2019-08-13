@@ -87,8 +87,8 @@ class DBase:
         for count, class_path in enumerate(classes):
             files = class_path.glob('*' + config.file_extension)
 
-            if h5file is not None:
-                files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
+            if self.h5file is not None:
+                files = [f for f in files if h5utils.read(self.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
             if len(files) > 0:
                 self.classes.append(ImageClass(class_path.stem, files, count=count))
