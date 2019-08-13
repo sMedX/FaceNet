@@ -221,6 +221,7 @@ class Validation:
             f.write('git diff: {}\n'.format(git_diff))
             f.write('model: {}\n'.format(args.model))
             f.write('dataset: {}\n'.format(dbase.path))
+            f.write('h5file : {}\n'.format(args.h5file))
             f.write('number of folders {}\n'.format(dbase.nrof_classes))
             f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
             f.write('distance metric: {}\n'.format(args.distance_metric))
