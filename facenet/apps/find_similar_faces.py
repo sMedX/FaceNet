@@ -84,7 +84,7 @@ def parse_arguments(argv):
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file to write information about false images.', default=None)
     parser.add_argument('--threshold', type=float,
-        help='Threshold to classify identical faces.', default=0.10)
+        help='Threshold to classify similar faces.', default=0.10)
     return parser.parse_args(argv[1:])
 
 
