@@ -119,8 +119,12 @@ class DBase:
     def files(self):
         f = []
         for cls in self.classes:
-            f += [str(s) for s in cls.files]
+            f += cls.files
         return f
+
+    @property
+    def files_as_strings(self):
+        return [str(s) for s in self.files]
 
     def extract_data(self, folder_idx, embeddings=None):
         indices = np.where(self.labels == folder_idx)[0]
