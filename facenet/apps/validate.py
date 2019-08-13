@@ -44,9 +44,6 @@ config = DefaultConfig()
 def main(args):
 
     # Get the paths for the corresponding images
-    print('dataset', args.dir)
-    print('h5file ', args.h5file)
-
     dbase = dataset.DBase(args.dir, nrof_classes=args.nrof_classes, h5file=args.h5file)
     print(dbase)
 
