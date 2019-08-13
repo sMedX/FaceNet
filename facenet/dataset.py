@@ -76,6 +76,8 @@ class DBase:
             self.h5file = plib.Path(self.h5file).expanduser()
 
         classes = [path for path in self.path.glob('*') if path.is_dir()]
+        classes.sort()
+
         if nrof_classes > 0:
             classes = classes[:nrof_classes]
 
