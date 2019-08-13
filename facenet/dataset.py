@@ -11,8 +11,10 @@ class ImageClass:
     """
     def __init__(self, name, files, count=None):
         self.name = name
-        self.files = files
         self.count = count
+
+        self.files = files
+        self.files.sort()
 
     def __str__(self):
         return self.name + ', ' + str(len(self.files)) + ' images'
