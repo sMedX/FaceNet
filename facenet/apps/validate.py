@@ -68,11 +68,8 @@ def main(args):
             image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)
      
             # load the model to validate
-            if args.model == 'default':
-                args.model = config.model
-            else:
-                args.model = plib.Path(args.model).expanduser()
-            print('Pre-trained model: {}'.format(args.model))
+            args.model = plib.Path(args.model).expanduser()
+            print('model: {}'.format(args.model))
 
             input_map = {'image_batch': image_batch, 'label_batch': label_batch, 'phase_train': phase_train_placeholder}
             facenet.load_model(args.model, input_map=input_map)
@@ -165,7 +162,7 @@ def parse_arguments(argv):
     
     parser.add_argument('--model', type=str,
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
-        default='default')
+        default=config.model)
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
     parser.add_argument('--report', type=str,
