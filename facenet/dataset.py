@@ -99,7 +99,7 @@ class DBase:
         """Representation of the database"""
         info = ('class {}\n'.format(self.__class__.__name__) +
                 'Directory to load images {}\n'.format(self.path) +
-                'h5 file to filter images {}\n', self.h5file +
+                'h5 file to filter images {}\n'.format(self.h5file) +
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Numbers of images {} and pairs {}\n'.format(self.nrof_images, self.nrof_pairs))
         return info
