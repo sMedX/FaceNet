@@ -47,11 +47,8 @@ def main(args):
     print('dataset', args.dir)
     print('h5file ', args.h5file)
 
-    dbase = dataset.dataset(args.dir, args.nrof_classes, h5file=args.h5file)
-    nrof_images = sum(len(x) for x in dbase)
-
-    print('number of classes', len(dbase))
-    print('number of images', nrof_images)
+    dbase = dataset.DBase(args.dir, nrof_classes=args.nrof_classes, h5file=args.h5file)
+    print(dbase)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -97,17 +94,13 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     print('Running forward pass on images')
 
     # Enqueue one epoch of image paths and labels
-    nrof_embeddings = sum(len(x) for x in dbase)
+    nrof_embeddings = dbase.nrof_images
 
     nrof_flips = 2 if args.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
 
-    ds_files = []
-    for cls in dbase:
-        ds_files += cls.image_paths
-
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(ds_files), nrof_flips), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
     if args.image_standardization:
