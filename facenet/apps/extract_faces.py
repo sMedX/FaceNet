@@ -6,6 +6,7 @@
 import sys
 import argparse
 import pathlib as plib
+import numpy as np
 
 from facenet import dataset, ioutils, h5utils
 from facenet.detectors.face_detector import image_processing, FaceDetector
@@ -72,7 +73,8 @@ def main(args):
                             out_filename_i = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, i, out_filename.suffix))
 
                         ioutils.write_image(output, out_filename_i)
-                        h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), (box.height, box.width))
+                        size = np.uint16((box.height, box.width))
+                        h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), size)
 
     print('Total number of images: {}'.format(nrof_images_total))
     print('Number of successfully aligned images: {}'.format(nrof_successfully_aligned))
