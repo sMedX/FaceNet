@@ -73,7 +73,7 @@ def main(args):
                             out_filename_i = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, i, out_filename.suffix))
 
                         ioutils.write_image(output, out_filename_i)
-                        size = np.uint16((box.height, box.width))
+                        size = np.uint32((box.height, box.width))
                         h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), size)
 
     print('Total number of images: {}'.format(nrof_images_total))
