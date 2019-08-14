@@ -5,6 +5,7 @@ import os
 import pathlib as plib
 
 basedir = plib.Path(__file__).parents[1]
+file_extension = '.png'
 
 
 class DefaultConfig:

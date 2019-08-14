@@ -1,9 +1,57 @@
 
 import os
+import sys
+import pathlib as plib
 from subprocess import Popen, PIPE
 import numpy as np
 from scipy import spatial
 import tensorflow as tf
+from PIL import Image, ImageFont, ImageDraw
+
+from facenet import ioutils
+
+
+def file2text(file):
+    return os.path.join(os.path.basename(os.path.dirname(file)), os.path.splitext(os.path.basename(file))[0])
+
+
+def generate_filename(dirname, value, file1, file2):
+    dir1 = os.path.basename(os.path.dirname(file1))
+    name1 = os.path.splitext(os.path.basename(file1))[0]
+
+    dir2 = os.path.basename(os.path.dirname(file2))
+    name2 = os.path.splitext(os.path.basename(file2))[0]
+
+    if dir1 == dir2:
+        s = os.path.join(dirname, '{}|{} & {} & {:2.3f}.png'.format(dir1, name1, name2, value))
+    else:
+        s = os.path.join(dirname, '{}|{} & {}|{} & {:2.3f}.png'.format(dir1, name1, dir2, name2, value))
+    return s
+
+
+class ConcatenateImages:
+    def __init__(self, file1, file2, distance, font_size=13):
+        self.file1 = file1
+        self.file2 = file2
+        self.distance = distance
+
+        img1 = ioutils.read_image(file1)
+        img2 = ioutils.read_image(file2)
+        self.img = Image.fromarray(np.concatenate([np.array(img1), np.array(img2)], axis=1))
+
+        text = '{} & {}\n{:2.3f}'.format(file2text(file1), file2text(file2), distance)
+
+        if sys.platform == 'win32':
+            font = ImageFont.truetype("arial.ttf", font_size)
+        else:
+            font = ImageFont.truetype("LiberationSans-Regular.ttf", font_size)
+
+        draw = ImageDraw.Draw(self.img)
+        draw.text((0, 0), text, (0, 255, 0), font=font)
+
+    def save(self, outdir):
+        filename = generate_filename(outdir, self.distance, self.file1, self.file2)
+        ioutils.write_image(self.img, filename)
 
 
 def label_array(labels):
@@ -78,7 +126,7 @@ def write_tfrecord(tfrecord, files, labels, embeddings):
         for i, (file, label, embedding) in enumerate(zip(files, labels, embeddings)):
             add_to_tfrecord(tfwriter, file.encode(), label, embedding.tolist())
 
-            if (i+1) % 100 == 0:
+            if (i+1) % 1000 == 0:
                 print('\r{}/{} samples have been added to tfrecord file.'.format(i+1, len(files)), end='')
 
     print('\rtfrecord file {} has been written, number of samples is {}.'.format(tfrecord, len(files)))
@@ -96,7 +144,7 @@ def add_to_tfrecord(tfwriter, file, label, embedding):
 
 
 def read_tfrecord(tfrecord, mode='array'):
-    tfrecord = os.path.expanduser(tfrecord)
+    tfrecord = str(plib.Path(tfrecord).expanduser())
     record_iterator = tf.python_io.tf_record_iterator(path=tfrecord)
 
     files = []
@@ -109,7 +157,7 @@ def read_tfrecord(tfrecord, mode='array'):
         feature = example.features.feature
 
         file = feature['filename'].bytes_list.value[0]
-        files.append(file)
+        files.append(file.decode())
 
         label = feature['label'].int64_list.value[0]
         labels.append(label)

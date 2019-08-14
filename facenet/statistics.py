@@ -105,8 +105,8 @@ class Validation:
         self.embeddings = embeddings
         self.subtract_mean = subtract_mean
         self.distance_metric = distance_metric
+        labels = np.array(dbase.labels)
 
-        labels = dbase.labels
         assert (embeddings.shape[0] == len(labels))
 
         nrof_thresholds = len(thresholds)
@@ -219,9 +219,10 @@ class Validation:
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(git_hash))
             f.write('git diff: {}\n'.format(git_diff))
-            f.write('model: {}\n'.format(str(args.model)))
-            f.write('dataset: {}\n'.format(dbase.dirname))
-            f.write('number of folders {}\n'.format(dbase.nrof_folders))
+            f.write('model: {}\n'.format(args.model))
+            f.write('dataset: {}\n'.format(dbase.path))
+            f.write('h5file : {}\n'.format(args.h5file))
+            f.write('number of folders {}\n'.format(dbase.nrof_classes))
             f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
             f.write('distance metric: {}\n'.format(args.distance_metric))
             f.write('subtract mean: {}\n'.format(args.subtract_mean))

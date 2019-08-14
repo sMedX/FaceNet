@@ -41,20 +41,24 @@ config = DefaultConfig()
 def main(args):
 
     # Get the paths for the corresponding images
-    dbase = dataset.Dataset(args.dir, args.nrof_folders)
-    print(dbase)
+    dbase = dataset.dataset(args.dir, args.nrof_classes)
+    nrof_images = sum(len(x) for x in dbase)
+
+    print('dataset', args.dir)
+    print('number of classes', len(dbase))
+    print('number of images', nrof_images)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            image_paths_placeholder = tf.placeholder(tf.string, shape=(None,1), name='image_paths')
-            labels_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='labels')
+            image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
+            labels_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
             batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
-            control_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='control')
+            control_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='control')
             phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
  
             nrof_preprocess_threads = 4
             image_size = (args.image_size, args.image_size)
-            eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
+            eval_input_queue = data_flow_ops.FIFOQueue(capacity=nrof_images,
                                                        dtypes=[tf.string, tf.int32, tf.int32],
                                                        shapes=[(1,), (1,), (1,)],
                                                        shared_name=None, name=None)
@@ -85,60 +89,64 @@ def main(args):
 def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
              batch_size_placeholder, control_placeholder, embeddings, labels, dbase, args):
 
+    if args.tfrecord is None:
+        tf_dir = os.path.expanduser(args.dir)
+    else:
+        tf_dir = os.path.expanduser(args.tfrecord)
+
+    model = os.path.splitext(os.path.basename(args.model))[0]
+    tf_dir = os.path.join(tf_dir, model)
+    if not os.path.isdir(tf_dir):
+        os.mkdir(tf_dir)
+    print('save tf records to dir {}'.format(tf_dir))
+
     # Run forward pass to calculate embeddings
     print('Running forward pass on images')
-
-    # Enqueue one epoch of image paths and labels
-    nrof_embeddings = dbase.nrof_images
-    nrof_images = dbase.nrof_images
-
-    labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.array(dbase.files), 1)
-    control_array = np.zeros_like(labels_array, np.int32)
-
-    if args.use_fixed_image_standardization:
-        control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
-
-    sess.run(enqueue_op, {image_paths_placeholder: image_paths_array,
-                          labels_placeholder: labels_array,
-                          control_placeholder: control_array})
-    
     embedding_size = int(embeddings.get_shape()[1])
 
-    batch_size = args.batch_size
-    nrof_batches = math.ceil(nrof_images/args.batch_size)
+    for cls_index, cls in enumerate(dbase):
+        print("============================================")
+        print('({}/{}) ({}) {}'.format(cls_index, len(dbase), len(cls.image_paths), cls.name))
+        nrof_images = len(cls.image_paths)
+        labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
+        control_array = np.zeros_like(labels_array, np.int32)
 
-    emb_array = np.zeros((nrof_images, embedding_size))
-    lab_array = np.zeros((nrof_images,), dtype=np.int64)
+        image_paths_array = np.expand_dims(np.array(cls.image_paths), 1)
 
-    for i in range(nrof_batches):
-        print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end=utils.end(i, nrof_batches))
+        if args.image_standardization:
+            control_array += np.ones_like(labels_array) * facenet.FIXED_STANDARDIZATION
 
-        if (i+1) == nrof_batches:
-            batch_size = nrof_images % args.batch_size
-            if batch_size == 0:
-                batch_size = args.batch_size
+        sess.run(enqueue_op, {image_paths_placeholder: image_paths_array,
+                              labels_placeholder: labels_array,
+                              control_placeholder: control_array})
 
-        feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
-        emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
-        lab_array[lab] = lab
-        emb_array[lab, :] = emb
+        batch_size = args.batch_size
+        nrof_batches = math.ceil(nrof_images / args.batch_size)
 
-    assert np.array_equal(lab_array, np.arange(nrof_images)), \
-        'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
+        emb_array = np.zeros((nrof_images, embedding_size))
+        lab_array = np.zeros((nrof_images,), dtype=np.int64)
 
-    # create tf record writer
-    tfrecord = os.path.expanduser(args.tfrecord)
+        for i in range(nrof_batches):
+            print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end=utils.end(i, nrof_batches))
 
-    if os.path.splitext(tfrecord)[1] != '.tfrecord':
-        model = os.path.splitext(os.path.basename(args.model))[0]
-        tfrecord = os.path.join(tfrecord, '{}_{}.tfrecord'.format(dbase.name, model))
+            if (i+1) == nrof_batches:
+                batch_size = nrof_images % args.batch_size
+                if batch_size == 0:
+                    batch_size = args.batch_size
 
-    if not os.path.isdir(os.path.dirname(tfrecord)):
-        os.mkdir(os.path.dirname(tfrecord))
+            feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
+            emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
+            lab_array[lab] = lab
+            emb_array[lab, :] = emb
 
-    # write tf record file
-    utils.write_tfrecord(tfrecord, dbase.filenames(mode='with_dir'), dbase.labels, emb_array)
+        assert np.array_equal(lab_array, np.arange(nrof_images)), \
+            'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
+
+        # write tf record file
+        emb_array = (emb_array.transpose() / np.linalg.norm(emb_array, axis=1)).transpose()
+
+        tf_file = os.path.join(tf_dir, cls.name + '.tfrecord')
+        utils.write_tfrecord(tf_file, cls.image_paths, [cls_index]*nrof_images, emb_array)
 
 
 def parse_arguments(argv):
@@ -150,11 +158,11 @@ def parse_arguments(argv):
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
         default=config.model)
     parser.add_argument('--tfrecord', type=str,
-        help='Path to save tf record file.', default='~/datasets')
-    parser.add_argument('--nrof_folders', type=int,
-        help='Number of folders to validate model.', default=0)
+        help='Path to save tf record file.', default=None)
+    parser.add_argument('--nrof_classes', type=int,
+        help='Number of classes to evaluate embeddings.', default=0)
     parser.add_argument('--batch_size', type=int,
-        help='Number of images to process in a batch in the test set.', default=100)
+        help='Number of images to process in a batch in the test set.', default=500)
     parser.add_argument('--image_size', type=int,
         help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--image_standardization', type=bool,

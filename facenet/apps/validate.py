@@ -33,7 +33,7 @@ import numpy as np
 import argparse
 import pathlib as plib
 
-from facenet import dataset
+from facenet import dataset, h5utils
 from facenet.statistics import Validation
 from facenet import facenet
 
@@ -44,7 +44,7 @@ config = DefaultConfig()
 def main(args):
 
     # Get the paths for the corresponding images
-    dbase = dataset.Dataset(args.dir, args.nrof_folders)
+    dbase = dataset.DBase(args.dir, nrof_classes=args.nrof_classes, h5file=args.h5file)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -65,11 +65,8 @@ def main(args):
             image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)
      
             # load the model to validate
-            if args.model == 'default':
-                args.model = config.model
-            else:
-                args.model = plib.Path(args.model).expanduser()
-            print('Pre-trained model: {}'.format(args.model))
+            args.model = plib.Path(args.model).expanduser()
+            print('model: {}'.format(args.model))
 
             input_map = {'image_batch': image_batch, 'label_batch': label_batch, 'phase_train': phase_train_placeholder}
             facenet.load_model(args.model, input_map=input_map)
@@ -97,10 +94,10 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     nrof_images = nrof_embeddings * nrof_flips
 
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files_as_strings), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
-    if args.use_fixed_image_standardization:
+    if args.image_standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
 
     if args.use_flipped_images:
@@ -162,13 +159,13 @@ def parse_arguments(argv):
     
     parser.add_argument('--model', type=str,
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
-        default='default')
+        default=config.model)
     parser.add_argument('dir', type=str,
         help='Path to the data directory containing aligned face patches.')
     parser.add_argument('--report', type=str,
         help='File to write statistical report.', default='report.txt')
-    parser.add_argument('--nrof_folders', type=int,
-        help='Number of folders to validate model.', default=0)
+    parser.add_argument('--nrof_classes', type=int,
+        help='Number of classes to validate model.', default=0)
     parser.add_argument('--batch_size', type=int,
         help='Number of images to process in a batch in the test set.', default=100)
     parser.add_argument('--image_size', type=int,
@@ -181,8 +178,11 @@ def parse_arguments(argv):
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--subtract_mean',
         help='Subtract feature mean before calculating distance.', action='store_true')
-    parser.add_argument('--use_fixed_image_standardization', 
-        help='Performs fixed standardization of images.', action='store_true')
+    parser.add_argument('--image_standardization', type=bool,
+        help='Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation.',
+        default=config.image_standardization)
+    parser.add_argument('--h5file', type=str,
+        help='Path to h5 file with information about valid images.', default=None)
     return parser.parse_args(argv[1:])
 
 
