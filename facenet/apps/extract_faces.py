@@ -57,7 +57,7 @@ def main(args):
                 nrof_faces = len(bounding_boxes)
 
                 if nrof_faces == 0:
-                    print('Unable to find dace "{}"'.format(image_path))
+                    print('Unable to find face "{}"'.format(image_path))
                 elif nrof_faces > 1 and not args.detect_multiple_faces:
                     print('The number of detected faces more than one "{}"'.format(image_path))
                 else:
