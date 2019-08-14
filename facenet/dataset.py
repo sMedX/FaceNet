@@ -2,7 +2,7 @@
 import os
 import pathlib as plib
 import numpy as np
-from facenet import config, h5utils
+from facenet import h5utils
 
 
 class ImageClass:
@@ -68,7 +68,7 @@ def dataset(path, nrof_classes=0, has_class_directories=True, h5file=None):
 
 
 class DBase:
-    def __init__(self, path, h5file=None, nrof_classes=0):
+    def __init__(self, path, extension='', h5file=None, nrof_classes=0):
         self.path = plib.Path(path).expanduser()
 
         self.h5file = h5file
@@ -85,10 +85,12 @@ class DBase:
         self.labels = []
 
         for count, class_path in enumerate(classes):
-            files = class_path.glob('*' + config.file_extension)
+            files = class_path.glob('*' + extension)
 
             if self.h5file is not None:
                 files = [f for f in files if h5utils.read(self.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
+            else:
+                files = [f for f in files]
 
             if len(files) > 0:
                 self.classes.append(ImageClass(class_path.stem, files, count=count))
