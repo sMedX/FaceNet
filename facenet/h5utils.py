@@ -43,7 +43,7 @@ def write(filename, name, data, mode='a'):
                           compression='gzip',
                           dtype=data.dtype)
 
-    print('dataset \'{}\' has been written to the file {} (length {})'.format(name, filename, len(data)))
+    # print('dataset \'{}\' has been written to the file {} (length {})'.format(name, filename, len(data)))
 
 
 def read(filename, name, default=None):
