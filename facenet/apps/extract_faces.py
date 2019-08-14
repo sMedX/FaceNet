@@ -22,11 +22,12 @@ def main(args):
     args.h5file = plib.Path(args.h5file).expanduser()
 
     # store some git revision info in a text file in the log directory
-    # src_path, _ = os.path.split(os.path.realpath(__file__))
     facenet.store_revision_info(plib.Path(__file__).parent, args.output_dir, ' '.join(sys.argv))
-    # dataset = facenet.get_dataset(args.input_dir)
     dbase = dataset.DBase(args.input_dir)
-    
+    print(dbase)
+    print('output directory', args.output_dir)
+    print('output h5 file  ', args.h5file)
+
     print('Creating networks and loading parameters')
     detector = FaceDetector(detector=args.detector, gpu_memory_fraction=args.gpu_memory_fraction)
     print(detector)
