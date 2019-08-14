@@ -668,6 +668,9 @@ def calculate_val_far(threshold, dist, actual_issame):
 
 
 def store_revision_info(src_path, output_dir, arg_string):
+    src_path = str(src_path)
+    output_dir = str(output_dir)
+
     try:
         # Get git hash
         cmd = ['git', 'rev-parse', 'HEAD']
@@ -684,7 +687,7 @@ def store_revision_info(src_path, output_dir, arg_string):
         (stdout, _) = gitproc.communicate()
         git_diff = stdout.strip()
     except OSError as e:
-        git_diff = ' '.join(cmd) + ': ' +  e.strerror
+        git_diff = ' '.join(cmd) + ': ' + e.strerror
     
     # Store a text file in the log directory
     rev_info_filename = os.path.join(output_dir, 'revision_info.txt')
