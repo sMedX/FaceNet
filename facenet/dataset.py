@@ -94,8 +94,7 @@ class DBase:
 
             if len(files) > 0:
                 self.classes.append(ImageClass(class_path.stem, files, count=count))
-
-            print(classes[-1].name, end=utils.end(count, len(classes)))
+                print('\r{}'.format(classes[-1].name), end=utils.end(count, len(classes)))
 
             self.labels += [count]*len(files)
 
