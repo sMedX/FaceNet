@@ -42,7 +42,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import lfw
+from facenet import dataset, lfw
 from facenet.config import DefaultConfig
 from facenet import facenet
 
@@ -79,15 +79,17 @@ def main(args):
 
     np.random.seed(seed=args.seed)
     random.seed(args.seed)
-    dataset = facenet.get_dataset(args.data_dir)
-    if args.filter_filename:
-        dataset = filter_dataset(dataset, os.path.expanduser(args.filter_filename), 
-            args.filter_percentile, args.filter_min_nrof_images_per_class)
-        
+    # dbase = facenet.get_dataset(args.data_dir)
+    # if args.filter_filename:
+    #     dbase = filter_dataset(dbase, os.path.expanduser(args.filter_filename),
+    #         args.filter_percentile, args.filter_min_nrof_images_per_class)
+
+    dbase = dataset.DBase(args.dir, h5file=args.h5file).classes
+
     if args.validation_set_split_ratio > 0.0:
-        train_set, val_set = facenet.split_dataset(dataset, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
+        train_set, val_set = facenet.split_dataset(dbase, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
     else:
-        train_set, val_set = dataset, []
+        train_set, val_set = dbase, []
         
     nrof_classes = len(train_set)
     
@@ -517,6 +519,8 @@ def parse_arguments(argv):
     parser.add_argument('--data_dir', type=str,
         help='Path to the data directory containing aligned face patches.',
         default='~/datasets/casia/casia_maxpy_mtcnnalign_182_160')
+    parser.add_argument('--h5file', type=str,
+        help='Path to h5 file with information about valid images.', default=None)
     parser.add_argument('--model_def', type=str,
         help='Model definition. Points to a module containing the definition of the inference graph.', default='facenet.models.inception_resnet_v1')
     parser.add_argument('--max_nrof_epochs', type=int,
