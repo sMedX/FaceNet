@@ -117,10 +117,10 @@ def main(args):
         global_step = tf.Variable(0, trainable=False)
         
         # Get a list of image paths and their labels
-        image_list, label_list = facenet.get_image_paths_and_labels(train_set)
+        image_list, label_list = dataset.get_image_paths_and_labels(train_set)
         assert len(image_list) > 0, 'The training set should not be empty'
         
-        val_image_list, val_label_list = facenet.get_image_paths_and_labels(val_set)
+        val_image_list, val_label_list = dataset.get_image_paths_and_labels(val_set)
 
         # Create a queue that produces indices into the image_list and label_list 
         labels = ops.convert_to_tensor(label_list, dtype=tf.int32)
