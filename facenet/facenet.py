@@ -80,13 +80,13 @@ def center_loss(features, label, alfa, nrof_classes):
         loss = tf.reduce_mean(tf.square(features - centers_batch))
     return loss, centers
 
-def get_image_paths_and_labels(dataset):
-    image_paths_flat = []
-    labels_flat = []
-    for i in range(len(dataset)):
-        image_paths_flat += dataset[i].image_paths
-        labels_flat += [i] * len(dataset[i].image_paths)
-    return image_paths_flat, labels_flat
+# def get_image_paths_and_labels(dataset):
+#     image_paths_flat = []
+#     labels_flat = []
+#     for i in range(len(dataset)):
+#         image_paths_flat += dataset[i].image_paths
+#         labels_flat += [i] * len(dataset[i].image_paths)
+#     return image_paths_flat, labels_flat
 
 def shuffle_examples(image_paths, labels):
     shuffle_list = list(zip(image_paths, labels))
@@ -322,17 +322,17 @@ def get_learning_rate_from_file(filename, epoch, default_learning_rate=-1.0):
     return learning_rate
 
 
-class ImageClass:
-    "Stores the paths to images for a given class"
-    def __init__(self, name, image_paths):
-        self.name = name
-        self.image_paths = image_paths
-  
-    def __str__(self):
-        return self.name + ', ' + str(len(self.image_paths)) + ' images'
-  
-    def __len__(self):
-        return len(self.image_paths)
+# class ImageClass:
+#     "Stores the paths to images for a given class"
+#     def __init__(self, name, image_paths):
+#         self.name = name
+#         self.image_paths = image_paths
+#
+#     def __str__(self):
+#         return self.name + ', ' + str(len(self.image_paths)) + ' images'
+#
+#     def __len__(self):
+#         return len(self.image_paths)
   
 
 def get_dataset(path, has_class_directories=True):
@@ -370,7 +370,7 @@ def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
         train_set = []
         test_set = []
         for cls in dataset:
-            paths = cls.image_paths
+            paths = cls.files
             np.random.shuffle(paths)
             nrof_images_in_class = len(paths)
             split = int(math.floor(nrof_images_in_class*(1-split_ratio)))
