@@ -14,7 +14,7 @@ class ImageClass:
         self.name = name
         self.count = count
 
-        self.files = files
+        self.files = [str(f) for f in files]
         self.files.sort()
 
     def __str__(self):
