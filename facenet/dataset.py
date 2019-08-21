@@ -2,7 +2,7 @@
 import os
 import pathlib as plib
 import numpy as np
-from facenet import h5utils
+from facenet import utils, h5utils
 
 
 class ImageClass:
@@ -94,6 +94,8 @@ class DBase:
 
             if len(files) > 0:
                 self.classes.append(ImageClass(class_path.stem, files, count=count))
+
+            print(classes[-1].name, end=utils.end(count, len(classes)))
 
             self.labels += [count]*len(files)
 
