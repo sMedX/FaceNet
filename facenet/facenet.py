@@ -350,12 +350,12 @@ def get_learning_rate_from_file(filename, epoch, default_learning_rate=-1.0):
 #     return dataset
 
 
-def get_image_paths(facedir):
-    image_paths = []
-    if os.path.isdir(facedir):
-        images = os.listdir(facedir)
-        image_paths = [os.path.join(facedir,img) for img in images]
-    return image_paths
+# def get_image_paths(facedir):
+#     image_paths = []
+#     if os.path.isdir(facedir):
+#         images = os.listdir(facedir)
+#         image_paths = [os.path.join(facedir,img) for img in images]
+#     return image_paths
 
 
 # def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
