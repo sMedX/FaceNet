@@ -2,6 +2,7 @@
 import os
 import pathlib as plib
 import numpy as np
+import math
 from facenet import utils, h5utils
 
 
@@ -138,3 +139,32 @@ class DBase:
             return files
         else:
             return files, embeddings[indices]
+
+    def split(self, split_ratio, min_nrof_images_per_class, mode='images'):
+        if split_ratio <= 0.0:
+            return self.classes, []
+
+        if mode == 'classes':
+            nrof_classes = len(self.classes)
+            class_indices = np.arange(nrof_classes)
+            np.random.shuffle(class_indices)
+            split = int(round(nrof_classes * (1 - split_ratio)))
+            train_set = [self.classes[i] for i in class_indices[0:split]]
+            test_set = [self.classes[i] for i in class_indices[split:-1]]
+        elif mode == 'images':
+            train_set = []
+            test_set = []
+            for cls in self.classes:
+                paths = cls.files
+                np.random.shuffle(paths)
+                nrof_images_in_class = len(paths)
+                split = int(math.floor(nrof_images_in_class * (1 - split_ratio)))
+                if split == nrof_images_in_class:
+                    split = nrof_images_in_class - 1
+                if split >= min_nrof_images_per_class and nrof_images_in_class - split >= 1:
+                    train_set.append(ImageClass(cls.name, paths[:split]))
+                    test_set.append(ImageClass(cls.name, paths[split:]))
+        else:
+            raise ValueError('Invalid train/test split mode "%s"' % mode)
+
+        return train_set, test_set

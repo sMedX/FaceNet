@@ -86,13 +86,9 @@ def main(args):
 
     dbase = dataset.DBase(args.data_dir, h5file=args.h5file)
     print(dbase)
-    dbase = dbase.classes
 
-    if args.validation_set_split_ratio > 0.0:
-        train_set, val_set = facenet.split_dataset(dbase, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
-    else:
-        train_set, val_set = dbase, []
-        
+    # train_set, val_set = facenet.split_dataset(dbase, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
+    train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
     nrof_classes = len(train_set)
     
     print('Model directory: %s' % model_dir)
