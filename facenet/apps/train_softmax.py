@@ -84,7 +84,7 @@ def main(args):
     #     dbase = filter_dataset(dbase, os.path.expanduser(args.filter_filename),
     #         args.filter_percentile, args.filter_min_nrof_images_per_class)
 
-    dbase = dataset.DBase(args.dir, h5file=args.h5file).classes
+    dbase = dataset.DBase(args.data_dir, h5file=args.h5file).classes
 
     if args.validation_set_split_ratio > 0.0:
         train_set, val_set = facenet.split_dataset(dbase, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
