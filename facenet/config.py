@@ -10,7 +10,8 @@ file_extension = '.png'
 
 class DefaultConfig:
     def __init__(self):
-        self.model = str(basedir.joinpath('models', '20190727-080213'))
+        self.model = basedir.joinpath('models', '20190727-080213')
+        self.pretrained_checkpoint = basedir.joinpath('models', '20190727-080213', 'model-20190727-080213.ckpt-275')
 
         # type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance
         self.distance_metric = 0

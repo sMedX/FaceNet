@@ -209,7 +209,7 @@ def main(args):
 
         with sess.as_default():
             if args.pretrained_checkpoint is not None:
-                print('Restoring pretrained model: {}'.format(args.pretrained_checkpoint))
+                print('Restoring pre-trained model: {}'.format(args.pretrained_checkpoint))
                 saver.restore(sess, str(args.pretrained_checkpoint))
 
             # Training and validation loop
