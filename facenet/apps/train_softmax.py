@@ -27,6 +27,7 @@ from __future__ import division
 from __future__ import print_function
 
 from datetime import datetime
+import pathlib as plib
 import os.path
 import time
 import sys
@@ -79,28 +80,21 @@ def main(args):
 
     np.random.seed(seed=args.seed)
     random.seed(args.seed)
-    # dbase = facenet.get_dataset(args.data_dir)
-    # if args.filter_filename:
-    #     dbase = filter_dataset(dbase, os.path.expanduser(args.filter_filename),
-    #         args.filter_percentile, args.filter_min_nrof_images_per_class)
 
     dbase = dataset.DBase(args.data_dir, h5file=args.h5file)
     print(dbase)
 
-    # train_set, val_set = facenet.split_dataset(dbase, args.validation_set_split_ratio, args.min_nrof_val_images_per_class, 'SPLIT_IMAGES')
     train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
     nrof_classes = len(train_set)
     
     print('Model directory: %s' % model_dir)
     print('Log directory: %s' % log_dir)
 
-    if args.pretrained_model:
-        pretrained_model = args.pretrained_model
-        if pretrained_model == 'default':
-            pretrained_model = config.model
-    else:
-        pretrained_model = None
-    print('Pre-trained model: {}'.format(pretrained_model))
+    if args.pretrained_checkpoint:
+        if args.pretrained_checkpoint == 'default':
+            args.pretrained_checkpoint = config.pretrained_checkpoint
+        args.pretrained_checkpoint = plib.Path(args.pretrained_checkpoint).expanduser()
+    print('Pre-trained model: {}'.format(args.pretrained_checkpoint))
 
     if args.lfw_dir:
         print('LFW directory: %s' % args.lfw_dir)
@@ -214,10 +208,9 @@ def main(args):
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
-
-            if pretrained_model is not None:
-                print('Restoring pretrained model: {}'.format(pretrained_model))
-                saver.restore(sess, str(pretrained_model))
+            if args.pretrained_checkpoint is not None:
+                print('Restoring pretrained model: {}'.format(args.pretrained_checkpoint))
+                saver.restore(sess, str(args.pretrained_checkpoint))
 
             # Training and validation loop
             print('Running training')
@@ -512,7 +505,7 @@ def parse_arguments(argv):
         help='Directory where to write event logs.', default=None)
     parser.add_argument('--gpu_memory_fraction', type=float,
         help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
-    parser.add_argument('--pretrained_model', type=str,
+    parser.add_argument('--pretrained_checkpoint', type=str,
         help='Load a pretrained model before training starts.')
     parser.add_argument('--data_dir', type=str,
         help='Path to the data directory containing aligned face patches.',
