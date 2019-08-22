@@ -94,7 +94,7 @@ def main(args):
         if args.pretrained_checkpoint == 'default':
             args.pretrained_checkpoint = config.pretrained_checkpoint
         args.pretrained_checkpoint = plib.Path(args.pretrained_checkpoint).expanduser()
-    print('Pre-trained model: {}'.format(args.pretrained_checkpoint))
+    print('Pre-trained checkpoint: {}'.format(args.pretrained_checkpoint))
 
     if args.lfw_dir:
         print('LFW directory: %s' % args.lfw_dir)
