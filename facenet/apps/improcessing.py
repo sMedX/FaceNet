@@ -59,7 +59,7 @@ def main(args):
 
     print('Report txt file with statistics', report_file)
 
-    ioutils.store_revision_info(report_file, ' '.join(sys.argv), mode='at')
+    ioutils.store_revision_info(report_file, sys.argv, mode='at')
 
     with open(report_file, 'at') as f:
         f.write('dataset {}\n'.format(plib.Path(args.input_dir).expanduser()))
