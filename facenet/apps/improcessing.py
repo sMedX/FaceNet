@@ -32,7 +32,9 @@ def main(args):
     height = []
     nrof_processed_images = 0
 
-    for image_path in dbase.files_as_posix:
+    for count, image_path in enumerate(dbase.files_as_posix):
+        print('\r({}/{}) {}'.format(count, dbase.nrof_images, image_path, end=ioutils.end(count, dbase.nrof_images)))
+
         try:
             # this function returns PIL.Image object
             img = ioutils.read_image(image_path)

@@ -12,6 +12,10 @@ from subprocess import Popen, PIPE
 from facenet.config import src_dir
 
 
+def end(start, stop):
+    return '\n' if (start+1) == stop else ''
+
+
 def store_revision_info(output_filename, arg_string, mode='w'):
     if output_filename.is_dir():
         output_filename = output_filename.join(output_filename, 'revision_info.txt')
