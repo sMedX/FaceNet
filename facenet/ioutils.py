@@ -37,7 +37,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
         git_diff = ' '.join(cmd) + ': ' + e.strerror
 
     # Store a text file in the log directory
-    with open(output_filename, mode) as f:
+    with open(str(output_filename), mode) as f:
         f.write('{}\n'.format(datetime.datetime.now()))
         f.write('arguments: %s\n--------------------\n' % arg_string)
         f.write('tensorflow version: %s\n--------------------\n' % tf.__version__)  # @UndefinedVariable
