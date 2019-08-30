@@ -32,7 +32,7 @@ def main(args):
     height = []
     nrof_processed_images = 0
 
-    for image_path in dbase.files:
+    for image_path in dbase.files_as_posix:
         try:
             # this function returns PIL.Image object
             img = ioutils.read_image(image_path)

@@ -128,8 +128,11 @@ class DBase:
         return f
 
     @property
-    def files_as_strings(self):
-        return [str(s) for s in self.files]
+    def files_as_posix(self):
+        f = []
+        for cls in self.classes:
+            f += [plib.Path(x) for x in cls.files]
+        return f
 
     def extract_data(self, folder_idx, embeddings=None):
         indices = np.where(self.labels == folder_idx)[0]
