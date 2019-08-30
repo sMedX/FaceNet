@@ -52,16 +52,16 @@ def main(args):
     print('Total number of classes and images: {}/{}'.format(dbase.nrof_classes, dbase.nrof_images))
     print('Number of successfully processed images {}'.format(nrof_processed_images))
 
-    output_file = args.output
-    if output_file is None:
+    report_file = args.report
+    if report_file is None:
         input_dir = plib.Path(args.input_dir).expanduser()
-        output_file = input_dir.parent.joinpath('{}_{}_statistics.txt'.format(input_dir.name, args.detector))
+        report_file = input_dir.parent.joinpath('{}_statistics.txt'.format(input_dir.name))
 
-    print('Output statistic file', output_file)
+    print('Report txt file with statistics', report_file)
 
-    ioutils.store_revision_info(output_file, ' '.join(sys.argv), mode='at')
+    ioutils.store_revision_info(report_file, ' '.join(sys.argv), mode='at')
 
-    with open(output_file, 'at') as f:
+    with open(report_file, 'at') as f:
         f.write('dataset {}\n'.format(plib.Path(args.input_dir).expanduser()))
         f.write('number of processed images {}\n'.format(nrof_processed_images))
         f.write('detector {}\n'.format(args.detector))
@@ -90,11 +90,12 @@ def parse_arguments(argv):
                         help='Directory with unaligned images.')
     parser.add_argument('output_dir', type=str,
                         help='Directory to save processed images.')
-    parser.add_argument('--output', type=str,
-                        help='Output text file to save face statistics.', default=None)
+    parser.add_argument('--report', type=str,
+                        help='Output text file to save statistics.', default=None)
+    parser.add_argument('--h5file', type=str,
+                        help='Path to h5 file to write information about extracted faces.', default=None)
     parser.add_argument('--image_size', type=int,
                         help='Image size (height, width) in pixels.', default=config.image_size)
-
     return parser.parse_args(argv[1:])
 
 
