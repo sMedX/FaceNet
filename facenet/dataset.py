@@ -23,6 +23,10 @@ class ImageClass:
     def __len__(self):
         return len(self.files)
 
+    @property
+    def files_as_posix(self):
+        return [plib.Path(x) for x in self.files]
+
 
 def list_names(dirname):
     names = os.listdir(dirname)
@@ -131,7 +135,7 @@ class DBase:
     def files_as_posix(self):
         f = []
         for cls in self.classes:
-            f += [plib.Path(x) for x in cls.files]
+            f += cls.files_as_posix
         return f
 
     def extract_data(self, folder_idx, embeddings=None):
