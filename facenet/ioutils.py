@@ -60,6 +60,9 @@ def write_image(image, filename, prefix=None, mode='RGB'):
 
     if isinstance(image, np.ndarray):
         image = array2pil(image, mode=mode)
+    else:
+        # to avoide some warnings while tf reads saved files
+        image = array2pil(pil2array(image))
 
     if image.save(str(filename)):
         raise IOError('while writing the file {}'.format(filename))
