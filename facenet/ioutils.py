@@ -16,7 +16,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
     if os.path.isdir(output_filename):
         output_filename = os.path.join(output_filename, 'revision_info.txt')
 
-    arg_string = ''.join(arg_string)
+    arg_string = ' '.join(arg_string)
 
     try:
         # Get git hash
