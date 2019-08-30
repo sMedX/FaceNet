@@ -33,7 +33,7 @@ def main(args):
     nrof_processed_images = 0
 
     for count, cls in enumerate(dbase.classes):
-        print('\r({}/{}) {}'.format(count, dbase.nrof_classes, cls.name, end=ioutils.end(count, dbase.nrof_classes)))
+        print('\r({}/{}) {}'.format(count, dbase.nrof_classes, cls.name), end=ioutils.end(count, dbase.nrof_classes))
 
         output_class_dir = args.output_dir.joinpath(cls.name)
         ioutils.makedirs(output_class_dir)
