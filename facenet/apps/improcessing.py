@@ -23,6 +23,8 @@ def main(args):
         args.h5file = str(args.output_dir) + '.h5'
     args.h5file = plib.Path(args.h5file).expanduser()
 
+    image_size = [args.image_size]*2
+
     dbase = dataset.DBase(args.input_dir)
     print(dbase)
 
@@ -38,7 +40,7 @@ def main(args):
             print('{}: {}'.format(image_path, e))
         else:
 
-            output = img.resize(args.size, Image.ANTIALIAS)
+            output = img.resize(image_size, Image.ANTIALIAS)
 
             out_filename = args.output_dir.joinpath(image_path.parent.stem, image_path.stem + '.png')
             ioutils.write_image(output, out_filename)
