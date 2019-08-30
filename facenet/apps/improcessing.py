@@ -32,26 +32,30 @@ def main(args):
     height = []
     nrof_processed_images = 0
 
-    for count, image_path in enumerate(dbase.files_as_posix):
-        print('\r({}/{}) {}'.format(count, dbase.nrof_images, image_path, end=ioutils.end(count, dbase.nrof_images)))
+    for count, cls in enumerate(dbase.classes):
+        print('\r({}/{}) {}'.format(count, dbase.nrof_classes, cls.name, end=ioutils.end(count, dbase.nrof_classes)))
 
-        try:
-            # this function returns PIL.Image object
-            img = ioutils.read_image(image_path)
-        except (IOError, ValueError, IndexError) as e:
-            print('{}: {}'.format(image_path, e))
-        else:
+        output_class_dir = args.output_dir.joinpath(cls.name)
+        ioutils.makedirs(output_class_dir)
 
-            output = img.resize(image_size, Image.ANTIALIAS)
+        for image_path in cls.files_as_posix:
+            try:
+                # this function returns PIL.Image object
+                img = ioutils.read_image(image_path)
+            except (IOError, ValueError, IndexError) as e:
+                print('{}: {}'.format(image_path, e))
+            else:
 
-            out_filename = args.output_dir.joinpath(image_path.parent.stem, image_path.stem + '.png')
-            ioutils.write_image(output, out_filename)
+                output = img.resize(image_size, Image.ANTIALIAS)
 
-            # write statistics
-            height.append(img.size[0])
-            width.append(img.size[1])
+                out_filename = output_class_dir.joinpath(image_path.stem + '.png')
+                ioutils.write_image(output, out_filename)
 
-            h5utils.write(args.h5file, h5utils.filename2key(out_filename, 'size'), img.size)
+                # write statistics
+                height.append(img.size[0])
+                width.append(img.size[1])
+
+                h5utils.write(args.h5file, h5utils.filename2key(out_filename, 'size'), img.size)
 
     print('Total number of classes and images: {}/{}'.format(dbase.nrof_classes, dbase.nrof_images))
     print('Number of successfully processed images {}'.format(nrof_processed_images))
