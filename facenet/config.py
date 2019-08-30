@@ -4,14 +4,14 @@ __author__ = 'Ruslan N. Kosarev'
 import os
 import pathlib as plib
 
-basedir = plib.Path(__file__).parents[1]
+src_dir = plib.Path(__file__).parents[1]
 file_extension = '.png'
 
 
 class DefaultConfig:
     def __init__(self):
-        self.model = basedir.joinpath('models', '20190727-080213')
-        self.pretrained_checkpoint = basedir.joinpath('models', '20190727-080213', 'model-20190727-080213.ckpt-275')
+        self.model = src_dir.joinpath('models', '20190727-080213')
+        self.pretrained_checkpoint = src_dir.joinpath('models', '20190727-080213', 'model-20190727-080213.ckpt-275')
 
         # type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance
         self.distance_metric = 0

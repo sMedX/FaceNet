@@ -9,16 +9,17 @@ import datetime
 import tensorflow as tf
 from PIL import Image
 from subprocess import Popen, PIPE
+from facenet.config import src_dir
 
 
-def store_revision_info(src_path, output_filename, arg_string, mode='w'):
+def store_revision_info(output_filename, arg_string, mode='w'):
     if os.path.isdir(output_filename):
         output_filename = os.path.join(output_filename, 'revision_info.txt')
 
     try:
         # Get git hash
         cmd = ['git', 'rev-parse', 'HEAD']
-        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        gitproc = Popen(cmd, stdout=PIPE, cwd=str(src_dir))
         (stdout, _) = gitproc.communicate()
         git_hash = stdout.strip()
     except OSError as e:
@@ -27,7 +28,7 @@ def store_revision_info(src_path, output_filename, arg_string, mode='w'):
     try:
         # Get local changes
         cmd = ['git', 'diff', 'HEAD']
-        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        gitproc = Popen(cmd, stdout=PIPE, cwd=str(src_dir))
         (stdout, _) = gitproc.communicate()
         git_diff = stdout.strip()
     except OSError as e:
