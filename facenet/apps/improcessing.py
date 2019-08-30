@@ -61,7 +61,7 @@ def main(args):
 
     ioutils.store_revision_info(report_file, sys.argv, mode='at')
 
-    with open(report_file, 'at') as f:
+    with open(str(report_file), 'at') as f:
         f.write('dataset {}\n'.format(plib.Path(args.input_dir).expanduser()))
         f.write('number of processed images {}\n'.format(nrof_processed_images))
         f.write('detector {}\n'.format(args.detector))
