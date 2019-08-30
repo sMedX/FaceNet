@@ -58,7 +58,7 @@ def write_image(image, filename, prefix=None, mode='RGB'):
         filename = plib.Path(prefix).joinpath(filename)
     filename = plib.Path(filename).expanduser()
 
-    if not filename.parent.exist():
+    if not filename.parent.exists():
         filename.parent.mkdir(parents=True)
 
     if isinstance(image, np.ndarray):
