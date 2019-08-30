@@ -64,7 +64,6 @@ def main(args):
     with open(str(report_file), 'at') as f:
         f.write('dataset {}\n'.format(plib.Path(args.input_dir).expanduser()))
         f.write('number of processed images {}\n'.format(nrof_processed_images))
-        f.write('detector {}\n'.format(args.detector))
         f.write('\n')
 
         levels = np.linspace(0, 1, 11)
