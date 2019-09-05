@@ -131,7 +131,7 @@ def main(args):
         control_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='control')
         
         nrof_preprocess_threads = 4
-        input_queue = data_flow_ops.FIFOQueue(capacity=2000000,
+        input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                     dtypes=[tf.string, tf.int32, tf.int32],
                                     shapes=[(1,), (1,), (1,)],
                                     shared_name=None, name=None)
