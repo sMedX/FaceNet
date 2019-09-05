@@ -43,7 +43,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import dataset, lfw
+from facenet import dataset, lfw, ioutils
 from facenet.config import DefaultConfig
 from facenet import facenet
 
@@ -74,9 +74,8 @@ def main(args):
     # Write arguments to a text file
     facenet.write_arguments_to_file(args, os.path.join(log_dir, 'arguments.txt'))
         
-    # Store some git revision info in a text file in the log directory
-    src_path,_ = os.path.split(os.path.realpath(__file__))
-    facenet.store_revision_info(src_path, log_dir, ' '.join(sys.argv))
+    # store some git revision info in a text file in the log directory
+    ioutils.store_revision_info(log_dir, sys.argv)
 
     np.random.seed(seed=args.seed)
     random.seed(args.seed)
