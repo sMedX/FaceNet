@@ -94,7 +94,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     nrof_images = nrof_embeddings * nrof_flips
 
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files_as_strings), nrof_flips), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
     if args.image_standardization:
