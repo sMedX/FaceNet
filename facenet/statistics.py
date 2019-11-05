@@ -102,7 +102,6 @@ class Validation:
                  distance_metric=0, subtract_mean=False):
 
         self.dbase = dbase
-        self.embeddings = embeddings
         self.subtract_mean = subtract_mean
         self.distance_metric = distance_metric
         labels = np.array(dbase.labels)
