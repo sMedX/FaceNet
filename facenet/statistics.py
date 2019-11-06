@@ -8,7 +8,6 @@ from numba import jit
 import os
 import datetime
 import numpy as np
-import random
 from skimage import io
 from sklearn import metrics
 from sklearn.model_selection import KFold
@@ -127,14 +126,14 @@ class Validation:
 
         indices = np.arange(len(labels))
 
-        random.seed(0)
+        np.random.seed(0)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # for memory and speed up optimization
             if portion_samples < 1:
-                train_set = random.sample(train_set, int(len(train_set)*portion_samples))
+                train_set = np.random.choice(train_set, size=int(len(train_set)*portion_samples), replace=False)
 
             if subtract_mean:
                 mean = np.mean(embeddings[train_set], axis=0)
