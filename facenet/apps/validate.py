@@ -148,7 +148,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                        far_target=1e-3,
                        nrof_folds=args.nrof_folds,
                        distance_metric=args.distance_metric,
-                       subtract_mean=args.subtract_mean)
+                       subtract_mean=args.subtract_mean,
+                       portion_samples=args.portion_samples)
 
     stats.print()
     stats.write_report(args.report, dbase, args)
@@ -183,6 +184,8 @@ def parse_arguments(argv):
         default=config.image_standardization)
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file with information about valid images.', default=None)
+    parser.add_argument('--portion_samples', type=float,
+        help='Portion of samples to evaluate threshold.', default=1)
     return parser.parse_args(argv[1:])
 
 

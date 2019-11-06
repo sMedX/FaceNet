@@ -8,6 +8,7 @@ from numba import jit
 import os
 import datetime
 import numpy as np
+import random
 from skimage import io
 from sklearn import metrics
 from sklearn.model_selection import KFold
@@ -99,7 +100,8 @@ class ConfidenceMatrix:
 class Validation:
     def __init__(self, thresholds, embeddings, dbase,
                  far_target=1e-3, nrof_folds=10,
-                 distance_metric=0, subtract_mean=False):
+                 distance_metric=0, subtract_mean=False,
+                 portion_samples=1):
 
         self.dbase = dbase
         self.subtract_mean = subtract_mean
@@ -126,6 +128,10 @@ class Validation:
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
+
+            # for memory and speed up optimization
+            if portion_samples < 1:
+                train_set = random.sample(train_set, int(len(train_set)*portion_samples))
 
             if subtract_mean:
                 mean = np.mean(embeddings[train_set], axis=0)
