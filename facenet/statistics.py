@@ -126,6 +126,8 @@ class Validation:
 
         indices = np.arange(len(labels))
 
+        random.seed(0)
+
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
