@@ -102,7 +102,7 @@ class Validation:
                  distance_metric=0, subtract_mean=False,
                  portion_samples=1):
 
-        self.embedding_size = embeddings.shape[1]
+        self.embedding_shape = embeddings.shape
         self.dbase = dbase
         self.subtract_mean = subtract_mean
         self.distance_metric = distance_metric
@@ -227,9 +227,9 @@ class Validation:
             f.write('git hash: {}\n'.format(git_hash))
             f.write('git diff: {}\n'.format(git_diff))
             f.write('model: {}\n'.format(args.model))
-            f.write('embedding size: {}\n'. format(self.embedding_size))
+            f.write('embedding size: {}\n'. format(self.embedding_shape[1]))
             f.write('elapsed time: {}\n'.format(elapsed_time))
-            f.write('time per image: {}\n'.format(elapsed_time/self.embedding_size))
+            f.write('time per image: {}\n'.format(elapsed_time/self.embedding_shape[0]))
             f.write('dataset: {}\n'.format(dbase.path))
             f.write('h5file : {}\n'.format(args.h5file))
             f.write('number of folders {}\n'.format(dbase.nrof_classes))
