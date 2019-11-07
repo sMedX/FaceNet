@@ -29,6 +29,7 @@ import sys
 import tensorflow as tf
 from tensorflow.python.ops import data_flow_ops
 import math
+import time
 import numpy as np
 import argparse
 import pathlib as plib
@@ -113,6 +114,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     emb_array = np.zeros((nrof_images, embedding_size))
     lab_array = np.zeros((nrof_images,))
+    elapsed_time = 0
 
     for i in range(nrof_batches):
         print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end='')
@@ -123,7 +125,10 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                 batch_size = args.batch_size
 
         feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
+
+        start = time.monotonic()
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
+        elapsed_time += time.monotonic() - start
         lab_array[lab] = lab
         emb_array[lab, :] = emb
 
@@ -152,7 +157,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                        portion_samples=args.portion_samples)
 
     stats.print()
-    stats.write_report(args.report, dbase, args)
+    stats.write_report(args.report, dbase, elapsed_time, args)
 
 
 def parse_arguments(argv):

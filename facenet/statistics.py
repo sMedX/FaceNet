@@ -218,7 +218,7 @@ class Validation:
         print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
         print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
 
-    def write_report(self, file, dbase, args):
+    def write_report(self, file, dbase, elapsed_time, args):
         print('Report has been printed to the file: {}'.format(file))
 
         git_hash, git_diff = utils.git_hash()
@@ -228,6 +228,8 @@ class Validation:
             f.write('git diff: {}\n'.format(git_diff))
             f.write('model: {}\n'.format(args.model))
             f.write('embedding size: {}\n'. format(self.embedding_size))
+            f.write('elapsed time: {}\n'.format(elapsed_time))
+            f.write('time per image: {}\n'.format(elapsed_time/self.embedding_size))
             f.write('dataset: {}\n'.format(dbase.path))
             f.write('h5file : {}\n'.format(args.h5file))
             f.write('number of folders {}\n'.format(dbase.nrof_classes))
