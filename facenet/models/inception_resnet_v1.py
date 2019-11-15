@@ -26,6 +26,7 @@ from __future__ import print_function
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
+
 # Inception-Resnet-A
 def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
     """Builds the 35x35 resnet block."""
@@ -46,6 +47,7 @@ def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         if activation_fn:
             net = activation_fn(net)
     return net
+
 
 # Inception-Resnet-B
 def block17(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
@@ -88,6 +90,7 @@ def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
             net = activation_fn(net)
     return net
   
+
 def reduction_a(net, k, l, m, n):
     with tf.variable_scope('Branch_0'):
         tower_conv = slim.conv2d(net, n, 3, stride=2, padding='VALID',
@@ -104,6 +107,7 @@ def reduction_a(net, k, l, m, n):
                                      scope='MaxPool_1a_3x3')
     net = tf.concat([tower_conv, tower_conv1_2, tower_pool], 3)
     return net
+
 
 def reduction_b(net):
     with tf.variable_scope('Branch_0'):
@@ -127,7 +131,8 @@ def reduction_b(net):
                         tower_conv2_2, tower_pool], 3)
     return net
   
-def inference(images, keep_probability, phase_train=True, 
+
+def inference(images, keep_probability, phase_train=True,
               bottleneck_layer_size=128, weight_decay=0.0, reuse=None):
     batch_norm_params = {
         # Decay for the moving averages.
@@ -146,7 +151,9 @@ def inference(images, keep_probability, phase_train=True,
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
         return inception_resnet_v1(images, is_training=phase_train,
-              dropout_keep_prob=keep_probability, bottleneck_layer_size=bottleneck_layer_size, reuse=reuse)
+                                   dropout_keep_prob=keep_probability,
+                                   bottleneck_layer_size=bottleneck_layer_size,
+                                   reuse=reuse)
 
 
 def inception_resnet_v1(inputs, is_training=True,
@@ -157,8 +164,8 @@ def inception_resnet_v1(inputs, is_training=True,
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
-      num_classes: number of predicted classes.
       is_training: whether is training or not.
+      bottleneck_layer_size:
       dropout_keep_prob: float, the fraction to keep before final layer.
       reuse: whether or not the network and its variables should be reused. To be
         able to reuse 'scope' must be given.
@@ -230,7 +237,6 @@ def inception_resnet_v1(inputs, is_training=True,
                 
                 with tf.variable_scope('Logits'):
                     end_points['PrePool'] = net
-                    #pylint: disable=no-member
                     net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID',
                                           scope='AvgPool_1a_8x8')
                     net = slim.flatten(net)
@@ -240,7 +246,7 @@ def inception_resnet_v1(inputs, is_training=True,
           
                     end_points['PreLogitsFlatten'] = net
                 
-                net = slim.fully_connected(net, bottleneck_layer_size, activation_fn=None, 
-                        scope='Bottleneck', reuse=False)
+                net = slim.fully_connected(net, bottleneck_layer_size, activation_fn=None,
+                                           scope='Bottleneck', reuse=False)
   
     return net, end_points
