@@ -21,6 +21,8 @@ As described in http://arxiv.org/abs/1602.07261.
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from typing import Optional
+from collections.abc import Callable
 
 
 # Inception-Resnet-A
@@ -70,7 +72,7 @@ def block17(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
 
 
 # Inception-Resnet-C
-def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
+def block8(net, scale=1.0, activation_fn: Optional[Callable] = tf.nn.relu, scope=None, reuse=None):
     """Builds the 8x8 resnet block."""
     with tf.variable_scope(scope, 'Block8', [net], reuse=reuse):
         with tf.variable_scope('Branch_0'):
@@ -85,7 +87,7 @@ def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
 
-        if activation_fn:
+        if callable(activation_fn):
             net = activation_fn(net)
     return net
   
@@ -230,7 +232,9 @@ def inference(images, keep_probability, phase_train=True,
                         weights_regularizer=slim.l2_regularizer(weight_decay),
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
-        return inception_resnet_v1(images, is_training=phase_train,
+
+        return inception_resnet_v1(images,
+                                   is_training=phase_train,
                                    dropout_keep_prob=keep_probability,
                                    bottleneck_layer_size=bottleneck_layer_size,
                                    reuse=reuse)
