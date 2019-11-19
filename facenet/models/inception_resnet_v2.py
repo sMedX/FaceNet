@@ -91,7 +91,7 @@ def inference(images, keep_probability, phase_train=True,
         # force in-place updates of mean and variance estimates
         'updates_collections': None,
         # Moving averages ends up in the trainable variables collection
-        'variables_collections': [ tf.GraphKeys.TRAINABLE_VARIABLES ],
+        'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],
 }
     with slim.arg_scope([slim.conv2d, slim.fully_connected],
                         weights_initializer=slim.initializers.xavier_initializer(), 
