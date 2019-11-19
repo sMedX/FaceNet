@@ -220,8 +220,7 @@ def inception_resnet_v1(inputs, is_training=True,
                     net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID', scope='AvgPool_1a_8x8')
                     net = slim.flatten(net)
           
-                    net = slim.dropout(net, dropout_keep_prob, is_training=is_training,
-                                       scope='Dropout')
+                    net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='Dropout')
           
                     end_points['PreLogitsFlatten'] = net
                 
