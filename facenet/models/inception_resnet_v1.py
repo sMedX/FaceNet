@@ -29,16 +29,20 @@ def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
     with tf.variable_scope(scope, 'Block35', [net], reuse=reuse):
         with tf.variable_scope('Branch_0'):
             tower_conv = slim.conv2d(net, 32, 1, scope='Conv2d_1x1')
+
         with tf.variable_scope('Branch_1'):
             tower_conv1_0 = slim.conv2d(net, 32, 1, scope='Conv2d_0a_1x1')
             tower_conv1_1 = slim.conv2d(tower_conv1_0, 32, 3, scope='Conv2d_0b_3x3')
+
         with tf.variable_scope('Branch_2'):
             tower_conv2_0 = slim.conv2d(net, 32, 1, scope='Conv2d_0a_1x1')
             tower_conv2_1 = slim.conv2d(tower_conv2_0, 32, 3, scope='Conv2d_0b_3x3')
             tower_conv2_2 = slim.conv2d(tower_conv2_1, 32, 3, scope='Conv2d_0c_3x3')
+
         mixed = tf.concat([tower_conv, tower_conv1_1, tower_conv2_2], 3)
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
+
         if activation_fn:
             net = activation_fn(net)
     return net
@@ -50,13 +54,16 @@ def block17(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
     with tf.variable_scope(scope, 'Block17', [net], reuse=reuse):
         with tf.variable_scope('Branch_0'):
             tower_conv = slim.conv2d(net, 128, 1, scope='Conv2d_1x1')
+
         with tf.variable_scope('Branch_1'):
             tower_conv1_0 = slim.conv2d(net, 128, 1, scope='Conv2d_0a_1x1')
             tower_conv1_1 = slim.conv2d(tower_conv1_0, 128, [1, 7], scope='Conv2d_0b_1x7')
             tower_conv1_2 = slim.conv2d(tower_conv1_1, 128, [7, 1], scope='Conv2d_0c_7x1')
+
         mixed = tf.concat([tower_conv, tower_conv1_2], 3)
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
+
         if activation_fn:
             net = activation_fn(net)
     return net
@@ -68,13 +75,16 @@ def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
     with tf.variable_scope(scope, 'Block8', [net], reuse=reuse):
         with tf.variable_scope('Branch_0'):
             tower_conv = slim.conv2d(net, 192, 1, scope='Conv2d_1x1')
+
         with tf.variable_scope('Branch_1'):
             tower_conv1_0 = slim.conv2d(net, 192, 1, scope='Conv2d_0a_1x1')
             tower_conv1_1 = slim.conv2d(tower_conv1_0, 192, [1, 3], scope='Conv2d_0b_1x3')
             tower_conv1_2 = slim.conv2d(tower_conv1_1, 192, [3, 1], scope='Conv2d_0c_3x1')
+
         mixed = tf.concat([tower_conv, tower_conv1_2], 3)
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
+
         if activation_fn:
             net = activation_fn(net)
     return net
@@ -82,18 +92,16 @@ def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
 
 def reduction_a(net, k, l, m, n):
     with tf.variable_scope('Branch_0'):
-        tower_conv = slim.conv2d(net, n, 3, stride=2, padding='VALID',
-                                 scope='Conv2d_1a_3x3')
+        tower_conv = slim.conv2d(net, n, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+
     with tf.variable_scope('Branch_1'):
         tower_conv1_0 = slim.conv2d(net, k, 1, scope='Conv2d_0a_1x1')
-        tower_conv1_1 = slim.conv2d(tower_conv1_0, l, 3,
-                                    scope='Conv2d_0b_3x3')
-        tower_conv1_2 = slim.conv2d(tower_conv1_1, m, 3,
-                                    stride=2, padding='VALID',
-                                    scope='Conv2d_1a_3x3')
+        tower_conv1_1 = slim.conv2d(tower_conv1_0, l, 3, scope='Conv2d_0b_3x3')
+        tower_conv1_2 = slim.conv2d(tower_conv1_1, m, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+
     with tf.variable_scope('Branch_2'):
-        tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID',
-                                     scope='MaxPool_1a_3x3')
+        tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
+
     net = tf.concat([tower_conv, tower_conv1_2, tower_pool], 3)
     return net
 
@@ -101,49 +109,23 @@ def reduction_a(net, k, l, m, n):
 def reduction_b(net):
     with tf.variable_scope('Branch_0'):
         tower_conv = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-        tower_conv_1 = slim.conv2d(tower_conv, 384, 3, stride=2,
-                                   padding='VALID', scope='Conv2d_1a_3x3')
+        tower_conv_1 = slim.conv2d(tower_conv, 384, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+
     with tf.variable_scope('Branch_1'):
         tower_conv1 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-        tower_conv1_1 = slim.conv2d(tower_conv1, 256, 3, stride=2,
-                                    padding='VALID', scope='Conv2d_1a_3x3')
+        tower_conv1_1 = slim.conv2d(tower_conv1, 256, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+
     with tf.variable_scope('Branch_2'):
         tower_conv2 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-        tower_conv2_1 = slim.conv2d(tower_conv2, 256, 3,
-                                    scope='Conv2d_0b_3x3')
-        tower_conv2_2 = slim.conv2d(tower_conv2_1, 256, 3, stride=2,
-                                    padding='VALID', scope='Conv2d_1a_3x3')
+        tower_conv2_1 = slim.conv2d(tower_conv2, 256, 3, scope='Conv2d_0b_3x3')
+        tower_conv2_2 = slim.conv2d(tower_conv2_1, 256, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+
     with tf.variable_scope('Branch_3'):
-        tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID',
-                                     scope='MaxPool_1a_3x3')
-    net = tf.concat([tower_conv_1, tower_conv1_1,
-                        tower_conv2_2, tower_pool], 3)
+        tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
+
+    net = tf.concat([tower_conv_1, tower_conv1_1, tower_conv2_2, tower_pool], 3)
     return net
   
-
-def inference(images, keep_probability, phase_train=True,
-              bottleneck_layer_size=128, weight_decay=0.0, reuse=None):
-    batch_norm_params = {
-        # Decay for the moving averages.
-        'decay': 0.995,
-        # epsilon to prevent 0s in variance.
-        'epsilon': 0.001,
-        # force in-place updates of mean and variance estimates
-        'updates_collections': None,
-        # Moving averages ends up in the trainable variables collection
-        'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],
-    }
-    
-    with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                        weights_initializer=slim.initializers.xavier_initializer(), 
-                        weights_regularizer=slim.l2_regularizer(weight_decay),
-                        normalizer_fn=slim.batch_norm,
-                        normalizer_params=batch_norm_params):
-        return inception_resnet_v1(images, is_training=phase_train,
-                                   dropout_keep_prob=keep_probability,
-                                   bottleneck_layer_size=bottleneck_layer_size,
-                                   reuse=reuse)
-
 
 def inception_resnet_v1(inputs, is_training=True,
                         dropout_keep_prob=0.8,
@@ -228,3 +210,27 @@ def inception_resnet_v1(inputs, is_training=True,
                                            scope='Bottleneck', reuse=False)
   
     return net, end_points
+
+
+def inference(images, keep_probability, phase_train=True,
+              bottleneck_layer_size=128, weight_decay=0.0, reuse=None):
+    batch_norm_params = {
+        # Decay for the moving averages.
+        'decay': 0.995,
+        # epsilon to prevent 0s in variance.
+        'epsilon': 0.001,
+        # force in-place updates of mean and variance estimates
+        'updates_collections': None,
+        # Moving averages ends up in the trainable variables collection
+        'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],
+    }
+
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                        weights_initializer=slim.initializers.xavier_initializer(),
+                        weights_regularizer=slim.l2_regularizer(weight_decay),
+                        normalizer_fn=slim.batch_norm,
+                        normalizer_params=batch_norm_params):
+        return inception_resnet_v1(images, is_training=phase_train,
+                                   dropout_keep_prob=keep_probability,
+                                   bottleneck_layer_size=bottleneck_layer_size,
+                                   reuse=reuse)
