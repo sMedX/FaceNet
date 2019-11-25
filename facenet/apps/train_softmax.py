@@ -43,11 +43,11 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import dataset, lfw, ioutils
-from facenet.config import DefaultConfig
+import facenet
+from facenet import dataset, lfw, ioutils, config
 from facenet import facenet
 
-config = DefaultConfig()
+config = config.DefaultConfig()
 
 
 def main(args):
@@ -272,6 +272,8 @@ def main(args):
 
     print('Model directory: %s' % model_dir)
     print('Log directory: %s' % log_dir)
+
+    facenet.save_freeze_graph(model_dir=model_dir)
 
     return model_dir
 
