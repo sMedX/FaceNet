@@ -1,8 +1,9 @@
+# coding:utf-8
 """Training a face recognizer with TensorFlow using softmax cross entropy loss
 """
 # MIT License
 # 
-# Copyright (c) 2019 SMedX
+# Copyright (c) 2019 sMedX
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
