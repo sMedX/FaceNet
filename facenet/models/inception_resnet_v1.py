@@ -26,8 +26,8 @@ from collections.abc import Callable
 from facenet.config import YAMLConfigReader
 
 
-config_path = 'inception_resnet_v1'
-def_config = YAMLConfigReader(config_path)
+config_path = 'config.yaml'
+def_config = YAMLConfigReader(config_path).get('inception_resnet_v1')
 
 
 # Inception-Resnet-A
@@ -134,7 +134,7 @@ def reduction_b(net):
     return net
   
 
-def inception_resnet_v1(inputs, is_training=True,
+def inception_resnet_v1(inputs, config, is_training=True,
                         dropout_keep_prob=0.8,
                         bottleneck_layer_size=128,
                         reuse=None, 
@@ -142,6 +142,7 @@ def inception_resnet_v1(inputs, is_training=True,
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
+      config: A dictionary to define network parameters
       is_training: whether is training or not.
       bottleneck_layer_size:
       dropout_keep_prob: float, the fraction to keep before final layer.
@@ -185,8 +186,8 @@ def inception_resnet_v1(inputs, is_training=True,
         
                 # Reduction-A
                 with tf.variable_scope('Mixed_6a'):
-                    count = 16
-                    net = reduction_a(net, 6*count, 6*count, 8*count, 12*count)
+                    params = config['reduction_a']
+                    net = reduction_a(net, params['k'], params['l'], params['m'], params['n'])
                 end_points['Mixed_6a'] = net
                 
                 # 10 x Inception-Resnet-B
@@ -244,6 +245,7 @@ def inference(images, keep_probability, phase_train=True,
                         normalizer_params=batch_norm_params):
 
         return inception_resnet_v1(images,
+                                   config,
                                    is_training=phase_train,
                                    dropout_keep_prob=keep_probability,
                                    bottleneck_layer_size=bottleneck_layer_size,
