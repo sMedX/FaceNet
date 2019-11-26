@@ -27,7 +27,8 @@ from facenet.config import YAMLConfigReader
 
 
 config_path = 'config.yaml'
-def_config = YAMLConfigReader(config_path).get('inception_resnet_v1')
+model_name = 'inception_resnet_v1'
+default_config = YAMLConfigReader(config_path).get(model_name)
 
 
 # Inception-Resnet-A
@@ -225,7 +226,7 @@ def inference(images, keep_probability, phase_train=True,
               bottleneck_layer_size=128, weight_decay=0.0, reuse=None, config=None):
 
     if config is None:
-        config = def_config
+        config = default_config
 
     batch_norm_params = {
         # Decay for the moving averages.

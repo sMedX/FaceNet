@@ -50,6 +50,7 @@ def main(args):
 
     print('import model \'{}\''.format(args.model_def))
     network = importlib.import_module(args.model_def)
+    args.model_config = config.YAMLConfigReader(args.model_config).get(network.model_name)
     image_size = (args.image_size, args.image_size)
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
@@ -232,7 +233,7 @@ def main(args):
                 'time_evaluate': np.zeros((args.max_nrof_epochs,), np.float32),
                 'prelogits_hist': np.zeros((args.max_nrof_epochs, 1000), np.float32),
               }
-            for epoch in range(1,args.max_nrof_epochs+1):
+            for epoch in range(1, args.max_nrof_epochs+1):
                 step = sess.run(global_step, feed_dict=None)
                 # Train for one epoch
                 t = time.time()
