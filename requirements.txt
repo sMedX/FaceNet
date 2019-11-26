@@ -8,3 +8,4 @@ Pillow
 requests
 psutil
 numpy
+pyyaml
