@@ -717,12 +717,6 @@ def put_images_on_grid(images, shape=(16,8)):
     return img
 
 
-def write_arguments_to_file(args, filename):
-    with open(filename, 'w') as f:
-        for key, value in vars(args).items():
-            f.write('%s: %s\n' % (key, str(value)))
-
-
 def freeze_graph_def(sess, input_graph_def, output_node_names):
     for node in input_graph_def.node:
         if node.op == 'RefSwitch':

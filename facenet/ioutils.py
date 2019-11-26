@@ -52,11 +52,16 @@ def store_revision_info(output_filename, arg_string, mode='w'):
         f.write('\n')
 
 
-def makedirs(dirname):
-    dirname = plib.Path(dirname).expanduser()
+def write_arguments_to_file(args, filename):
+    with open(filename, 'w') as f:
+        for key, value in vars(args).items():
+            f.write('%s: %s\n' % (key, str(value)))
 
-    if not dirname.exists():
-        dirname.mkdir(parents=True)
+
+def makedirs(dir_name):
+    dir_name = plib.Path(dir_name).expanduser()
+    if not dir_name.exists():
+        dir_name.mkdir(parents=True)
 
 
 def write_image(image, filename, prefix=None, mode='RGB'):

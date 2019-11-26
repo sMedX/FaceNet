@@ -70,7 +70,7 @@ def main(args):
     stat_file_name = os.path.join(log_dir, 'stat.h5')
 
     # Write arguments to a text file
-    facenet.write_arguments_to_file(args, os.path.join(log_dir, 'arguments.txt'))
+    ioutils.write_arguments_to_file(args, os.path.join(log_dir, 'arguments.txt'))
         
     # store some git revision info in a text file in the log directory
     ioutils.store_revision_info(log_dir, sys.argv)
