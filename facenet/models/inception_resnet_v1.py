@@ -23,6 +23,11 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from typing import Optional
 from collections.abc import Callable
+from facenet.config import YAMLConfigReader
+
+
+config_path = 'inception_resnet_v1'
+def_config = YAMLConfigReader(config_path)
 
 
 # Inception-Resnet-A
@@ -180,7 +185,8 @@ def inception_resnet_v1(inputs, is_training=True,
         
                 # Reduction-A
                 with tf.variable_scope('Mixed_6a'):
-                    net = reduction_a(net, 192, 192, 256, 384)
+                    count = 16
+                    net = reduction_a(net, 6*count, 6*count, 8*count, 12*count)
                 end_points['Mixed_6a'] = net
                 
                 # 10 x Inception-Resnet-B
@@ -215,7 +221,11 @@ def inception_resnet_v1(inputs, is_training=True,
 
 
 def inference(images, keep_probability, phase_train=True,
-              bottleneck_layer_size=128, weight_decay=0.0, reuse=None):
+              bottleneck_layer_size=128, weight_decay=0.0, reuse=None, config=None):
+
+    if config is None:
+        config = def_config
+
     batch_norm_params = {
         # Decay for the moving averages.
         'decay': 0.995,

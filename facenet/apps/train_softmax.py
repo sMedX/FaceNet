@@ -2,7 +2,7 @@
 """
 # MIT License
 # 
-# Copyright (c) 2016 David Sandberg
+# Copyright (c) 2019 SMedX
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from datetime import datetime
 import pathlib as plib
@@ -151,13 +147,16 @@ def main(args):
         print('Building training graph')
         
         # Build the inference graph
-        prelogits, _ = network.inference(image_batch, args.keep_probability, 
-            phase_train=phase_train_placeholder, bottleneck_layer_size=args.embedding_size, 
-            weight_decay=args.weight_decay)
-        logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None, 
-                weights_initializer=slim.initializers.xavier_initializer(), 
-                weights_regularizer=slim.l2_regularizer(args.weight_decay),
-                scope='Logits', reuse=False)
+        prelogits, _ = network.inference(image_batch, args.keep_probability,
+                                         phase_train=phase_train_placeholder,
+                                         bottleneck_layer_size=args.embedding_size,
+                                         weight_decay=args.weight_decay,
+                                         config=args.model_config)
+
+        logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
+                                      weights_initializer=slim.initializers.xavier_initializer(),
+                                      weights_regularizer=slim.l2_regularizer(args.weight_decay),
+                                      scope='Logits', reuse=False)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
@@ -491,7 +490,6 @@ def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_n
         save_time_metagraph = time.time() - start_time
         print('Metagraph saved in %.2f seconds' % save_time_metagraph)
     summary = tf.Summary()
-    #pylint: disable=maybe-no-member
     summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
     summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
     summary_writer.add_summary(summary, step)
@@ -514,7 +512,10 @@ def parse_arguments(argv):
     parser.add_argument('--h5file', type=str,
         help='Path to h5 file with information about valid images.', default=None)
     parser.add_argument('--model_def', type=str,
-        help='Model definition. Points to a module containing the definition of the inference graph.', default='facenet.models.inception_resnet_v1')
+        help='Model definition. Points to a module containing the definition of the inference graph.',
+        default='facenet.models.inception_resnet_v1')
+    parser.add_argument('--model_config', type=str,
+        help='Model config definition.', default=None)
     parser.add_argument('--max_nrof_epochs', type=int,
         help='Number of epochs to run.', default=500)
     parser.add_argument('--batch_size', type=int,
