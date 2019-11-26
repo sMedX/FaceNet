@@ -25,7 +25,9 @@ in the same directory, and the metagraph should have the extension '.meta'.
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys, os
+import os
+import sys
+import time
 import tensorflow as tf
 import math
 import numpy as np
@@ -41,12 +43,8 @@ config = DefaultConfig()
 def main(args):
 
     # Get the paths for the corresponding images
-    dbase = dataset.dataset(args.dir, args.nrof_classes)
-    nrof_images = sum(len(x) for x in dbase)
-
-    print('dataset', args.dir)
-    print('number of classes', len(dbase))
-    print('number of images', nrof_images)
+    dbase = dataset.DBase(args.data_dir, h5file=args.h5file)
+    print(dbase)
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -58,7 +56,7 @@ def main(args):
  
             nrof_preprocess_threads = 4
             image_size = (args.image_size, args.image_size)
-            eval_input_queue = data_flow_ops.FIFOQueue(capacity=nrof_images,
+            eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                                        dtypes=[tf.string, tf.int32, tf.int32],
                                                        shapes=[(1,), (1,), (1,)],
                                                        shared_name=None, name=None)
@@ -90,12 +88,12 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
              batch_size_placeholder, control_placeholder, embeddings, labels, dbase, args):
 
     if args.tfrecord is None:
-        tf_dir = os.path.expanduser(args.dir)
+        tf_dir = os.path.expanduser(args.data_dir)
     else:
         tf_dir = os.path.expanduser(args.tfrecord)
 
     model = os.path.splitext(os.path.basename(args.model))[0]
-    tf_dir = os.path.join(tf_dir, model)
+    tf_dir += '_' + model
     if not os.path.isdir(tf_dir):
         os.mkdir(tf_dir)
     print('save tf records to dir {}'.format(tf_dir))
@@ -104,14 +102,14 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     print('Running forward pass on images')
     embedding_size = int(embeddings.get_shape()[1])
 
-    for cls_index, cls in enumerate(dbase):
+    for cls_index, cls in enumerate(dbase.classes):
         print("============================================")
-        print('({}/{}) ({}) {}'.format(cls_index, len(dbase), len(cls.image_paths), cls.name))
-        nrof_images = len(cls.image_paths)
+        print('({}/{}) ({}) {}'.format(cls_index, dbase.nrof_classes, len(cls.files), cls.name))
+        nrof_images = len(cls.files)
         labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
         control_array = np.zeros_like(labels_array, np.int32)
 
-        image_paths_array = np.expand_dims(np.array(cls.image_paths), 1)
+        image_paths_array = np.expand_dims(np.array(cls.files), 1)
 
         if args.image_standardization:
             control_array += np.ones_like(labels_array) * facenet.FIXED_STANDARDIZATION
@@ -126,6 +124,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         emb_array = np.zeros((nrof_images, embedding_size))
         lab_array = np.zeros((nrof_images,), dtype=np.int64)
 
+        elapsed_time = 0
+
         for i in range(nrof_batches):
             print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end=utils.end(i, nrof_batches))
 
@@ -135,7 +135,10 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                     batch_size = args.batch_size
 
             feed_dict = {phase_train_placeholder: False, batch_size_placeholder: batch_size}
+            start = time.monotonic()
             emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
+            elapsed_time += time.monotonic() - start
+
             lab_array[lab] = lab
             emb_array[lab, :] = emb
 
@@ -146,14 +149,19 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         emb_array = (emb_array.transpose() / np.linalg.norm(emb_array, axis=1)).transpose()
 
         tf_file = os.path.join(tf_dir, cls.name + '.tfrecord')
-        utils.write_tfrecord(tf_file, cls.image_paths, [cls_index]*nrof_images, emb_array)
+        utils.write_tfrecord(tf_file, cls.files, [cls_index]*nrof_images, emb_array)
+
+        print('  elapsed time: {}'.format(elapsed_time))
+        print('time per image: {}'.format(elapsed_time / emb_array.shape[0]))
 
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('dir', type=str,
+    parser.add_argument('data_dir', type=str,
         help='Path to the data directory containing aligned face patches.')
+    parser.add_argument('--h5file', type=str,
+        help='Path to h5 file with information about valid images.', default=None)
     parser.add_argument('--model', type=str,
         help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
         default=config.model)
@@ -162,7 +170,7 @@ def parse_arguments(argv):
     parser.add_argument('--nrof_classes', type=int,
         help='Number of classes to evaluate embeddings.', default=0)
     parser.add_argument('--batch_size', type=int,
-        help='Number of images to process in a batch in the test set.', default=500)
+        help='Number of images to process in a batch.', default=1000)
     parser.add_argument('--image_size', type=int,
         help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--image_standardization', type=bool,
