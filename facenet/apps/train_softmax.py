@@ -51,7 +51,7 @@ def main(args):
 
     print('import model \'{}\''.format(args.model_def))
     network = importlib.import_module(args.model_def)
-    args.model_config = config.YAMLConfigReader(args.model_config).get(network.model_name)
+    args.model_config = network.config(args.model_config)
     image_size = (args.image_size, args.image_size)
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')

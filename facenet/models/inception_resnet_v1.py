@@ -28,7 +28,12 @@ from facenet.config import YAMLConfigReader
 
 config_path = 'config.yaml'
 model_name = 'inception_resnet_v1'
-default_config = YAMLConfigReader(config_path).get(model_name)
+
+
+def config(custom_config_path=None):
+    if custom_config_path is None:
+        custom_config_path = config_path
+    return YAMLConfigReader(custom_config_path).get(model_name)
 
 
 # Inception-Resnet-A
