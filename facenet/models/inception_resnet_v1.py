@@ -30,7 +30,7 @@ config_path = 'config.yaml'
 model_name = 'inception_resnet_v1'
 
 
-def config(custom_config_path=None):
+def read_yaml_config(custom_config_path=None):
     if custom_config_path is None:
         custom_config_path = config_path
     return YAMLConfigReader(custom_config_path).get(model_name)
@@ -231,7 +231,7 @@ def inference(images, keep_probability, phase_train=True,
               bottleneck_layer_size=128, weight_decay=0.0, reuse=None, config=None):
 
     if config is None:
-        config = default_config
+        config = read_yaml_config
 
     batch_norm_params = {
         # Decay for the moving averages.
