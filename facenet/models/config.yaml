@@ -7,4 +7,4 @@ inception_resnet_v1:
     m: 256
     n: 384
 
-  bottleneck_layer_size: 512
+  embedding_size: 512

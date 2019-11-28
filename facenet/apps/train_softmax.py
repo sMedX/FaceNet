@@ -151,7 +151,6 @@ def main(args):
         # Build the inference graph
         prelogits, _ = network.inference(image_batch, args.keep_probability,
                                          phase_train=phase_train_placeholder,
-                                         bottleneck_layer_size=args.embedding_size,
                                          weight_decay=args.weight_decay,
                                          config=args.model_config)
 
@@ -526,9 +525,7 @@ def parse_arguments(argv):
         help='Image size (height, width) in pixels.', default=config.image_size)
     parser.add_argument('--epoch_size', type=int,
         help='Number of batches per epoch.', default=1000)
-    parser.add_argument('--embedding_size', type=int,
-        help='Dimensionality of the embedding.', default=config.embedding_size)
-    parser.add_argument('--random_crop', 
+    parser.add_argument('--random_crop',
         help='Performs random cropping of training images. If false, the center image_size pixels from the training images are used. ' +
          'If the size of the images in the data directory is equal to image_size no cropping is performed', action='store_true')
     parser.add_argument('--random_flip', 
@@ -578,7 +575,7 @@ def parse_arguments(argv):
     parser.add_argument('--filter_min_nrof_images_per_class', type=int,
         help='Keep only the classes with this number of examples or more', default=0)
     parser.add_argument('--validate_every_n_epochs', type=int,
-        help='Number of epoch between validation', default=5)
+        help='Number of epoch between validation', default=10)
     parser.add_argument('--validation_set_split_ratio', type=float,
         help='The ratio of the total dataset to use for validation', default=0.0)
     parser.add_argument('--min_nrof_val_images_per_class', type=float,
@@ -594,8 +591,8 @@ def parse_arguments(argv):
     parser.add_argument('--lfw_nrof_folds', type=int,
         help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
     parser.add_argument('--lfw_distance_metric', type=int,
-                        help='Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.',
-                        default=config.distance_metric)
+        help='Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.',
+        default=config.distance_metric)
     parser.add_argument('--lfw_use_flipped_images', 
         help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
     parser.add_argument('--lfw_subtract_mean', 

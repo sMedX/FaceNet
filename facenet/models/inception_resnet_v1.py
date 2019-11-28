@@ -19,6 +19,7 @@ As described in http://arxiv.org/abs/1602.07261.
   Christian Szegedy, Sergey Ioffe, Vincent Vanhoucke, Alex Alemi
 """
 
+import pathlib
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from typing import Optional
@@ -26,14 +27,16 @@ from collections.abc import Callable
 from facenet.config import YAMLConfigReader
 
 
-config_path = 'config.yaml'
-model_name = 'inception_resnet_v1'
+config_file = 'config.yaml'
+
+model_dir = pathlib.Path(__file__).parent
+model_name = pathlib.Path(__file__).stem
 
 
-def read_yaml_config(custom_config_path=None):
-    if custom_config_path is None:
-        custom_config_path = config_path
-    return YAMLConfigReader(custom_config_path).get(model_name)
+def read_yaml_config(custom_config_file=None):
+    if custom_config_file is None:
+        custom_config_file = pathlib.Path(model_dir).joinpath(config_file)
+    return YAMLConfigReader(custom_config_file).get(model_name)
 
 
 # Inception-Resnet-A
@@ -142,15 +145,13 @@ def reduction_b(net):
 
 def inception_resnet_v1(inputs, config, is_training=True,
                         dropout_keep_prob=0.8,
-                        bottleneck_layer_size=128,
-                        reuse=None, 
+                        reuse=None,
                         scope='InceptionResnetV1'):
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
       config: A dictionary to define network parameters
       is_training: whether is training or not.
-      bottleneck_layer_size:
       dropout_keep_prob: float, the fraction to keep before final layer.
       reuse: whether or not the network and its variables should be reused. To be
         able to reuse 'scope' must be given.
@@ -160,7 +161,8 @@ def inception_resnet_v1(inputs, config, is_training=True,
       end_points: the set of end_points from the inception model.
     """
     end_points = {}
-  
+    bottleneck_layer_size = config['embedding_size']
+
     with tf.variable_scope(scope, 'InceptionResnetV1', [inputs], reuse=reuse):
         with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
             with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
@@ -231,7 +233,7 @@ def inference(images, keep_probability, phase_train=True,
               bottleneck_layer_size=128, weight_decay=0.0, reuse=None, config=None):
 
     if config is None:
-        config = read_yaml_config
+        config = read_yaml_config()
 
     batch_norm_params = {
         # Decay for the moving averages.
@@ -254,5 +256,4 @@ def inference(images, keep_probability, phase_train=True,
                                    config,
                                    is_training=phase_train,
                                    dropout_keep_prob=keep_probability,
-                                   bottleneck_layer_size=bottleneck_layer_size,
                                    reuse=reuse)
