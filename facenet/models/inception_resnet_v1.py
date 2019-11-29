@@ -229,8 +229,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
     return net, end_points
 
 
-def inference(images, keep_probability, phase_train=True,
-              bottleneck_layer_size=128, weight_decay=0.0, reuse=None, config=None):
+def inference(images, keep_probability, phase_train=True, weight_decay=0.0, reuse=None, config=None):
 
     if config is None:
         config = read_yaml_config()
