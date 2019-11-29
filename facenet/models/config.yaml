@@ -7,4 +7,6 @@ inception_resnet_v1:
     m: 256
     n: 384
 
+  repeat_b: 10
+
   embedding_size: 512
