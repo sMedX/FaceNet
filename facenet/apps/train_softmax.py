@@ -84,9 +84,6 @@ def main(**args_):
     train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
     nrof_classes = len(train_set)
     
-    print('Model directory: %s' % args.model_dir)
-    print('Log directory: %s' % args.log_dir)
-
     if args.pretrained_checkpoint is not None:
         args.pretrained_checkpoint = pathlib.Path(args.pretrained_checkpoint).expanduser()
     print('Pre-trained checkpoint: {}'.format(args.pretrained_checkpoint))
