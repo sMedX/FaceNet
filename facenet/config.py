@@ -79,8 +79,8 @@ class YAMLConfigReader:
         """
         return yaml.dump(self._config)
 
-    def to_namespace(self, name=None):
-        return Namespace(self.get(name=name))
+    def to_namespace(self):
+        return Namespace(self._config)
 
     def get(self, name=None, default=None):
         if name is None:
@@ -88,7 +88,7 @@ class YAMLConfigReader:
         else:
             item = self._config.get(name, default)
             if isinstance(item, str):
-                for key, value in zip(('none', 'false', 'true'),(None, False, True)):
+                for key, value in zip(('none', 'false', 'true'), (None, False, True)):
                     if item.lower() == key:
                         return value
             return item
