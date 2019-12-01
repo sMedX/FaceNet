@@ -86,7 +86,12 @@ class YAMLConfigReader:
         if name is None:
             return self._config
         else:
-            return self._config.get(name, default)
+            item = self._config.get(name, default)
+            if isinstance(item, str):
+                for key, value in zip(('none', 'false', 'true'),(None, False, True)):
+                    if item.lower() == key:
+                        return value
+            return item
 
     def __getattr__(self, name):
         return self.get(name)

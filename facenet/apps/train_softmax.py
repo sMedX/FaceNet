@@ -54,7 +54,8 @@ def main(**args_):
     # import network
     print('import model \'{}\''.format(config.model_def))
     network = importlib.import_module(config.model_def)
-    config.update_from_file(network.config_file)
+    if config.model_config is None:
+        config.update_from_file(network.config_file)
 
     # return the namespace object
     args = config.to_namespace()
