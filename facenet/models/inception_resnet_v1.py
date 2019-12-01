@@ -24,10 +24,13 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from typing import Optional
 from collections.abc import Callable
+from facenet.config import YAMLConfigReader
 
 model_dir = pathlib.Path(__file__).parent
 model_name = pathlib.Path(__file__).stem
 config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
+
+default_model_config = YAMLConfigReader(config_file).to_namespace().model_config
 
 
 # Inception-Resnet-A
@@ -224,7 +227,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
 def inference(images, keep_probability, phase_train=True, weight_decay=0.0, reuse=None, config=None):
 
     if config is None:
-        config = read_yaml_config()
+        config = default_model_config
 
     batch_norm_params = {
         # Decay for the moving averages.
