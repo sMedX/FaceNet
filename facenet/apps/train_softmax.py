@@ -50,11 +50,14 @@ config = config.YAMLConfigReader(config.default_app_config(__file__))
               help='Path to yaml config file with used options of the application.')
 def main(**args_):
     config.update_from_file(args_['config'])
-    args = config.get()
 
-    print('import model \'{}\''.format(args.model_def))
-    network = importlib.import_module(args.model_def)
-    args.model_config = network.read_yaml_config(args.model_config)
+    # import network
+    print('import model \'{}\''.format(config.model_def))
+    network = importlib.import_module(config.model_def)
+    config.update_from_file(network.config_file)
+
+    # return the namespace object
+    args = config.to_namespace()
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
     args.model_dir = pathlib.Path(args.model_dir).expanduser().joinpath(subdir)

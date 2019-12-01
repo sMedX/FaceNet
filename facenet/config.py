@@ -79,11 +79,14 @@ class YAMLConfigReader:
         """
         return yaml.dump(self._config)
 
+    def to_namespace(self, name=None):
+        return Namespace(self.get(name=name))
+
     def get(self, name=None, default=None):
         if name is None:
-            return Namespace(self._config)
+            return self._config
         else:
-            return Namespace(self._config.get(name, default))
+            return self._config.get(name, default)
 
     def __getattr__(self, name):
         return self.get(name)
