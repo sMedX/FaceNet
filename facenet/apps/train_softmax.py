@@ -42,12 +42,15 @@ from tensorflow.python.ops import array_ops
 import facenet
 from facenet import dataset, lfw, ioutils, facenet, config
 
+config = config.YAMLConfigReader(config.default_app_config(__file__))
+
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__),
+@click.option('--config', default=None,
               help='Path to yaml config file with used options of the application.')
-def main(**args):
-    args = config.YAMLConfigReader(args['config']).to_namespace()
+def main(**args_):
+    config.update_from_file(args_['config'])
+    args = config.get()
 
     print('import model \'{}\''.format(args.model_def))
     network = importlib.import_module(args.model_def)

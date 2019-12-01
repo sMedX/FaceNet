@@ -161,7 +161,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
       end_points: the set of end_points from the inception model.
     """
     end_points = {}
-    bottleneck_layer_size = config['embedding_size']
+    bottleneck_layer_size = config.embedding_size
 
     with tf.variable_scope(scope, 'InceptionResnetV1', [inputs], reuse=reuse):
         with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
@@ -194,12 +194,13 @@ def inception_resnet_v1(inputs, config, is_training=True,
         
                 # Reduction-A
                 with tf.variable_scope('Mixed_6a'):
-                    params = config['reduction_a']
-                    net = reduction_a(net, params['k'], params['l'], params['m'], params['n'])
+                    net = reduction_a(net,
+                                      config.reduction_a.k, config.reduction_a.l,
+                                      config.reduction_a.m, config.reduction_a.n)
                 end_points['Mixed_6a'] = net
                 
                 # 10 x Inception-Resnet-B
-                net = slim.repeat(net, config['repeat_b'], block17, scale=0.10)
+                net = slim.repeat(net, config.repeat_b, block17, scale=0.10)
                 end_points['Mixed_6b'] = net
                 
                 # Reduction-B

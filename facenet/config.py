@@ -70,19 +70,20 @@ class YAMLConfigReader:
     def update_from_file(self, path):
         """Update config from YAML file
         """
-        with open(path, "r") as custom_config:
-            self.update(yaml.safe_load(custom_config.read()))
+        if path is not None:
+            with open(path, "r") as custom_config:
+                self.update(yaml.safe_load(custom_config.read()))
 
     def dump(self):
         """Dump config to YAML string
         """
         return yaml.dump(self._config)
 
-    def to_namespace(self):
-        return Namespace(self._config)
-
-    def get(self, name, default=None):
-        return self._config.get(name, default)
+    def get(self, name=None, default=None):
+        if name is None:
+            return Namespace(self._config)
+        else:
+            return Namespace(self._config.get(name, default))
 
     def __getattr__(self, name):
         return self.get(name)
