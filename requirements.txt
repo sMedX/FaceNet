@@ -9,3 +9,4 @@ requests
 psutil
 numpy
 pyyaml
+click
