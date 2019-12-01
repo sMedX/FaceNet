@@ -24,19 +24,10 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from typing import Optional
 from collections.abc import Callable
-from facenet.config import YAMLConfigReader
 
 model_dir = pathlib.Path(__file__).parent
 model_name = pathlib.Path(__file__).stem
 config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
-
-
-# def update_from_file(custom_config_file):
-#     if custom_config_file is None:
-#         custom_config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
-#         return YAMLConfigReader(custom_config_file)
-#     else:
-#         return custom_config_file
 
 
 # Inception-Resnet-A

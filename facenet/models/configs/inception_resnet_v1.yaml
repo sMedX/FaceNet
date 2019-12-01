@@ -1,0 +1,12 @@
+---
+# inception resnet v1 config
+model_config:
+  reduction_a:
+    k: 192
+    l: 192
+    m: 256
+    n: 384
+
+  repeat_b: 10
+
+  embedding_size: 512
