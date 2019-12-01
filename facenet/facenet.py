@@ -29,7 +29,7 @@ from skimage import io, transform
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
 from tensorflow.python.training import training
-from tensorflow.python.framework import graph_util
+from tensorflow.compat.v1 import graph_util
 import random
 import re
 from tensorflow.python.platform import gfile
@@ -740,9 +740,7 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
             whitelist_names.append(node.name)
 
     # Replace all the variables in the graph with constants of the same values
-    output_graph_def = graph_util.convert_variables_to_constants(
-        sess, input_graph_def, output_node_names.split(","),
-        variable_names_whitelist=whitelist_names)
+    output_graph_def = graph_util.convert_variables_to_constants(sess, input_graph_def, output_node_names.split(","), variable_names_whitelist=whitelist_names)
     return output_graph_def
 
 

@@ -78,7 +78,7 @@ class YAMLConfigReader:
         """
         return yaml.dump(self._config)
 
-    def namespace(self):
+    def to_namespace(self):
         return Namespace(self._config)
 
     def get(self, name, default=None):

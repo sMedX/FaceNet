@@ -47,13 +47,13 @@ from facenet import dataset, lfw, ioutils, facenet, config
 @click.option('--config', default=config.default_app_config(__file__),
               help='Path to yaml config file with used options of the application.')
 def main(**args):
-    args = config.YAMLConfigReader(args['config']).namespace()
+    args = config.YAMLConfigReader(args['config']).to_namespace()
 
     print('import model \'{}\''.format(args.model_def))
     network = importlib.import_module(args.model_def)
     args.model_config = network.read_yaml_config(args.model_config)
 
-    subdir = '1'  # datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+    subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
     args.model_dir = pathlib.Path(args.model_dir).expanduser().joinpath(subdir)
 
     if args.log_dir is None:
@@ -81,7 +81,7 @@ def main(**args):
     print('Model directory: %s' % args.model_dir)
     print('Log directory: %s' % args.log_dir)
 
-    if not args.pretrained_checkpoint is None:
+    if args.pretrained_checkpoint is not None:
         args.pretrained_checkpoint = pathlib.Path(args.pretrained_checkpoint).expanduser()
     print('Pre-trained checkpoint: {}'.format(args.pretrained_checkpoint))
 
@@ -236,9 +236,7 @@ def main(**args):
                     learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, global_step, 
                     total_loss, train_op, summary_op, summary_writer, regularization_losses,
                     stat, cross_entropy_mean, accuracy,
-                    prelogits, prelogits_center_loss, args.image.random_rotate, args.image.random_crop,
-                    args.image.random_flip, prelogits_norm, args.prelogits_hist_max, args.image.standardization,
-                    learning_rate)
+                    prelogits, prelogits_center_loss, prelogits_norm, learning_rate)
                 stat['time_train'][epoch-1] = time.time() - t
                 
                 if not cont:
@@ -279,8 +277,7 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
       learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, step, 
       loss, train_op, summary_op, summary_writer, reg_losses,
       stat, cross_entropy_mean, accuracy, 
-      prelogits, prelogits_center_loss, random_rotate, random_crop, random_flip, prelogits_norm, prelogits_hist_max,
-      image_standardization, learning_rate):
+      prelogits, prelogits_center_loss, prelogits_norm, learning_rate):
     batch_number = 0
     
     if args.learning_rate.value > 0.0:
@@ -298,7 +295,11 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     # Enqueue one epoch of image paths and labels
     labels_array = np.expand_dims(np.array(label_epoch),1)
     image_paths_array = np.expand_dims(np.array(image_epoch),1)
-    control_value = facenet.RANDOM_ROTATE * random_rotate + facenet.RANDOM_CROP * random_crop + facenet.RANDOM_FLIP * random_flip + facenet.FIXED_STANDARDIZATION * image_standardization
+    control_value = facenet.RANDOM_ROTATE * args.image.random_rotate + \
+                    facenet.RANDOM_CROP * args.image.random_crop + \
+                    facenet.RANDOM_FLIP * args.image.random_flip + \
+                    facenet.FIXED_STANDARDIZATION * args.image.standardization
+
     control_array = np.ones_like(labels_array) * control_value
     sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
 
@@ -322,7 +323,7 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
         stat['prelogits_norm'][step_-1] = prelogits_norm_
         stat['learning_rate'][epoch-1] = lr_
         stat['accuracy'][step_-1] = accuracy_
-        stat['prelogits_hist'][epoch-1,:] += np.histogram(np.minimum(np.abs(prelogits_), prelogits_hist_max), bins=1000, range=(0.0, prelogits_hist_max))[0]
+        stat['prelogits_hist'][epoch-1,:] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max), bins=1000, range=(0.0, args.prelogits_hist_max))[0]
         
         duration = time.time() - start_time
         print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f\tXent %2.3f\tRegLoss %2.3f\tAccuracy %2.3f\tLr %2.5f\tCl %2.3f' %
