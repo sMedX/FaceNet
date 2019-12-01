@@ -14,18 +14,6 @@ def default_app_config(apps_file_name):
     return config_dir.joinpath(config_name + '.yaml')
 
 
-# def check_values(x):
-#     for key, item in x.items():
-#         if isinstance(item, str):
-#             if item.lower() == 'none':
-#                 x[key] = None
-#         elif isinstance(item, dict):
-#             x[key] = check_values(item)
-#         else:
-#             pass
-#     return x
-
-
 class Namespace:
     """Simple object for storing attributes.
     Implements equality by attribute names and values, and provides a simple string representation.
