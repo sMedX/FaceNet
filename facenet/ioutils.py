@@ -52,10 +52,21 @@ def store_revision_info(output_filename, arg_string, mode='w'):
         f.write('\n')
 
 
-def write_arguments_to_file(args, filename):
+def write_namespace(namespace, filename):
+    makedirs(filename.parent)
+
+    def write_dict_to_file(f, dct, ident=''):
+        shift = 3*' '
+
+        for key, item in dct.items():
+            if isinstance(item, dict):
+                f.write('{}{}:\n'.format(ident, key))
+                write_dict_to_file(f, item, ident=ident + shift)
+            else:
+                f.write('{}{}: {}\n'.format(ident, key, str(item)))
+
     with open(filename, 'w') as f:
-        for key, value in vars(args).items():
-            f.write('%s: %s\n' % (key, str(value)))
+        write_dict_to_file(f, namespace.to_dict())
 
 
 def makedirs(dir_name):
