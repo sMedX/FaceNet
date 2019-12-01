@@ -8,11 +8,62 @@ src_dir = pathlib.Path(__file__).parents[1]
 file_extension = '.png'
 
 
+def default_app_config(apps_file_name):
+    config_dir = pathlib.Path(pathlib.Path(apps_file_name).parent).joinpath('configs')
+    config_name = pathlib.Path(apps_file_name).stem
+    return config_dir.joinpath(config_name + '.yaml')
+
+
+# def check_values(x):
+#     for key, item in x.items():
+#         if isinstance(item, str):
+#             if item.lower() == 'none':
+#                 x[key] = None
+#         elif isinstance(item, dict):
+#             x[key] = check_values(item)
+#         else:
+#             pass
+#     return x
+
+
+class Namespace:
+    """Simple object for storing attributes.
+    Implements equality by attribute names and values, and provides a simple string representation.
+    """
+
+    def __init__(self, dct):
+        for key, item in dct.items():
+            if isinstance(item, dict):
+                setattr(self, key, Namespace(item))
+            else:
+                if isinstance(item, str):
+                    if item.lower() == 'none':
+                        item = None
+                    elif item.lower() == 'false':
+                        item = False
+                    elif item.lower() == 'true':
+                        item = True
+                setattr(self, key, item)
+
+    def to_dict(self):
+        def to_dict(x):
+            dct = dict()
+            for key, item in x.__dict__.items():
+                if isinstance(item, Namespace):
+                    item = to_dict(item)
+                dct[key] = item
+            return dct
+        return to_dict(self)
+
+    def __repr__(self):
+        return "<namespace object>"
+
+
 class YAMLConfigReader:
     """Object representing YAML settings as a dict-like object with values as fields
     """
 
-    def __init__(self, custom_config_file=None):
+    def __init__(self, custom_config_file):
         self.update_from_file(custom_config_file)
 
     @property
@@ -38,6 +89,9 @@ class YAMLConfigReader:
         """Dump config to YAML string
         """
         return yaml.dump(self._config)
+
+    def namespace(self):
+        return Namespace(self._config)
 
     def get(self, name, default=None):
         return self._config.get(name, default)

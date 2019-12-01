@@ -37,7 +37,9 @@ lfw_dir: None
 batch_size: 100
 
 # Number of batches per epoch.
-epoch_size: 1000
+epoch:
+  size: 1000            # Number of batches per epoch.
+  max_nrof_epochs: 500  # Maximal number of epochs to run
 
 # Image size (height, width) in pixels.
 image_size: 160
@@ -72,7 +74,6 @@ log_histograms: False           # Enables logging of weight/bias histograms in t
 
 gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process
 
-max_nrof_epochs: 500            # Number of epochs to run
 validate_every_n_epochs: 10     # Number of epoch between validation
 
 
