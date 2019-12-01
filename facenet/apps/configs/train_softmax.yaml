@@ -1,7 +1,7 @@
 # coding:utf-8
 
 # Directory where to write trained models and checkpoints
-model_dir: ~/models/facenet/test
+model_dir: ~/models/facenet
 
 # Directory where to write event logs
 log_dir: None
@@ -38,8 +38,8 @@ batch_size: 100
 
 # Number of batches per epoch.
 epoch:
-  size: 2            # Number of batches per epoch.
-  max_nrof_epochs: 2  # Maximal number of epochs to run
+  size: 1000            # Number of batches per epoch.
+  max_nrof_epochs: 500  # Maximal number of epochs to run
 
 # Image size (height, width) in pixels.
 image_size: 160
