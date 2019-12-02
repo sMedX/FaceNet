@@ -36,15 +36,8 @@ class Namespace:
             else:
                 setattr(self, key, replace_str_value(item))
 
-    def to_dict(self):
-        def to_dict(x):
-            dct = dict()
-            for key, item in x.__dict__.items():
-                if isinstance(item, Namespace):
-                    item = to_dict(item)
-                dct[key] = item
-            return dct
-        return to_dict(self)
+    def items(self):
+        return self.__dict__.items()
 
     def __repr__(self):
         return "<namespace object>"

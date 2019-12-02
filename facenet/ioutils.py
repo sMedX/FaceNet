@@ -9,6 +9,7 @@ import datetime
 import tensorflow as tf
 from PIL import Image
 from subprocess import Popen, PIPE
+import facenet
 from facenet.config import src_dir
 
 
@@ -55,18 +56,18 @@ def store_revision_info(output_filename, arg_string, mode='w'):
 def write_namespace(namespace, filename):
     makedirs(filename.parent)
 
-    def write_dict_to_file(f, dct, ident=''):
-        shift = 3*' '
-
-        for key, item in dct.items():
-            if isinstance(item, dict):
-                f.write('{}{}:\n'.format(ident, key))
-                write_dict_to_file(f, item, ident=ident + shift)
-            else:
-                f.write('{}{}: {}\n'.format(ident, key, str(item)))
-
     with open(filename, 'w') as f:
-        write_dict_to_file(f, namespace.to_dict())
+        def write_to_file(dct, ident=''):
+            shift = 3 * ' '
+
+            for key, item in dct.items():
+                if isinstance(item, facenet.config.Namespace):
+                    f.write('{}{}:\n'.format(ident, key))
+                    write_to_file(item, ident=ident + shift)
+                else:
+                    f.write('{}{}: {}\n'.format(ident, key, str(item)))
+
+        write_to_file(namespace)
 
 
 def makedirs(dir_name):
