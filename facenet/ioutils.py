@@ -61,7 +61,7 @@ def write_namespace(namespace, filename):
             shift = 3 * ' '
 
             for key, item in dct.items():
-                if isinstance(item, facenet.config.Namespace):
+                if isinstance(item, facenet.config.YAMLConfig):
                     f.write('{}{}:\n'.format(ident, key))
                     write_to_file(item, ident=ident + shift)
                 else:

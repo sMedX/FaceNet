@@ -24,44 +24,45 @@ def replace_str_value(x):
     return x
 
 
-class Namespace:
-    """Simple object for storing attributes.
-    Implements equality by attribute names and values, and provides a simple string representation.
-    """
+# class Namespace:
+#     """Simple object for storing attributes.
+#     Implements equality by attribute names and values, and provides a simple string representation.
+#     """
+#
+#     def __init__(self, dct):
+#         for key, item in dct.items():
+#             if isinstance(item, dict):
+#                 setattr(self, key, Namespace(item))
+#             else:
+#                 setattr(self, key, replace_str_value(item))
+#
+#     def items(self):
+#         return self.__dict__.items()
+#
+#     def __repr__(self):
+#         return "<namespace object>"
 
-    def __init__(self, dct):
-        for key, item in dct.items():
-            if isinstance(item, dict):
-                setattr(self, key, Namespace(item))
-            else:
-                setattr(self, key, replace_str_value(item))
 
-    def items(self):
-        return self.__dict__.items()
-
-    def __repr__(self):
-        return "<namespace object>"
-
-
-class YAMLConfigReader:
+class YAMLConfig:
     """Object representing YAML settings as a dict-like object with values as fields
     """
 
-    def __init__(self, custom_config_file):
-        self.update_from_file(custom_config_file)
-
-    @property
-    def _config(self):
-        if '_config_dict' not in self.__dict__:
-            self.__dict__['_config_dict'] = {}
-        return self.__dict__['_config_dict']
+    def __init__(self, item):
+        if isinstance(item, dict):
+            self.update(item)
+        else:
+            self.update_from_file(item)
 
     def update(self, dct):
         """Update config from dict
 
         :param dct: dict
         """
-        self._config.update(dct)
+        for key, item in dct.items():
+            if isinstance(item, dict):
+                setattr(self, key, YAMLConfig(item))
+            else:
+                setattr(self, key, replace_str_value(item))
 
     def update_from_file(self, path):
         """Update config from YAML file
@@ -70,28 +71,11 @@ class YAMLConfigReader:
             with open(path, "r") as custom_config:
                 self.update(yaml.safe_load(custom_config.read()))
 
-    def dump(self):
-        """Dump config to YAML string
-        """
-        return yaml.dump(self._config)
-
-    def to_namespace(self):
-        return Namespace(self._config)
-
-    def get(self, name=None, default=None):
-        if name is None:
-            return self._config
-        else:
-            return replace_str_value(self._config.get(name, default))
-
-    def __getattr__(self, name):
-        return self.get(name)
+    def items(self):
+        return self.__dict__.items()
 
     def __setattr__(self, name, value):
         raise AttributeError("Cannot set config attribute")
-
-    def __contains__(self, name):
-        return name in self._config
 
     def __repr__(self):
         return "<config object>"

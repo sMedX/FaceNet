@@ -42,23 +42,20 @@ from tensorflow.python.ops import array_ops
 import facenet
 from facenet import dataset, lfw, ioutils, facenet, config
 
-config = config.YAMLConfigReader(config.default_app_config(__file__))
+args = config.YAMLConfig(config.default_app_config(__file__))
 
 
 @click.command()
 @click.option('--config', default=None,
               help='Path to yaml config file with used options of the application.')
 def main(**args_):
-    config.update_from_file(args_['config'])
+    args.update_from_file(args_['config'])
 
     # import network
-    print('import model \'{}\''.format(config.model_def))
-    network = importlib.import_module(config.model_def)
-    if config.model_config is None:
-        config.update_from_file(network.config_file)
-
-    # return the namespace object
-    args = config.to_namespace()
+    print('import model \'{}\''.format(args.model_def))
+    network = importlib.import_module(args.model_def)
+    if args.model_config is None:
+        args.update_from_file(network.config_file)
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
     args.model_dir = pathlib.Path(args.model_dir).expanduser().joinpath(subdir)
