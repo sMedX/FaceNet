@@ -14,6 +14,16 @@ def default_app_config(apps_file_name):
     return config_dir.joinpath(config_name + '.yaml')
 
 
+def replace_str_value(x):
+    dct = {'none': None, 'false': False, 'true': True}
+
+    if isinstance(x, str):
+        for name, value in dct.items():
+            if x.lower() == name:
+                return value
+    return x
+
+
 class Namespace:
     """Simple object for storing attributes.
     Implements equality by attribute names and values, and provides a simple string representation.
@@ -24,14 +34,7 @@ class Namespace:
             if isinstance(item, dict):
                 setattr(self, key, Namespace(item))
             else:
-                if isinstance(item, str):
-                    if item.lower() == 'none':
-                        item = None
-                    elif item.lower() == 'false':
-                        item = False
-                    elif item.lower() == 'true':
-                        item = True
-                setattr(self, key, item)
+                setattr(self, key, replace_str_value(item))
 
     def to_dict(self):
         def to_dict(x):
@@ -86,12 +89,7 @@ class YAMLConfigReader:
         if name is None:
             return self._config
         else:
-            item = self._config.get(name, default)
-            if isinstance(item, str):
-                for key, value in zip(('none', 'false', 'true'), (None, False, True)):
-                    if item.lower() == key:
-                        return value
-            return item
+            return replace_str_value(self._config.get(name, default))
 
     def __getattr__(self, name):
         return self.get(name)
