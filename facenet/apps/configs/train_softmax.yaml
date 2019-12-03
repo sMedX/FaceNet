@@ -30,9 +30,6 @@ min_nrof_val_images_per_class: 0
 # Load a pretrained checkpoint before training starts.
 pretrained_checkpoint: None
 
-# Path to the data directory containing aligned face patches.
-lfw_dir: None
-
 # Number of images to process in a batch.
 batch_size: 100
 
@@ -86,30 +83,16 @@ image:
 
 prelogits_hist_max: 10.0 # The max value for the prelogits histogram
 
-#    parser.add_argument('--seed', type=int,
-#        help='Random seed.', default=666)
-#    parser.add_argument('--nrof_preprocess_threads', type=int,
-#        help='Number of preprocessing (data loading and augmentation) threads.', default=4)
-#    parser.add_argument('--filter_filename', type=str,
-#        help='File containing image data used for dataset filtering', default='')
-#    parser.add_argument('--filter_percentile', type=float,
-#        help='Keep only the percentile images closed to its class center', default=100.0)
-#    parser.add_argument('--filter_min_nrof_images_per_class', type=int,
-#        help='Keep only the classes with this number of examples or more', default=0)
-#
-#    # Parameters for validation on LFW
-#    parser.add_argument('--lfw_pairs', type=str,
-#        help='The file containing the pairs to use for validation.', default='data/pairs.txt')
-#    parser.add_argument('--lfw_batch_size', type=int,
-#        help='Number of images to process in a batch in the LFW test set.', default=100)
-#    parser.add_argument('--lfw_nrof_folds', type=int,
-#        help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
-#    parser.add_argument('--lfw_distance_metric', type=int,
-#        help='Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.',
-#        default=config.distance_metric)
-#    parser.add_argument('--lfw_use_flipped_images',
-#        help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
-#    parser.add_argument('--lfw_subtract_mean',
-#        help='Subtract feature mean before calculating distance.', action='store_true')
-#
-#    return parser.parse_args(argv[1:])
+nrof_preprocess_threads: 4 # Number of preprocessing (data loading and augmentation)
+
+# Parameters for validation, for example, on LFW
+validation:
+  dir: None             # Path to the data directory containing aligned face patches.
+  pairs: data/pairs.txt # The file containing the pairs to use for validation
+  batch_size: 100       # Number of images to process in a batch in the LFW test set
+  nrof_folds: 10        # Number of folds to use for cross validation. Mainly used for testing
+  distance_metric: 0    # Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.
+  use_flipped_images: false # Concatenates embeddings for the image and its horizontally flipped counterpart
+  subtract_mean: false  # Subtract feature mean before calculating distance
+
+
