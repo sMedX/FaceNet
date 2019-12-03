@@ -86,13 +86,13 @@ def main(**args_):
         args.pretrained_checkpoint = pathlib.Path(args.pretrained_checkpoint).expanduser()
     print('Pre-trained checkpoint: {}'.format(args.pretrained_checkpoint))
 
-    if args.lfw_dir:
-        print('LFW directory: %s' % args.lfw_dir)
-        args['lfw_dir'] = pathlib.Path(args.lfw_dir).expanduser()
+    if args.validation.dir:
+        print('LFW directory: {}'.format(args.validation.dir))
+        args.validation.dir = pathlib.Path(args.validation.dir).expanduser()
         # read the file containing the pairs used for testing
-        pairs = lfw.read_pairs(args.lfw_dir)
+        pairs = lfw.read_pairs(args.validation.pairs)
         # get the paths for the corresponding images
-        lfw_paths, actual_issame = lfw.get_paths(args.lfw_dir, pairs)
+        lfw_paths, actual_issame = lfw.get_paths(args.validation.dir, pairs)
 
     tf.reset_default_graph()
     tf.Graph().as_default()
@@ -122,7 +122,6 @@ def main(**args_):
         labels_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
         control_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='control')
         
-        nrof_preprocess_threads = 4
         input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                     dtypes=[tf.string, tf.int32, tf.int32],
                                     shapes=[(1,), (1,), (1,)],
@@ -130,7 +129,7 @@ def main(**args_):
         enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name='enqueue_op')
 
         image_size = (args.image_size, args.image_size)
-        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)
+        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, args.nrof_preprocess_threads, batch_size_placeholder)
 
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
@@ -255,10 +254,10 @@ def main(**args_):
 
                 # Evaluate on LFW
                 t = time.time()
-                if args.lfw_dir:
-                    evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, 
-                        embeddings, label_batch, lfw_paths, actual_issame, args.lfw_batch_size, args.lfw_nrof_folds, log_dir, step, summary_writer, stat, epoch, 
-                        args.lfw_distance_metric, args.lfw_subtract_mean, args.lfw_use_flipped_images, args.image_standardization)
+                if args.validation.dir:
+                    evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+                             batch_size_placeholder, control_placeholder, embeddings, label_batch, lfw_paths, actual_issame,
+                             step, summary_writer, stat, epoch)
                 stat['time_evaluate'][epoch-1] = time.time() - t
 
                 print('Saving statistics')
@@ -345,8 +344,8 @@ def validate(args, sess, epoch, image_list, label_list, enqueue_op, image_paths_
   
     print('Running forward pass on validation set')
 
-    nrof_batches = len(label_list) // args.lfw_batch_size
-    nrof_images = nrof_batches * args.lfw_batch_size
+    nrof_batches = len(label_list) // args.validation.batch_size
+    nrof_images = nrof_batches * args.validation.batch_size
     
     # Enqueue one epoch of image paths and labels
     labels_array = np.expand_dims(np.array(label_list[:nrof_images]),1)
@@ -361,7 +360,7 @@ def validate(args, sess, epoch, image_list, label_list, enqueue_op, image_paths_
     # Training loop
     start_time = time.time()
     for i in range(nrof_batches):
-        feed_dict = {phase_train_placeholder:False, batch_size_placeholder:args.lfw_batch_size}
+        feed_dict = {phase_train_placeholder: False, batch_size_placeholder: args.lfw_batch_size}
         loss_, cross_entropy_mean_, accuracy_ = sess.run([loss, cross_entropy_mean, accuracy], feed_dict=feed_dict)
         loss_array[i], xent_array[i], accuracy_array[i] = (loss_, cross_entropy_mean_, accuracy_)
         if i % 10 == 9:
@@ -380,33 +379,43 @@ def validate(args, sess, epoch, image_list, label_list, enqueue_op, image_paths_
           (epoch, duration, np.mean(loss_array), np.mean(xent_array), np.mean(accuracy_array)))
 
 
-def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, 
-        embeddings, labels, image_paths, actual_issame, batch_size, nrof_folds, log_dir, step, summary_writer, stat, epoch, distance_metric, subtract_mean, use_flipped_images, image_standardization):
+# evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+#          batch_size_placeholder, control_placeholder, embeddings, label_batch, lfw_paths, actual_issame,
+#          log_dir, step, summary_writer, stat, epoch)
+
+
+def evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, actual_issame,
+             step, summary_writer, stat, epoch):
     start_time = time.time()
     # Run forward pass to calculate embeddings
     print('Runnning forward pass on LFW images')
+
+    validation = args.validation
     
     # Enqueue one epoch of image paths and labels
     nrof_embeddings = len(actual_issame)*2  # nrof_pairs * nrof_images_per_pair
-    nrof_flips = 2 if use_flipped_images else 1
+    nrof_flips = 2 if validation.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
-    labels_array = np.expand_dims(np.arange(0,nrof_images),1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(image_paths),nrof_flips),1)
+    labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
+    image_paths_array = np.expand_dims(np.repeat(np.array(image_paths), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
-    if image_standardization:
+
+    if args.image.standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
-    if use_flipped_images:
+
+    if args.validation.use_flipped_images:
         # Flip every second image
         control_array += (labels_array % 2)*facenet.FLIP
     sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
     
     embedding_size = int(embeddings.get_shape()[1])
-    assert nrof_images % batch_size == 0, 'The number of LFW images must be an integer multiple of the LFW batch size'
-    nrof_batches = nrof_images // batch_size
+    assert nrof_images % validation.batch_size == 0, 'The number of LFW images must be an integer multiple of the LFW batch size'
+    nrof_batches = nrof_images // validation.batch_size
     emb_array = np.zeros((nrof_images, embedding_size))
     lab_array = np.zeros((nrof_images,))
     for i in range(nrof_batches):
-        feed_dict = {phase_train_placeholder:False, batch_size_placeholder:batch_size}
+        feed_dict = {phase_train_placeholder:False, batch_size_placeholder: validation.batch_size}
         emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
         lab_array[lab] = lab
         emb_array[lab, :] = emb
@@ -415,27 +424,29 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
             sys.stdout.flush()
     print('')
     embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
-    if use_flipped_images:
+    if validation.use_flipped_images:
         # Concatenate embeddings for flipped and non flipped version of the images
-        embeddings[:,:embedding_size] = emb_array[0::2,:]
-        embeddings[:,embedding_size:] = emb_array[1::2,:]
+        embeddings[:, :embedding_size] = emb_array[0::2, :]
+        embeddings[:, embedding_size:] = emb_array[1::2, :]
     else:
         embeddings = emb_array
 
     assert np.array_equal(lab_array, np.arange(nrof_images))==True, 'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
-    _, _, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame, nrof_folds=nrof_folds, distance_metric=distance_metric, subtract_mean=subtract_mean)
+    _, _, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame,
+                                                     nrof_folds=validation.nrof_folds,
+                                                     distance_metric=validation.distance_metric,
+                                                     subtract_mean=validation.subtract_mean)
     
     print('Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
     print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
     lfw_time = time.time() - start_time
     # Add validation loss and accuracy to summary
     summary = tf.Summary()
-    #pylint: disable=maybe-no-member
     summary.value.add(tag='lfw/accuracy', simple_value=np.mean(accuracy))
     summary.value.add(tag='lfw/val_rate', simple_value=val)
     summary.value.add(tag='time/lfw', simple_value=lfw_time)
     summary_writer.add_summary(summary, step)
-    with open(os.path.join(log_dir,'lfw_result.txt'),'at') as f:
+    with open(args.log_dir.joinpath('lfw_result.txt'), 'at') as f:
         f.write('%d\t%.5f\t%.5f\n' % (step, np.mean(accuracy), val))
     stat['lfw_accuracy'][epoch-1] = np.mean(accuracy)
     stat['lfw_valrate'][epoch-1] = val
