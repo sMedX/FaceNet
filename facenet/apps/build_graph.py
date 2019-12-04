@@ -1,5 +1,5 @@
 # coding:utf-8
-"""Training a face recognizer with TensorFlow using softmax cross entropy loss
+"""Building and writing graph
 """
 # MIT License
 # Copyright (c) 2019 sMedX
