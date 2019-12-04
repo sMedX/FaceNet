@@ -193,26 +193,6 @@ def main(**args_):
         with sess.as_default():
             # Training and validation loop
             print('Running training')
-            nrof_steps = args.epoch.max_nrof_epochs*args.epoch.size
-            nrof_val_samples = int(math.ceil(args.epoch.max_nrof_epochs / args.validate_every_n_epochs))   # Validate every validate_every_n_epochs as well as in the last epoch
-            stat = {
-                'loss': np.zeros((nrof_steps,), np.float32),
-                'center_loss': np.zeros((nrof_steps,), np.float32),
-                'reg_loss': np.zeros((nrof_steps,), np.float32),
-                'xent_loss': np.zeros((nrof_steps,), np.float32),
-                'prelogits_norm': np.zeros((nrof_steps,), np.float32),
-                'accuracy': np.zeros((nrof_steps,), np.float32),
-                'val_loss': np.zeros((nrof_val_samples,), np.float32),
-                'val_xent_loss': np.zeros((nrof_val_samples,), np.float32),
-                'val_accuracy': np.zeros((nrof_val_samples,), np.float32),
-                'lfw_accuracy': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'lfw_valrate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'learning_rate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'time_train': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'time_validate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'time_evaluate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'prelogits_hist': np.zeros((args.epoch.max_nrof_epochs, 1000), np.float32),
-              }
 
             for epoch in range(1, 2):
                 step = sess.run(global_step, feed_dict=None)
@@ -221,29 +201,8 @@ def main(**args_):
                 cont = train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
                     learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, global_step, 
                     total_loss, train_op, summary_op, summary_writer, regularization_losses,
-                    stat, cross_entropy_mean, accuracy,
+                    cross_entropy_mean, accuracy,
                     prelogits, prelogits_center_loss, prelogits_norm, learning_rate)
-                # stat['time_train'][epoch-1] = time.time() - t
-                
-                # if not cont:
-                #     break
-                  
-                # t = time.time()
-                # if len(val_image_list)>0 and ((epoch-1) % args.validate_every_n_epochs == args.validate_every_n_epochs-1 or epoch==args.max_nrof_epochs):
-                #     validate(args, sess, epoch, val_image_list, val_label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
-                #         phase_train_placeholder, batch_size_placeholder,
-                #         stat, total_loss, regularization_losses, cross_entropy_mean, accuracy, args.validate_every_n_epochs, args.image_standardization)
-                # stat['time_validate'][epoch-1] = time.time() - t
-
-                # Evaluate on LFW
-                # t = time.time()
-
-
-                # if args.lfw_dir:
-                #     evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder,
-                #         embeddings, label_batch, lfw_paths, actual_issame, args.lfw_batch_size, args.lfw_nrof_folds, log_dir, step, summary_writer, stat, epoch,
-                #         args.lfw_distance_metric, args.lfw_subtract_mean, args.lfw_use_flipped_images, args.image_standardization)
-                # stat['time_evaluate'][epoch-1] = time.time() - t
 
     print('Model directory: %s' % args.model_dir)
     print('Log directory: %s' % args.log_dir)
@@ -254,7 +213,7 @@ def main(**args_):
 def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
       learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, step, 
       loss, train_op, summary_op, summary_writer, reg_losses,
-      stat, cross_entropy_mean, accuracy, 
+      cross_entropy_mean, accuracy,
       prelogits, prelogits_center_loss, prelogits_norm, learning_rate):
     batch_number = 0
     
@@ -294,23 +253,12 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
             loss_, _, step_, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_ = sess.run(tensor_list, feed_dict=feed_dict)
          
         duration = time.time() - start_time
-        stat['loss'][step_-1] = loss_
-        stat['center_loss'][step_-1] = center_loss_
-        stat['reg_loss'][step_-1] = np.sum(reg_losses_)
-        stat['xent_loss'][step_-1] = cross_entropy_mean_
-        stat['prelogits_norm'][step_-1] = prelogits_norm_
-        stat['learning_rate'][epoch-1] = lr_
-        stat['accuracy'][step_-1] = accuracy_
-        stat['prelogits_hist'][epoch-1,:] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max), bins=1000, range=(0.0, args.prelogits_hist_max))[0]
-        
-        duration = time.time() - start_time
         print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f\tXent %2.3f\tRegLoss %2.3f\tAccuracy %2.3f\tLr %2.5f\tCl %2.3f' %
               (epoch, batch_number+1, args.epoch.size, duration, loss_, cross_entropy_mean_, np.sum(reg_losses_), accuracy_, lr_, center_loss_))
         batch_number += 1
         train_time += duration
     # Add validation loss and accuracy to summary
     summary = tf.Summary()
-    #pylint: disable=maybe-no-member
     summary.value.add(tag='time/total', simple_value=train_time)
     summary_writer.add_summary(summary, global_step=step_)
     return True
