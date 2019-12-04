@@ -1,5 +1,7 @@
 ---
 # inception resnet v1 config
+model_def: facenet.models.inception_resnet_v1
+
 model_config:
   reduction_a:
     k: 192
@@ -10,3 +12,10 @@ model_config:
   repeat_b: 10
 
   embedding_size: 512
+
+# Keep probability of dropout for the fully connected layer(s).
+keep_probability: 1.0
+
+# L2 weight regularization.
+weight_decay: 0.0
+
