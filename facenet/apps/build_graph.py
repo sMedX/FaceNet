@@ -26,9 +26,6 @@ def main(**args_):
     if args.model_config is None:
         args.update_from_file(network.config_file)
 
-    tf.reset_default_graph()
-    tf.Graph().as_default()
-
     with tf.Graph().as_default():
         image_batch = tf.convert_to_tensor(np.zeros([1, 160, 160, 3]), np.float32)
         image_batch = tf.identity(image_batch, 'input')
