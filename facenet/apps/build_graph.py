@@ -43,9 +43,6 @@ def main(**args_):
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
 
-        coord = tf.train.Coordinator()
-        tf.train.start_queue_runners(coord=coord, sess=sess)
-
         with sess.as_default():
             print('Writing graph to the log dir', pathlib.Path(args_['logs']).expanduser().absolute())
             writer = tf.summary.FileWriter(args_['logs'], sess.graph)
