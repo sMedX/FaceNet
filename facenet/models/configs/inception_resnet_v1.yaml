@@ -12,6 +12,8 @@ model_config:
   repeat_block35: 5
   repeat_b: 10
 
+  repeat_block8: 5
+
   embedding_size: 512
 
 # Keep probability of dropout for the fully connected layer(s).
