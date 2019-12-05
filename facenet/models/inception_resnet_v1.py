@@ -224,7 +224,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
     return net, end_points
 
 
-def inference(images, keep_probability, phase_train=True, weight_decay=0.0, reuse=None, config=None):
+def inference(images, keep_probability=1.0, phase_train=True, weight_decay=0.0, reuse=None, config=None):
 
     if config is None:
         config = default_model_config
