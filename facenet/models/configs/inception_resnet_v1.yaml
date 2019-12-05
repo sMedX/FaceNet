@@ -9,6 +9,7 @@ model_config:
     m: 256
     n: 384
 
+  repeat_block35: 5
   repeat_b: 10
 
   embedding_size: 512

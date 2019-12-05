@@ -183,7 +183,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
                 end_points['Conv2d_4b_3x3'] = net
                 
                 # 5 x Inception-resnet-A
-                net = slim.repeat(net, 5, block35, scale=0.17)
+                net = slim.repeat(net, config.repeat_block35, block35, scale=0.17)
                 end_points['Mixed_5a'] = net
         
                 # Reduction-A
