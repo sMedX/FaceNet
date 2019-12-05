@@ -203,7 +203,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
                 end_points['Mixed_7a'] = net
                 
                 # 5 x Inception-Resnet-C
-                net = slim.repeat(net, 5, block8, scale=0.20)
+                net = slim.repeat(net, config.repeat_block8, block8, scale=0.20)
                 end_points['Mixed_8a'] = net
                 
                 net = block8(net, activation_fn=None)
