@@ -10,7 +10,7 @@ model_config:
     n: 384
 
   repeat_block35: 5
-  repeat_b: 10
+  repeat_block17: 10
 
   repeat_block8: 5
 

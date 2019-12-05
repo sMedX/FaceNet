@@ -194,7 +194,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
                 end_points['Mixed_6a'] = net
                 
                 # 10 x Inception-Resnet-B
-                net = slim.repeat(net, config.repeat_b, block17, scale=0.10)
+                net = slim.repeat(net, config.repeat_block17, block17, scale=0.10)
                 end_points['Mixed_6b'] = net
                 
                 # Reduction-B
@@ -213,13 +213,12 @@ def inception_resnet_v1(inputs, config, is_training=True,
                     end_points['PrePool'] = net
                     net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID', scope='AvgPool_1a_8x8')
                     net = slim.flatten(net)
-          
                     net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='Dropout')
           
                     end_points['PreLogitsFlatten'] = net
                 
-                net = slim.fully_connected(net, bottleneck_layer_size, activation_fn=None,
-                                           scope='Bottleneck', reuse=False)
+                net = slim.fully_connected(net, bottleneck_layer_size,
+                                           activation_fn=None, scope='Bottleneck', reuse=False)
   
     return net, end_points
 
