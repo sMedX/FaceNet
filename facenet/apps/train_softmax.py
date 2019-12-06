@@ -143,10 +143,9 @@ def main(**args_):
         
         # Build the inference graph
         print('Building training graph')
-        prelogits, _ = network.inference(image_batch, args.keep_probability,
-                                         phase_train=phase_train_placeholder,
-                                         weight_decay=args.weight_decay,
-                                         config=args.model_config)
+        prelogits, _ = network.inference(image_batch,
+                                         config=args.model_config,
+                                         phase_train=phase_train_placeholder)
 
         logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
                                       weights_initializer=slim.initializers.xavier_initializer(),
