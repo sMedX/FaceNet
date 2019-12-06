@@ -56,7 +56,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
 def write_namespace(namespace, filename):
     makedirs(filename.parent)
 
-    with open(filename, 'w') as f:
+    with open(str(filename), 'w') as f:
         def write_to_file(dct, ident=''):
             shift = 3 * ' '
 
