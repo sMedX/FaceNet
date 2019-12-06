@@ -149,7 +149,7 @@ def main(**args_):
 
         logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
                                       weights_initializer=slim.initializers.xavier_initializer(),
-                                      weights_regularizer=slim.l2_regularizer(args.weight_decay),
+                                      weights_regularizer=slim.l2_regularizer(args.model_config.weight_decay),
                                       scope='Logits', reuse=False)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
