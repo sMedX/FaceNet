@@ -68,7 +68,7 @@ class YAMLConfig:
         """Update config from YAML file
         """
         if path is not None:
-            with open(path, 'r') as custom_config:
+            with open(str(path), 'r') as custom_config:
                 self.update(yaml.safe_load(custom_config.read()))
 
     def items(self):
