@@ -223,7 +223,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
     return net, end_points
 
 
-def inference(images, keep_probability=1.0, phase_train=True, weight_decay=0.0, reuse=None, config=None):
+def inference(images, config=None, phase_train=True, reuse=None):
 
     if config is None:
         config = default_model_config
@@ -241,12 +241,12 @@ def inference(images, keep_probability=1.0, phase_train=True, weight_decay=0.0, 
 
     with slim.arg_scope([slim.conv2d, slim.fully_connected],
                         weights_initializer=slim.initializers.xavier_initializer(),
-                        weights_regularizer=slim.l2_regularizer(weight_decay),
+                        weights_regularizer=slim.l2_regularizer(config.weight_decay),
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
 
         return inception_resnet_v1(images,
                                    config,
                                    is_training=phase_train,
-                                   dropout_keep_prob=keep_probability,
+                                   dropout_keep_prob=config.keep_probability,
                                    reuse=reuse)

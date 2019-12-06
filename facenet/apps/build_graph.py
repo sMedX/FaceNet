@@ -33,10 +33,8 @@ def main(**args_):
 
         print('Building training graph')
         prelogits, _ = network.inference(image_batch,
-                                         keep_probability=args.model_config.keep_probability,
-                                         phase_train=False,
-                                         weight_decay=args.model_config.weight_decay,
-                                         config=args.model_config)
+                                         config=args.model_config,
+                                         phase_train=False)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
