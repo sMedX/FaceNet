@@ -53,7 +53,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
         f.write('\n')
 
 
-def write_namespace(namespace, filename):
+def write_arguments(arguments, filename):
     makedirs(filename.parent)
 
     with open(str(filename), 'w') as f:
@@ -67,7 +67,7 @@ def write_namespace(namespace, filename):
                 else:
                     f.write('{}{}: {}\n'.format(ident, key, str(item)))
 
-        write_to_file(namespace)
+        write_to_file(arguments)
 
 
 def makedirs(dir_name):

@@ -68,7 +68,7 @@ def main(**args_):
     stat_file_name = args.log_dir.joinpath('stat.h5')
 
     # Write arguments to a text file
-    ioutils.write_namespace(args, args.log_dir.joinpath('arguments.yaml'))
+    ioutils.write_arguments(args, args.log_dir.joinpath('arguments.yaml'))
 
     # store some git revision info in a text file in the log directory
     ioutils.store_revision_info(args.log_dir, sys.argv)
