@@ -3,41 +3,27 @@ and exports the model as a graphdef protobuf
 """
 # MIT License
 # 
-# Copyright (c) 2016 David Sandberg
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Copyright (c) 2019 sMedX
 
-from tensorflow.python.framework import graph_util
-import tensorflow as tf
-import argparse
 import os
-import sys
-import pathlib as plib
+import click
+import pathlib
+import tensorflow as tf
+from tensorflow.python.framework import graph_util
 from facenet import facenet
 
 
+@click.command()
+@click.option('model_dir', type=pathlib.Path,
+              help='Directory with the meta graph and checkpoint files containing model parameters')
+@click.option('--output_file', default=pathlib.Path('../output'), type=pathlib.Path,
+              help='Filename for the exported protobuf file (.pb)')
 def main(args):
 
     if args.output_file is None:
-        output_file = plib.Path(args.model_dir).joinpath(plib.Path(args.model_dir).name + '.pb')
+        output_file = args.model_dir.joinpath(args.model_dir.name + '.pb')
     else:
-        output_file = plib.Path(args.output_file).expanduser()
+        output_file = args.output_file.expanduser()
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -95,15 +81,5 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def parse_arguments(argv):
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument('model_dir', type=str, 
-        help='Directory with the metagraph (.meta) file and the checkpoint (ckpt) file containing model parameters')
-    parser.add_argument('--output_file', type=str,
-        help='Filename for the exported graphdef protobuf (.pb)', default=None)
-    return parser.parse_args(argv[1:])
-
-
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv))
+    main()
