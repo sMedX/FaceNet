@@ -35,11 +35,10 @@ def main(**args):
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
 
-            model_dir_exp = args['model_dir'].expanduser()
-            saver = tf.train.import_meta_graph(os.path.join(model_dir_exp, meta_file), clear_devices=True)
+            saver = tf.train.import_meta_graph(model_dir.joinpath(meta_file), clear_devices=True)
             tf.get_default_session().run(tf.global_variables_initializer())
             tf.get_default_session().run(tf.local_variables_initializer())
-            saver.restore(tf.get_default_session(), os.path.join(model_dir_exp, ckpt_file))
+            saver.restore(tf.get_default_session(), model_dir.joinpath(ckpt_file))
             
             # Retrieve the protobuf graph definition and fix the batch norm nodes
             input_graph_def = sess.graph.as_graph_def()
