@@ -19,17 +19,18 @@ from facenet import facenet
 @click.option('--output_file', default=None, type=pathlib.Path,
               help='Filename for the exported protobuf file (.pb)')
 def main(**args):
+    model_dir = args['model_dir'].expanduser()
 
     if args['output_file'] is None:
-        output_file = args['model_dir'].joinpath(args['model_dir'].name + '.pb')
+        output_file = model_dir.joinpath(model_dir.name + '.pb')
     else:
         output_file = args['output_file'].expanduser()
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
             # Load the model metagraph and checkpoint
-            print('Model directory: {}'.format(args.model_dir))
-            meta_file, ckpt_file = facenet.get_model_filenames(os.path.expanduser(args.model_dir))
+            print('Model directory: {}'.format(model_dir))
+            meta_file, ckpt_file = facenet.get_model_filenames(model_dir)
             
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
