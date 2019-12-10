@@ -16,7 +16,7 @@ from facenet import config
 @click.command()
 @click.option('--config', default='facenet/models/configs/inception_resnet_v1.yaml',
               help='Path to yaml config file with used options of the application.')
-@click.option('--logs', default='../facenet_graph', help='Path to the directory to write logs.')
+@click.option('--logs', default='../output', help='Path to the directory to write logs.')
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
