@@ -42,14 +42,12 @@ from tensorflow.python.ops import array_ops
 import facenet
 from facenet import dataset, lfw, ioutils, facenet, config
 
-args = config.YAMLConfig(config.default_app_config(__file__))
-
 
 @click.command()
-@click.option('--config', default=None,
+@click.option('--config', default=config.default_app_config(__file__), type=pathlib.Path,
               help='Path to yaml config file with used options of the application.')
 def main(**args_):
-    args.update_from_file(args_['config'])
+    args = config.YAMLConfig(args_['config'])
 
     # import network
     print('import model \'{}\''.format(args.model_def))
@@ -376,11 +374,6 @@ def validate(args, sess, epoch, image_list, label_list, enqueue_op, image_paths_
 
     print('Validation Epoch: %d\tTime %.3f\tLoss %2.3f\tXent %2.3f\tAccuracy %2.3f' %
           (epoch, duration, np.mean(loss_array), np.mean(xent_array), np.mean(accuracy_array)))
-
-
-# evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-#          batch_size_placeholder, control_placeholder, embeddings, label_batch, lfw_paths, actual_issame,
-#          log_dir, step, summary_writer, stat, epoch)
 
 
 def evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
