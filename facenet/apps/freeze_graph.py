@@ -16,14 +16,14 @@ from facenet import facenet
 @click.command()
 @click.option('--model_dir', type=pathlib.Path,
               help='Directory with the meta graph and checkpoint files containing model parameters')
-@click.option('--output_file', default=pathlib.Path('../output'), type=pathlib.Path,
+@click.option('--output_file', default=None, type=pathlib.Path,
               help='Filename for the exported protobuf file (.pb)')
 def main(args):
 
-    if args.output_file is None:
-        output_file = args.model_dir.joinpath(args.model_dir.name + '.pb')
+    if args['output_file'] is None:
+        output_file = args['model_dir'].joinpath(args['model_dir'].name + '.pb')
     else:
-        output_file = args.output_file.expanduser()
+        output_file = args['output_file'].expanduser()
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -34,7 +34,7 @@ def main(args):
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
 
-            model_dir_exp = os.path.expanduser(args.model_dir)
+            model_dir_exp = args['model_dir'].expanduser()
             saver = tf.train.import_meta_graph(os.path.join(model_dir_exp, meta_file), clear_devices=True)
             tf.get_default_session().run(tf.global_variables_initializer())
             tf.get_default_session().run(tf.local_variables_initializer())
