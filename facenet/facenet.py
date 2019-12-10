@@ -407,6 +407,7 @@ def load_model(model, input_map=None):
 
 
 def get_model_filenames(model_dir):
+    model_dir = str(model_dir)
     files = os.listdir(model_dir)
     meta_files = [s for s in files if s.endswith('.meta')]
     if len(meta_files)==0:
