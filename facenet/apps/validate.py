@@ -27,6 +27,7 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
     if args.model is None:
         args.model = DefaultConfig.model
+        args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
     dbase = dataset.DBase(args.dir, h5file=args.h5file)
@@ -40,9 +41,7 @@ def main(**args_):
             control_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='control')
             phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
 
-            if args.image.size is None:
-                args.image.size = DefaultConfig.image_size
-            image_size = (args.image.size, args.image.size)
+            image_size = (args.image_size, args.image_size)
 
             eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                                        dtypes=[tf.string, tf.int32, tf.int32],
