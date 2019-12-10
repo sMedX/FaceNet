@@ -6,46 +6,30 @@ in the same directory, and the metagraph should have the extension '.meta'.
 # MIT License
 # 
 # Copyright (c) 2019 SMedX
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
-import sys
+import click
 import tensorflow as tf
 from tensorflow.python.ops import data_flow_ops
 import math
 import time
 import numpy as np
-import argparse
-import pathlib as plib
-
-from facenet import dataset, h5utils
+import pathlib
+from facenet import dataset, config, facenet
 from facenet.statistics import Validation
-from facenet import facenet
 
-from facenet.config import DefaultConfig
-config = DefaultConfig()
+DefaultConfig = config.DefaultConfig()
 
 
-def main(args):
+@click.command()
+@click.option('--config', default=config.default_app_config(__file__), type=pathlib.Path,
+              help='Path to yaml config file with used options for the application.')
+def main(**args_):
+    args = config.YAMLConfig(args_['config'])
+    if args.model is None:
+        args.model = DefaultConfig.model
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.dir, nrof_classes=args.nrof_classes, h5file=args.h5file)
+    dbase = dataset.DBase(args.dir, h5file=args.h5file)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -55,18 +39,22 @@ def main(args):
             batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
             control_placeholder = tf.placeholder(tf.int32, shape=(None,1), name='control')
             phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
- 
-            nrof_preprocess_threads = 4
-            image_size = (args.image_size, args.image_size)
-            eval_input_queue = data_flow_ops.FIFOQueue(capacity=2000000,
-                                        dtypes=[tf.string, tf.int32, tf.int32],
-                                        shapes=[(1,), (1,), (1,)],
-                                        shared_name=None, name=None)
+
+            if args.image.size is None:
+                args.image.size = DefaultConfig.image_size
+            image_size = (args.image.size, args.image.size)
+
+            eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
+                                                       dtypes=[tf.string, tf.int32, tf.int32],
+                                                       shapes=[(1,), (1,), (1,)],
+                                                       shared_name=None, name=None)
             eval_enqueue_op = eval_input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name='eval_enqueue_op')
+
+            nrof_preprocess_threads = 4
             image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder)
      
             # load the model to validate
-            args.model = plib.Path(args.model).expanduser()
+            args.model = pathlib.Path(args.model).expanduser()
             print('model: {}'.format(args.model))
 
             input_map = {'image_batch': image_batch, 'label_batch': label_batch, 'phase_train': phase_train_placeholder}
@@ -160,39 +148,5 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     stats.write_report(args.report, dbase, elapsed_time, args)
 
 
-def parse_arguments(argv):
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument('--model', type=str,
-        help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
-        default=config.model)
-    parser.add_argument('dir', type=str,
-        help='Path to the data directory containing aligned face patches.')
-    parser.add_argument('--report', type=str,
-        help='File to write statistical report.', default='report.txt')
-    parser.add_argument('--nrof_classes', type=int,
-        help='Number of classes to validate model.', default=0)
-    parser.add_argument('--batch_size', type=int,
-        help='Number of images to process in a batch in the test set.', default=100)
-    parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=config.image_size)
-    parser.add_argument('--nrof_folds', type=int,
-        help='Number of folds to use for cross validation. Mainly used for testing.', default=10)
-    parser.add_argument('--distance_metric', type=int,
-        help='Distance metric  0:euclidian, 1:cosine similarity.', default=config.distance_metric)
-    parser.add_argument('--use_flipped_images',
-        help='Concatenates embeddings for the image and its horizontally flipped counterpart.', action='store_true')
-    parser.add_argument('--subtract_mean',
-        help='Subtract feature mean before calculating distance.', action='store_true')
-    parser.add_argument('--image_standardization', type=bool,
-        help='Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation.',
-        default=config.image_standardization)
-    parser.add_argument('--h5file', type=str,
-        help='Path to h5 file with information about valid images.', default=None)
-    parser.add_argument('--portion_samples', type=float,
-        help='Portion of samples to evaluate threshold.', default=1)
-    return parser.parse_args(argv[1:])
-
-
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv))
+    main()
