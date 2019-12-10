@@ -38,7 +38,7 @@ def main(**args):
             saver = tf.train.import_meta_graph(str(model_dir.joinpath(meta_file)), clear_devices=True)
             tf.get_default_session().run(tf.global_variables_initializer())
             tf.get_default_session().run(tf.local_variables_initializer())
-            saver.restore(tf.get_default_session(), model_dir.joinpath(ckpt_file))
+            saver.restore(tf.get_default_session(), str(model_dir.joinpath(ckpt_file)))
             
             # Retrieve the protobuf graph definition and fix the batch norm nodes
             input_graph_def = sess.graph.as_graph_def()
