@@ -18,7 +18,7 @@ from facenet import facenet
               help='Directory with the meta graph and checkpoint files containing model parameters')
 @click.option('--output_file', default=None, type=pathlib.Path,
               help='Filename for the exported protobuf file (.pb)')
-def main(args):
+def main(**args):
 
     if args['output_file'] is None:
         output_file = args['model_dir'].joinpath(args['model_dir'].name + '.pb')
