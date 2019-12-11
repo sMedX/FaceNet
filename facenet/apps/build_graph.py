@@ -54,6 +54,15 @@ def main(**args_):
             print('\tinputs ', op.inputs)
             print('\toutputs', op.outputs)
 
+        nrof_vars = 0
+        for var in tf.global_variables():
+            nrof_vars += np.prod(var.shape)
+            print(var)
+
+        print('length of list of graph operations', len(tf.get_default_graph().get_operations()))
+        print('length of list of global variables', len(tf.global_variables()))
+        print('number of variables', nrof_vars)
+
 
 if __name__ == '__main__':
     main()
