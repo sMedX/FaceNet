@@ -78,7 +78,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     # Enqueue one epoch of image paths and labels
     nrof_embeddings = dbase.nrof_images
 
-    nrof_flips = 2 if args.use_flipped_images else 1
+    nrof_flips = 2 if args.image.use_flipped_images else 1
     nrof_images = nrof_embeddings * nrof_flips
 
     labels_array = np.expand_dims(np.arange(0, nrof_images), 1)

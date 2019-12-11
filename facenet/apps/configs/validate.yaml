@@ -5,7 +5,7 @@ image_size: None  # Image size (height, width) in pixels.
 
 
 dir: None      # Path to the data directory containing aligned face patches
-h5file: false  # Path to h5 file with information about valid images
+h5file: None  # Path to h5 file with information about valid images
 
 report: report.txt    # File to write statistical report.', default='re
 
