@@ -123,7 +123,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
 
-    if args.use_flipped_images:
+    if args.image.use_flipped_images:
         # Concatenate embeddings for flipped and non flipped version of the images
         embeddings[:, :embedding_size] = emb_array[0::2, :]
         embeddings[:, embedding_size:] = emb_array[1::2, :]
@@ -139,8 +139,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     stats = Validation(thresholds, embeddings, dbase,
                        far_target=1e-3,
                        nrof_folds=args.nrof_folds,
-                       distance_metric=args.distance_metric,
-                       subtract_mean=args.subtract_mean,
+                       distance_metric=args.validation.distance_metric,
+                       subtract_mean=args.image.subtract_mean,
                        portion_samples=args.portion_samples)
 
     stats.print()
