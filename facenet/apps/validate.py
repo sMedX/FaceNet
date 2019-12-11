@@ -138,7 +138,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     stats = Validation(thresholds, embeddings, dbase,
                        far_target=1e-3,
-                       nrof_folds=args.nrof_folds,
+                       nrof_folds=args.validation.nrof_folds,
                        distance_metric=args.validation.distance_metric,
                        subtract_mean=args.image.subtract_mean,
                        portion_samples=args.portion_samples)
