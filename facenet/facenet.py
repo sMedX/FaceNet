@@ -747,24 +747,23 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
 
 def save_freeze_graph(model_dir, output_file=None):
     if output_file is None:
-        output_file = pathlib.Path(model_dir).joinpath(pathlib.Path(model_dir).name + '.pb')
+        output_file = model_dir.joinpath(model_dir.name + '.pb')
     else:
-        output_file = pathlib.Path(output_file).expanduser()
+        output_file = output_file.expanduser()
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
             # Load the model metagraph and checkpoint
             print('Model directory: {}'.format(model_dir))
-            meta_file, ckpt_file = get_model_filenames(os.path.expanduser(model_dir))
+            meta_file, ckpt_file = get_model_filenames(model_dir)
 
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
 
-            model_dir_exp = os.path.expanduser(model_dir)
-            saver = tf.train.import_meta_graph(os.path.join(model_dir_exp, meta_file), clear_devices=True)
+            saver = tf.train.import_meta_graph(str(model_dir.joinpath(meta_file)), clear_devices=True)
             tf.get_default_session().run(tf.global_variables_initializer())
             tf.get_default_session().run(tf.local_variables_initializer())
-            saver.restore(tf.get_default_session(), os.path.join(model_dir_exp, ckpt_file))
+            saver.restore(tf.get_default_session(), str(model_dir.joinpath(ckpt_file)))
 
             # Retrieve the protobuf graph definition and fix the batch norm nodes
             input_graph_def = sess.graph.as_graph_def()
