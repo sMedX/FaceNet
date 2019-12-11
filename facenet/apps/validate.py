@@ -141,7 +141,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                        nrof_folds=args.validation.nrof_folds,
                        distance_metric=args.validation.distance_metric,
                        subtract_mean=args.image.subtract_mean,
-                       portion_samples=args.portion_samples)
+                       portion_samples=args.validation.portion_samples)
 
     stats.print()
     stats.write_report(args.report, dbase, elapsed_time, args)
