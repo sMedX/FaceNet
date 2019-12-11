@@ -4,10 +4,7 @@ model_def: facenet.models.inception_resnet_v1
 
 model_config:
   reduction_a:
-    k: 192
-    l: 192
-    m: 256
-    n: 384
+    branch: [[384], [192, 192, 256]]
 
   repeat: [5, 10, 5]
 

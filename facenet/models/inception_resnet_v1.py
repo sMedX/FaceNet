@@ -100,14 +100,16 @@ def block8(net, scale=1.0, activation_fn: Optional[Callable] = tf.nn.relu, scope
     return net
   
 
-def reduction_a(net, k, l, m, n):
+def reduction_a(net, config):
     with tf.variable_scope('Branch_0'):
-        tower_conv = slim.conv2d(net, n, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+        branch = config.branch[0]
+        tower_conv = slim.conv2d(net, branch[0], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
 
     with tf.variable_scope('Branch_1'):
-        tower_conv1_0 = slim.conv2d(net, k, 1, scope='Conv2d_0a_1x1')
-        tower_conv1_1 = slim.conv2d(tower_conv1_0, l, 3, scope='Conv2d_0b_3x3')
-        tower_conv1_2 = slim.conv2d(tower_conv1_1, m, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+        branch = config.branch[1]
+        tower_conv1_0 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+        tower_conv1_1 = slim.conv2d(tower_conv1_0, branch[1], 3, scope='Conv2d_0b_3x3')
+        tower_conv1_2 = slim.conv2d(tower_conv1_1, branch[2], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
 
     with tf.variable_scope('Branch_2'):
         tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
@@ -188,9 +190,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
         
                 # Reduction-A
                 with tf.variable_scope('Mixed_6a'):
-                    net = reduction_a(net,
-                                      config.reduction_a.k, config.reduction_a.l,
-                                      config.reduction_a.m, config.reduction_a.n)
+                    net = reduction_a(net, config.reduction_a)
                 end_points['Mixed_6a'] = net
                 
                 # 10 x Inception-Resnet-B
