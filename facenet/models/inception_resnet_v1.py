@@ -118,19 +118,22 @@ def reduction_a(net, config):
     return net
 
 
-def reduction_b(net):
+def reduction_b(net, config):
     with tf.variable_scope('Branch_0'):
-        tower_conv = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-        tower_conv_1 = slim.conv2d(tower_conv, 384, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+        branch = config.branch[0]
+        tower_conv = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+        tower_conv_1 = slim.conv2d(tower_conv, branch[1], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
 
     with tf.variable_scope('Branch_1'):
-        tower_conv1 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-        tower_conv1_1 = slim.conv2d(tower_conv1, 256, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+        branch = config.branch[1]
+        tower_conv1 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+        tower_conv1_1 = slim.conv2d(tower_conv1, branch[1], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
 
     with tf.variable_scope('Branch_2'):
-        tower_conv2 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-        tower_conv2_1 = slim.conv2d(tower_conv2, 256, 3, scope='Conv2d_0b_3x3')
-        tower_conv2_2 = slim.conv2d(tower_conv2_1, 256, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+        branch = config.branch[2]
+        tower_conv2 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+        tower_conv2_1 = slim.conv2d(tower_conv2, branch[1], 3, scope='Conv2d_0b_3x3')
+        tower_conv2_2 = slim.conv2d(tower_conv2_1, branch[2], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
 
     with tf.variable_scope('Branch_3'):
         tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
@@ -199,7 +202,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
                 
                 # Reduction-B
                 with tf.variable_scope('Mixed_7a'):
-                    net = reduction_b(net)
+                    net = reduction_b(net, config.reduction_b)
                 end_points['Mixed_7a'] = net
                 
                 # 5 x Inception-Resnet-C

@@ -6,6 +6,9 @@ model_config:
   reduction_a:
     branch: [[384], [192, 192, 256]]
 
+  reduction_b:
+    branch: [[256, 384], [256, 256], [256, 256, 256]]
+
   repeat: [5, 10, 5]
 
   embedding_size: 512
