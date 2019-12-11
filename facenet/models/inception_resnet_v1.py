@@ -53,7 +53,7 @@ def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
 
-        if activation_fn:
+        if callable(activation_fn):
             net = activation_fn(net)
     return net
 
@@ -74,7 +74,7 @@ def block17(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
 
-        if activation_fn:
+        if callable(activation_fn):
             net = activation_fn(net)
     return net
 
