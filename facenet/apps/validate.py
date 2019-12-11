@@ -85,7 +85,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     image_paths_array = np.expand_dims(np.repeat(np.array(dbase.files), nrof_flips), 1)
     control_array = np.zeros_like(labels_array, np.int32)
 
-    if args.image_standardization:
+    if args.image.standardization:
         control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
 
     if args.use_flipped_images:
