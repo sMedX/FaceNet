@@ -3,14 +3,6 @@
 model_def: facenet.models.inception_resnet_v2
 
 model_config:
-  reduction_a:
-    branch: [[384], [192, 192, 256]]
-
-  reduction_b:
-    branch: [[256, 384], [256, 256], [256, 256, 256]]
-
-  repeat: [5, 10, 5]
-
   embedding_size: 512
 
 # Keep probability of dropout for the fully connected layer(s).

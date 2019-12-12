@@ -50,7 +50,7 @@ def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         mixed = tf.concat([tower_conv, tower_conv1_1, tower_conv2_2], 3)
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
-        if activation_fn:
+        if callable(activation_fn):
             net = activation_fn(net)
     return net
 
@@ -68,13 +68,13 @@ def block17(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         mixed = tf.concat([tower_conv, tower_conv1_2], 3)
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
-        if activation_fn:
+        if callable(activation_fn):
             net = activation_fn(net)
     return net
 
 
 # Inception-Resnet-C
-def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
+def block8(net, scale=1.0, activation_fn: Optional[Callable] = tf.nn.relu, scope=None, reuse=None):
     """Builds the 8x8 resnet block."""
     with tf.variable_scope(scope, 'Block8', [net], reuse=reuse):
         with tf.variable_scope('Branch_0'):
@@ -86,7 +86,7 @@ def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         mixed = tf.concat([tower_conv, tower_conv1_2], 3)
         up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
         net += scale * up
-        if activation_fn:
+        if callable(activation_fn):
             net = activation_fn(net)
     return net
 
