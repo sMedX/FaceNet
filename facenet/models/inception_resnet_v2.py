@@ -20,8 +20,18 @@ As described in http://arxiv.org/abs/1602.07261.
   Christian Szegedy, Sergey Ioffe, Vincent Vanhoucke, Alex Alemi
 """
 
+import pathlib
+from typing import Optional
+from collections.abc import Callable
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from facenet.config import YAMLConfig
+
+model_dir = pathlib.Path(__file__).parent
+model_name = pathlib.Path(__file__).stem
+config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
+
+default_model_config = YAMLConfig(config_file).model_config
 
 
 # Inception-Resnet-A
@@ -79,51 +89,27 @@ def block8(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
         if activation_fn:
             net = activation_fn(net)
     return net
-  
-
-def inference(images, keep_probability, phase_train=True,
-              bottleneck_layer_size=128, weight_decay=0.0, reuse=None):
-    batch_norm_params = {
-        # Decay for the moving averages.
-        'decay': 0.995,
-        # epsilon to prevent 0s in variance.
-        'epsilon': 0.001,
-        # force in-place updates of mean and variance estimates
-        'updates_collections': None,
-        # Moving averages ends up in the trainable variables collection
-        'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],
-}
-    with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                        weights_initializer=slim.initializers.xavier_initializer(), 
-                        weights_regularizer=slim.l2_regularizer(weight_decay),
-                        normalizer_fn=slim.batch_norm,
-                        normalizer_params=batch_norm_params):
-        return inception_resnet_v2(images, is_training=phase_train,
-                                   dropout_keep_prob=keep_probability,
-                                   bottleneck_layer_size=bottleneck_layer_size,
-                                   reuse=reuse)
 
 
-def inception_resnet_v2(inputs, is_training=True,
+def inception_resnet_v2(inputs, config, is_training=True,
                         dropout_keep_prob=0.8,
-                        bottleneck_layer_size=128,
                         reuse=None,
                         scope='InceptionResnetV2'):
     """Creates the Inception Resnet V2 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
+      config: the object to define network parameters
       is_training: whether is training or not.
-      bottleneck_layer_size:
       dropout_keep_prob: float, the fraction to keep before final layer.
-      reuse: whether or not the network and its variables should be reused. To be
-        able to reuse 'scope' must be given.
+      reuse: whether or not the network and its variables should be reused. To be able to reuse 'scope' must be given.
       scope: Optional variable_scope.
     Returns:
-      logits: the logits outputs of the model.
+      net: the output model.
       end_points: the set of end_points from the inception model.
     """
     end_points = {}
-  
+    bottleneck_layer_size = config.embedding_size
+
     with tf.variable_scope(scope, 'InceptionResnetV2', [inputs], reuse=reuse):
         with slim.arg_scope([slim.batch_norm, slim.dropout],
                             is_training=is_training):
@@ -224,3 +210,32 @@ def inception_resnet_v2(inputs, is_training=True,
                                            scope='Bottleneck', reuse=False)
   
     return net, end_points
+
+
+def inference(images, config=None, phase_train=True, reuse=None):
+
+    if config is None:
+        config = default_model_config
+
+    batch_norm_params = {
+        # Decay for the moving averages.
+        'decay': 0.995,
+        # epsilon to prevent 0s in variance.
+        'epsilon': 0.001,
+        # force in-place updates of mean and variance estimates
+        'updates_collections': None,
+        # Moving averages ends up in the trainable variables collection
+        'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],
+    }
+
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                        weights_initializer=slim.initializers.xavier_initializer(),
+                        weights_regularizer=slim.l2_regularizer(config.weight_decay),
+                        normalizer_fn=slim.batch_norm,
+                        normalizer_params=batch_norm_params):
+
+        return inception_resnet_v2(images,
+                                   config,
+                                   is_training=phase_train,
+                                   dropout_keep_prob=config.keep_probability,
+                                   reuse=reuse)

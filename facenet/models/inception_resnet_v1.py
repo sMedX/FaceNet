@@ -149,14 +149,13 @@ def inception_resnet_v1(inputs, config, is_training=True,
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
-      config: A dictionary to define network parameters
+      config: the object to define network parameters
       is_training: whether is training or not.
       dropout_keep_prob: float, the fraction to keep before final layer.
-      reuse: whether or not the network and its variables should be reused. To be
-        able to reuse 'scope' must be given.
+      reuse: whether or not the network and its variables should be reused. To be able to reuse 'scope' must be given.
       scope: Optional variable_scope.
     Returns:
-      logits: the logits outputs of the model.
+      net: the output model.
       end_points: the set of end_points from the inception model.
     """
     end_points = {}
