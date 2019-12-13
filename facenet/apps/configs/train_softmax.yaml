@@ -1,5 +1,14 @@
 # coding:utf-8
 
+dataset:
+  # Directory with aligned face patches.
+  data_dir: ~/datasets/vggface2/test_frcnnv3extracted_160
+  # Path to h5 file with information about valid images.
+  h5file: None
+  # Portion of samples to download from data set
+  portion_of_images: 1
+
+
 # Directory where to write trained models and checkpoints
 model_dir: ~/models/facenet
 
@@ -14,12 +23,6 @@ model_config: None
 
 # Random seed
 seed: 0
-
-# Directory with aligned face patches.
-data_dir: ~/datasets/vggface2/test_frcnnv3extracted_160
-
-# Path to h5 file with information about valid images.
-h5file: None
 
 # The ratio of the total dataset to use for validation
 validation_set_split_ratio: 0

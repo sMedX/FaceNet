@@ -2,24 +2,26 @@
 
 model: None         # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
 image_size: None    # Image size (height, width) in pixels.
-batch_size: 100     # Number of images to process in a batch in the test set
-report: report.txt  # File to write statistical report.', default='re
+batch_size: 100     # Number of images to process in a batch
+report: report.txt  # File to write statistical report
 
 
 dataset:
-  path: None            # Path to the data directory containing aligned face patches
-  h5file: None          # Path to h5 file with information about valid images
-  portion_of_images: 1  # Portion of samples to evaluate threshold
+  # Path to the data directory containing aligned face patches
+  path: None
+  # Path to h5 file with information about valid images
+  h5file: None
+  # Portion of samples to download from data set
+  portion_of_images: 1
 
 
 validation:
-  nrof_folds: 10      # Number of folds to use for cross validation. Mainly used for testing
-  distance_metric: 0  # Distance metric  0: euclidean, 1: cosine similarity
-
+  nrof_folds: 10            # Number of folds to use for cross validation. Mainly used for testing
+  distance_metric: 0        # Distance metric  0: euclidean, 1: cosine similarity
+  subtract_mean: false      # Subtract feature mean before calculating distance
 
 image:
   standardization: false    # Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation
   use_flipped_images: false # Concatenates embeddings for the image and its horizontally flipped counterpart
-  subtract_mean: false      # Subtract feature mean before calculating distance
 
 

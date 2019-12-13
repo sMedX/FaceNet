@@ -214,7 +214,7 @@ class Validation:
         print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
         print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
 
-    def write_report(self, file, dbase, elapsed_time, args):
+    def write_report(self, file, elapsed_time, args):
         print('Report has been printed to the file: {}'.format(file))
 
         git_hash, git_diff = utils.git_hash()
@@ -226,10 +226,11 @@ class Validation:
             f.write('embedding size: {}\n'. format(self.embedding_shape[1]))
             f.write('elapsed time: {}\n'.format(elapsed_time))
             f.write('time per image: {}\n'.format(elapsed_time/self.embedding_shape[0]))
-            f.write('dataset: {}\n'.format(dbase.path))
-            f.write('h5file : {}\n'.format(args.h5file))
-            f.write('number of folders {}\n'.format(dbase.nrof_classes))
-            f.write('numbers of images {} and pairs {}\n'.format(dbase.nrof_images, dbase.nrof_pairs))
+            f.write('dataset: {}\n'.format(self.dbase.config.path))
+            f.write('h5file : {}\n'.format(self.dbase.config.h5file))
+            f.write('portion of images: {}\n'.format(self.dbase.config.portion_of_images))
+            f.write('number of folders {}\n'.format(self.dbase.nrof_classes))
+            f.write('numbers of images {} and pairs {}\n'.format(self.dbase.nrof_images, self.dbase.nrof_pairs))
             f.write('distance metric: {}\n'.format(self.distance_metric))
             f.write('subtract mean: {}\n'.format(self.subtract_mean))
             f.write('\n')

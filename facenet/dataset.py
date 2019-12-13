@@ -66,12 +66,10 @@ class DBase:
         self.labels = []
 
         for count, path in enumerate(classes):
-            files = path.glob('*' + extension)
+            files = list(path.glob('*' + extension))
 
             if self.config.h5file is not None:
-                files = [f for f in files if h5utils.read(self.config.h5file,
-                                                          h5utils.filename2key(f, 'is_valid'),
-                                                          default=True)]
+                files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
             if self.config.portion_of_images < 1:
                 files = np.random.choice(files, size=int(len(files) * self.config.portion_of_images), replace=False)
@@ -86,8 +84,8 @@ class DBase:
     def __repr__(self):
         """Representation of the database"""
         info = ('class {}\n'.format(self.__class__.__name__) +
-                'Directory to load images {}\n'.format(self.path) +
-                'h5 file to filter images {}\n'.format(self.h5file) +
+                'Directory to load images {}\n'.format(self.config.path) +
+                'h5 file to filter images {}\n'.format(self.config.h5file) +
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Numbers of images {} and pairs {}\n'.format(self.nrof_images, self.nrof_pairs))
         return info
