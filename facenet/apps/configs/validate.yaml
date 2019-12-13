@@ -1,21 +1,20 @@
 # coding:utf-8
 
-model: None       # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-image_size: None  # Image size (height, width) in pixels.
+model: None         # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+image_size: None    # Image size (height, width) in pixels.
+batch_size: 100     # Number of images to process in a batch in the test set
+report: report.txt  # File to write statistical report.', default='re
 
 
-dir: None      # Path to the data directory containing aligned face patches
-h5file: None  # Path to h5 file with information about valid images
-
-report: report.txt    # File to write statistical report.', default='re
-
-batch_size: 100       # Number of images to process in a batch in the test set
+dataset:
+  path: None            # Path to the data directory containing aligned face patches
+  h5file: None          # Path to h5 file with information about valid images
+  portion_of_images: 1  # Portion of samples to evaluate threshold
 
 
 validation:
   nrof_folds: 10      # Number of folds to use for cross validation. Mainly used for testing
   distance_metric: 0  # Distance metric  0: euclidean, 1: cosine similarity
-  portion_samples: 1  # Portion of samples to evaluate threshold
 
 
 image:

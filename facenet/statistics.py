@@ -99,8 +99,7 @@ class ConfidenceMatrix:
 class Validation:
     def __init__(self, thresholds, embeddings, dbase,
                  far_target=1e-3, nrof_folds=10,
-                 distance_metric=0, subtract_mean=False,
-                 portion_samples=1):
+                 distance_metric=0, subtract_mean=False):
 
         self.embedding_shape = embeddings.shape
         self.dbase = dbase
@@ -132,9 +131,6 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # for memory and speed up optimization
-            if portion_samples < 1:
-                train_set = np.random.choice(train_set, size=int(len(train_set)*portion_samples), replace=False)
-
             if subtract_mean:
                 mean = np.mean(embeddings[train_set], axis=0)
             else:

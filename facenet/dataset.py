@@ -49,57 +49,37 @@ def list_files(dirname, extension=None):
     return files
 
 
-def dataset(path, nrof_classes=0, has_class_directories=True, h5file=None):
-    h5file = str(plib.Path(h5file).expanduser())
-
-    ds = []
-    path_exp = os.path.expanduser(path)
-    classes = [path for path in list_names(path_exp) if os.path.isdir(os.path.join(path_exp, path))]
-
-    if nrof_classes > 0:
-        classes = classes[:nrof_classes]
-
-    for class_name in classes:
-        dirname = os.path.join(path_exp, class_name)
-        files = list_files(dirname, extension=config.file_extension)
-
-        if h5file is not None:
-            files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
-
-        if len(files) > 0:
-            ds.append(ImageClass(class_name, files))
-
-    return ds
-
-
 class DBase:
-    def __init__(self, path, extension='', h5file=None, nrof_classes=0):
-        self.path = plib.Path(path).expanduser()
+    def __init__(self, config, extension='', seed=0):
+        np.random.seed(seed)
 
-        self.h5file = h5file
-        if self.h5file is not None:
-            self.h5file = plib.Path(self.h5file).expanduser()
+        self.config = config
+        self.config.path = plib.Path(config.path).expanduser()
 
-        classes = [path for path in self.path.glob('*') if path.is_dir()]
+        if self.config.h5file is not None:
+            self.config.h5file = plib.Path(self.config.h5file).expanduser()
+
+        classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
-
-        if nrof_classes > 0:
-            classes = classes[:nrof_classes]
 
         self.classes = []
         self.labels = []
 
-        for count, class_path in enumerate(classes):
-            files = class_path.glob('*' + extension)
+        for count, path in enumerate(classes):
+            files = path.glob('*' + extension)
 
-            if self.h5file is not None:
-                files = [f for f in files if h5utils.read(self.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
-            else:
-                files = [f for f in files]
+            if self.config.h5file is not None:
+                files = [f for f in files if h5utils.read(self.config.h5file,
+                                                          h5utils.filename2key(f, 'is_valid'),
+                                                          default=True)]
+
+            if self.config.portion_of_images < 1:
+                files = np.random.choice(files, size=int(len(files) * self.config.portion_of_images), replace=False)
 
             if len(files) > 0:
-                self.classes.append(ImageClass(class_path.stem, files, count=count))
-                print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name), end=utils.end(count, len(classes)))
+                self.classes.append(ImageClass(path.stem, files, count=count))
+                print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
+                      end=utils.end(count, len(classes)))
 
             self.labels += [count]*len(files)
 

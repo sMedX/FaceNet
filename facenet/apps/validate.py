@@ -30,7 +30,7 @@ def main(**args_):
         args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.dir, h5file=args.h5file)
+    dbase = dataset.DBase(args.dataset)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -140,8 +140,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                        far_target=1e-3,
                        nrof_folds=args.validation.nrof_folds,
                        distance_metric=args.validation.distance_metric,
-                       subtract_mean=args.image.subtract_mean,
-                       portion_samples=args.validation.portion_samples)
+                       subtract_mean=args.image.subtract_mean)
 
     stats.print()
     stats.write_report(args.report, dbase, elapsed_time, args)
