@@ -32,9 +32,7 @@ def main(**args_):
         image_batch = tf.identity(image_batch, 'input')
 
         print('Building training graph')
-        prelogits, _ = network.inference(image_batch,
-                                         config=args.model_config,
-                                         phase_train=False)
+        prelogits, end_points = network.inference(image_batch, config=args.model_config, phase_train=False)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
@@ -47,6 +45,7 @@ def main(**args_):
             print('Writing graph to the log dir', pathlib.Path(args_['logs']).expanduser().absolute())
             writer = tf.summary.FileWriter(args_['logs'], sess.graph)
             sess.run(embeddings)
+            outputs = sess.run(end_points)
             writer.close()
 
         for i, op in enumerate(tf.get_default_graph().get_operations()):
@@ -54,11 +53,16 @@ def main(**args_):
             print('\tinputs ', op.inputs)
             print('\toutputs', op.outputs)
 
+        print()
+        print('end points')
+        for i, (name, item) in enumerate(outputs.items()):
+            print('{}/{})'.format(i, len(outputs.items())), name, item.shape)
+
         nrof_vars = 0
         for var in tf.global_variables():
             nrof_vars += np.prod(var.shape)
-            print(var)
 
+        print()
         print('length of list of graph operations', len(tf.get_default_graph().get_operations()))
         print('length of list of global variables', len(tf.global_variables()))
         print('number of variables', nrof_vars)
