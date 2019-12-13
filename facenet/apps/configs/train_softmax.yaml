@@ -2,7 +2,7 @@
 
 dataset:
   # Directory with aligned face patches.
-  data_dir: ~/datasets/vggface2/test_frcnnv3extracted_160
+  path: ~/datasets/vggface2/test_frcnnv3extracted_160
   # Path to h5 file with information about valid images.
   h5file: None
   # Portion of samples to download from data set
