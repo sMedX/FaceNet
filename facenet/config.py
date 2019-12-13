@@ -80,8 +80,8 @@ class YAMLConfig:
 
 class DefaultConfig:
     def __init__(self):
-        self.model = src_dir.joinpath('models', '20190727-080213')
-        self.pretrained_checkpoint = src_dir.joinpath('models', '20190727-080213', 'model-20190727-080213.ckpt-275')
+        self.model = src_dir.joinpath('models', '20190822-033520')
+        self.pretrained_checkpoint = src_dir.joinpath('models', '20190822-033520', 'model-20190822-033520.ckpt-275')
 
         # image size (height, width) in pixels
         self.image_size = 160
