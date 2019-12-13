@@ -67,6 +67,7 @@ class DBase:
 
         for count, path in enumerate(classes):
             files = list(path.glob('*' + extension))
+            files.sort()
 
             if self.config.h5file is not None:
                 files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
