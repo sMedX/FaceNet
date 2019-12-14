@@ -3,7 +3,7 @@
 model: None         # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
 image_size: None    # Image size (height, width) in pixels.
 batch_size: 100     # Number of images to process in a batch
-report: report.txt  # File to write statistical report
+report: None        # File to write statistical report
 
 
 dataset:

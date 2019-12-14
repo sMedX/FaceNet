@@ -14,7 +14,7 @@ from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
 from scipy.optimize import brentq
 import math
-import pathlib as plib
+import pathlib
 
 from facenet import utils
 
@@ -214,11 +214,19 @@ class Validation:
         print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
         print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
 
-    def write_report(self, file, elapsed_time, args):
+    def write_report(self, elapsed_time, args, file=None):
+        if file is None:
+            dir_name = pathlib.Path(args.model).expanduser()
+            if dir_name.is_file():
+                dir_name = dir_name.parent
+            file = dir_name.joinpath('report.txt')
+        else:
+            file = pathlib.Path(file).expanduser()
+
         print('Report has been printed to the file: {}'.format(file))
 
         git_hash, git_diff = utils.git_hash()
-        with open(str(plib.Path(file).expanduser()), 'at') as f:
+        with file.open('at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(git_hash))
             f.write('git diff: {}\n'.format(git_diff))
@@ -226,8 +234,8 @@ class Validation:
             f.write('embedding size: {}\n'. format(self.embedding_shape[1]))
             f.write('elapsed time: {}\n'.format(elapsed_time))
             f.write('time per image: {}\n'.format(elapsed_time/self.embedding_shape[0]))
-            f.write('dataset: {}\n'.format(self.dbase.config.path))
-            f.write('h5file : {}\n'.format(self.dbase.config.h5file))
+            f.write('data set: {}\n'.format(self.dbase.config.path))
+            f.write('h5 file: {}\n'.format(self.dbase.config.h5file))
             f.write('portion of images: {}\n'.format(self.dbase.config.portion_of_images))
             f.write('number of folders {}\n'.format(self.dbase.nrof_classes))
             f.write('numbers of images {} and pairs {}\n'.format(self.dbase.nrof_images, self.dbase.nrof_pairs))

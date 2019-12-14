@@ -142,7 +142,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                        distance_metric=args.validation.distance_metric,
                        subtract_mean=args.validation.subtract_mean)
     stats.print()
-    stats.write_report(args.report, elapsed_time, args)
+    stats.write_report(elapsed_time, args, file=args.report)
 
 
 if __name__ == '__main__':
