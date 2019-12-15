@@ -18,9 +18,10 @@ class ImageClass:
         self.files.sort()
 
     def __str__(self):
-        return self.name + ', ' + str(len(self.files)) + ' images'
+        return self.name + ', ' + str(self.nrof_images) + ' images'
 
-    def __len__(self):
+    @property
+    def nrof_images(self):
         return len(self.files)
 
     @property
@@ -72,7 +73,7 @@ class DBase:
             if self.config.h5file is not None:
                 files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if self.config.portion_of_images < 1:
+            if self.config.portion < 1:
                 files = np.random.choice(files, size=int(len(files) * self.config.portion_of_images), replace=False)
 
             if len(files) > 0:
@@ -97,7 +98,7 @@ class DBase:
 
     @property
     def nrof_images(self):
-        return sum(len(x) for x in self.classes)
+        return sum(cls.nrof_images for cls in self.classes)
 
     @property
     def nrof_pairs(self):
