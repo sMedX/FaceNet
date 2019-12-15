@@ -15,7 +15,7 @@ import time
 import numpy as np
 import pathlib
 from facenet import dataset, config, facenet
-from facenet.statistics import Validation
+from facenet.statistics2 import Validation
 
 DefaultConfig = config.DefaultConfig()
 
