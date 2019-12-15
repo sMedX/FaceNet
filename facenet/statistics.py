@@ -39,13 +39,6 @@ def pairwise_distances(xa, xb=None, metric=0):
     return dist
 
 
-def precision(tp, fp):
-    p = np.ones(len(tp))
-    i = (tp + fp) > 0
-    p[i] = tp[i] / (tp[i] + fp[i])
-    return p
-
-
 def split_embeddings(embeddings, labels):
     emb_list = []
     for label in np.unique(labels):
@@ -91,7 +84,10 @@ class ConfidenceMatrix:
                         fp[n] += count
                         tn[n] += self.distances[i][k].size - count
 
-        self.precision = precision(tp, fp)
+        i = (tp + fp) > 0
+        self.precision = np.ones(len(tp))
+        self.precision = tp[i] / (tp[i] + fp[i])
+
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
 
         # true positive rate, validation rate, sensitivity or recall
