@@ -136,7 +136,6 @@ class Validation:
             self.tp_rates[fold_idx] = conf_matrix.tp_rates
             self.fp_rates[fold_idx] = conf_matrix.fp_rates
 
-            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set], metric=self.metric)
             conf_matrix.compute(thresholds)
             tp_rates[fold_idx, :] = conf_matrix.tp_rates
             fp_rates[fold_idx, :] = conf_matrix.fp_rates
