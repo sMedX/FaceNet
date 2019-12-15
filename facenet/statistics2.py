@@ -27,7 +27,7 @@ def pairwise_distances(xa, xb=None, metric=0):
         else:
             dist = spatial.distance.cdist(xa, xb, metric='sqeuclidean')
     elif metric == 1:
-        # Distance based on cosine similarity
+        # distance based on cosine similarity
         if xb is None:
             dist = spatial.distance.pdist(xa, metric='cosine')
         else:
@@ -36,26 +36,38 @@ def pairwise_distances(xa, xb=None, metric=0):
     else:
         raise 'Undefined distance metric %d' % metric
 
-    # dist = np.array(dist, dtype=np.float32)
     return dist
 
 
 def precision(tp, fp):
     p = np.ones(len(tp))
-    i = tp + fp > 0
+    i = (tp + fp) > 0
     p[i] = tp[i] / (tp[i] + fp[i])
     return p
 
 
-class ConfidenceMatrix:
-    def __init__(self, embeddings, labels):
-        self.embeddings = split_embeddings(embeddings, labels)
-        self.distances = pairwise_distances_(self.embeddings)
+def split_embeddings(embeddings, labels):
+    emb_list = []
+    for label in np.unique(labels):
+        emb_array = embeddings[labels == label]
+        emb_list.append(emb_array)
+    return emb_list
 
+
+class ConfidenceMatrix:
+    def __init__(self, embeddings, labels, metric=0):
         self.precision = None
         self.accuracy = None
         self.tp_rates = None
         self.fp_rates = None
+
+        self.embeddings = split_embeddings(embeddings, labels)
+        self.distances = [[] for _ in range(len(self.embeddings))]
+
+        for i, emb1 in enumerate(self.embeddings):
+            for k, emb2 in enumerate(self.embeddings[:i]):
+                self.distances[i].append(pairwise_distances(emb1, emb2, metric=metric))
+            self.distances[i].append(pairwise_distances(emb1, metric=metric))
 
     def compute(self, thresholds):
 
@@ -87,25 +99,6 @@ class ConfidenceMatrix:
 
         # false positive rate, false alarm rate, 1 - specificity
         self.fp_rates = fp / (fp + tn)
-
-
-def split_embeddings(embeddings, labels):
-    emb_list = []
-    for label in np.unique(labels):
-        emb_array = embeddings[labels == label]
-        emb_list.append(emb_array)
-    return emb_list
-
-
-def pairwise_distances_(emb_list, metric='sqeuclidean'):
-    distances = [[] for _ in range(len(emb_list))]
-
-    for i, emb1 in enumerate(emb_list):
-        for k, emb2 in enumerate(emb_list[:i]):
-            distances[i].append(spatial.distance.cdist(emb1, emb2, metric=metric))
-        distances[i].append(spatial.distance.pdist(emb1, metric=metric))
-
-    return distances
 
 
 class Validation:
