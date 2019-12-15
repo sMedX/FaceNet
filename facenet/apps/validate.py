@@ -135,14 +135,15 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
+    labels = np.array(dbase.labels)
 
-    stats = Validation(thresholds, embeddings, dbase,
+    stats = Validation(thresholds, embeddings, labels,
                        far_target=1e-3,
                        nrof_folds=args.validation.nrof_folds,
                        metric=args.validation.metric,
                        subtract_mean=args.validation.subtract_mean)
     stats.print()
-    stats.write_report(elapsed_time, args, file=args.report)
+    stats.write_report(dbase, elapsed_time, args, file=args.report)
 
 
 if __name__ == '__main__':
