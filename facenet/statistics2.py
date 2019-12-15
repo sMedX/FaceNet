@@ -48,9 +48,16 @@ def precision(tp, fp):
 
 
 class ConfidenceMatrix:
-    def __init__(self, thresholds, embeddings, labels):
-        embeddings = split_embeddings(embeddings, labels)
-        distances = pairwise_distances_(embeddings)
+    def __init__(self, embeddings, labels):
+        self.embeddings = split_embeddings(embeddings, labels)
+        self.distances = pairwise_distances_(self.embeddings)
+
+        self.precision = None
+        self.accuracy = None
+        self.tp_rates = None
+        self.fp_rates = None
+
+    def compute(self, thresholds):
 
         if isinstance(thresholds, Iterable) is False:
             thresholds = np.array([thresholds])
@@ -60,17 +67,17 @@ class ConfidenceMatrix:
         fp = np.zeros(thresholds.size, dtype=int)
         fn = np.zeros(thresholds.size, dtype=int)
 
-        for i in range(len(distances)):
-            for k in range(len(distances[i])):
+        for i in range(len(self.distances)):
+            for k in range(len(self.distances[i])):
                 for n, threshold in enumerate(thresholds):
-                    count = np.sum(distances[i][k][:] < threshold)
+                    count = np.sum(self.distances[i][k][:] < threshold)
 
                     if i == k:
                         tp[n] += count
-                        fn[n] += distances[i][k].size - count
+                        fn[n] += self.distances[i][k].size - count
                     else:
                         fp[n] += count
-                        tn[n] += distances[i][k].size - count
+                        tn[n] += self.distances[i][k].size - count
 
         self.precision = precision(tp, fp)
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
@@ -130,17 +137,20 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            conf_matrix = ConfidenceMatrix(thresholds, embeddings[train_set], labels[train_set])
+            conf_matrix = ConfidenceMatrix(embeddings[train_set], labels[train_set])
+            conf_matrix.compute(thresholds)
             self.best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
 
             # evaluations with test set
-            conf_matrix = ConfidenceMatrix(self.best_thresholds[fold_idx], embeddings[test_set], labels[test_set])
+            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set])
+            conf_matrix.compute(self.best_thresholds[fold_idx])
             self.accuracy[fold_idx] = conf_matrix.accuracy
             self.precision[fold_idx] = conf_matrix.precision
             self.tp_rates[fold_idx] = conf_matrix.tp_rates
             self.fp_rates[fold_idx] = conf_matrix.fp_rates
 
-            conf_matrix = ConfidenceMatrix(thresholds, embeddings[test_set], labels[test_set])
+            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set])
+            conf_matrix.compute(thresholds)
             tp_rates[fold_idx, :] = conf_matrix.tp_rates
             fp_rates[fold_idx, :] = conf_matrix.fp_rates
 
