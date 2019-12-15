@@ -100,11 +100,11 @@ class ConfidenceMatrix:
 class Validation:
     def __init__(self, thresholds, embeddings, dbase,
                  far_target=1e-3, nrof_folds=10,
-                 distance_metric=0, subtract_mean=False):
+                 metric=0, subtract_mean=False):
 
         self.dbase = dbase
         self.subtract_mean = subtract_mean
-        self.distance_metric = distance_metric
+        self.metric = metric
         labels = np.array(dbase.labels)
 
         self.embeddings = embeddings
@@ -126,19 +126,19 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            conf_matrix = ConfidenceMatrix(embeddings[train_set], labels[train_set])
+            conf_matrix = ConfidenceMatrix(embeddings[train_set], labels[train_set], metric=self.metric)
             conf_matrix.compute(thresholds)
             self.best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
 
             # evaluations with test set
-            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set])
+            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set], metric=self.metric)
             conf_matrix.compute(self.best_thresholds[fold_idx])
             self.accuracy[fold_idx] = conf_matrix.accuracy
             self.precision[fold_idx] = conf_matrix.precision
             self.tp_rates[fold_idx] = conf_matrix.tp_rates
             self.fp_rates[fold_idx] = conf_matrix.fp_rates
 
-            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set])
+            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set], metric=self.metric)
             conf_matrix.compute(thresholds)
             tp_rates[fold_idx, :] = conf_matrix.tp_rates
             fp_rates[fold_idx, :] = conf_matrix.fp_rates
@@ -205,7 +205,7 @@ class Validation:
             f.write('portion of images: {}\n'.format(self.dbase.config.portion))
             f.write('number of folders {}\n'.format(self.dbase.nrof_classes))
             f.write('numbers of images {} and pairs {}\n'.format(self.dbase.nrof_images, self.dbase.nrof_pairs))
-            f.write('distance metric: {}\n'.format(self.distance_metric))
+            f.write('distance metric: {}\n'.format(self.metric))
             f.write('subtract mean: {}\n'.format(self.subtract_mean))
             f.write('\n')
             f.write('Accuracy: {:2.5f}+-{:2.5f}\n'.format(self.accuracy_mean, self.accuracy_std))
