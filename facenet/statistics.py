@@ -236,7 +236,7 @@ class Validation:
             f.write('time per image: {}\n'.format(elapsed_time/self.embedding_shape[0]))
             f.write('data set: {}\n'.format(self.dbase.config.path))
             f.write('h5 file: {}\n'.format(self.dbase.config.h5file))
-            f.write('portion of images: {}\n'.format(self.dbase.config.portion_of_images))
+            f.write('portion of images: {}\n'.format(self.dbase.config.portion))
             f.write('number of folders {}\n'.format(self.dbase.nrof_classes))
             f.write('numbers of images {} and pairs {}\n'.format(self.dbase.nrof_images, self.dbase.nrof_pairs))
             f.write('distance metric: {}\n'.format(self.distance_metric))
