@@ -141,57 +141,70 @@ def inception_resnet_v2(inputs, config, is_training=True,
         
                 # 35 x 35 x 320
                 with tf.variable_scope('Mixed_5a'):
+                    config_ = config.mixed_5a
                     with tf.variable_scope('Branch_0'):
-                        tower_conv = slim.conv2d(net, 96, 1, scope='Conv2d_1x1')
+                        branch = config_.branch[0]
+                        tower_conv = slim.conv2d(net, branch[0], 1, scope='Conv2d_1x1')
                     with tf.variable_scope('Branch_1'):
-                        tower_conv1_0 = slim.conv2d(net, 48, 1, scope='Conv2d_0a_1x1')
-                        tower_conv1_1 = slim.conv2d(tower_conv1_0, 64, 5, scope='Conv2d_0b_5x5')
+                        branch = config_.branch[1]
+                        tower_conv1_0 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+                        tower_conv1_1 = slim.conv2d(tower_conv1_0, branch[1], 5, scope='Conv2d_0b_5x5')
                     with tf.variable_scope('Branch_2'):
-                        tower_conv2_0 = slim.conv2d(net, 64, 1, scope='Conv2d_0a_1x1')
-                        tower_conv2_1 = slim.conv2d(tower_conv2_0, 96, 3, scope='Conv2d_0b_3x3')
-                        tower_conv2_2 = slim.conv2d(tower_conv2_1, 96, 3, scope='Conv2d_0c_3x3')
+                        branch = config_.branch[2]
+                        tower_conv2_0 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+                        tower_conv2_1 = slim.conv2d(tower_conv2_0, branch[1], 3, scope='Conv2d_0b_3x3')
+                        tower_conv2_2 = slim.conv2d(tower_conv2_1, branch[2], 3, scope='Conv2d_0c_3x3')
                     with tf.variable_scope('Branch_3'):
+                        branch = config_.branch[3]
                         tower_pool = slim.avg_pool2d(net, 3, stride=1, padding='SAME', scope='AvgPool_0a_3x3')
-                        tower_pool_1 = slim.conv2d(tower_pool, 64, 1, scope='Conv2d_0b_1x1')
+                        tower_pool_1 = slim.conv2d(tower_pool, branch[0], 1, scope='Conv2d_0b_1x1')
                     net = tf.concat([tower_conv, tower_conv1_1, tower_conv2_2, tower_pool_1], 3)
         
                 end_points['Mixed_5a'] = net
-                net = slim.repeat(net, 10, block35, scale=0.17)
+
+                net = slim.repeat(net, config.repeat[0], block35, scale=0.17)
         
                 # 17 x 17 x 1024
                 with tf.variable_scope('Mixed_6a'):
+                    config_ = config.mixed_6a
                     with tf.variable_scope('Branch_0'):
-                        tower_conv = slim.conv2d(net, 384, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+                        branch = config_.branch[0]
+                        tower_conv = slim.conv2d(net, branch[0], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
                     with tf.variable_scope('Branch_1'):
-                        tower_conv1_0 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-                        tower_conv1_1 = slim.conv2d(tower_conv1_0, 256, 3, scope='Conv2d_0b_3x3')
-                        tower_conv1_2 = slim.conv2d(tower_conv1_1, 384, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+                        branch = config_.branch[1]
+                        tower_conv1_0 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+                        tower_conv1_1 = slim.conv2d(tower_conv1_0, branch[1], 3, scope='Conv2d_0b_3x3')
+                        tower_conv1_2 = slim.conv2d(tower_conv1_1, branch[2], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
                     with tf.variable_scope('Branch_2'):
                         tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
                     net = tf.concat([tower_conv, tower_conv1_2, tower_pool], 3)
         
                 end_points['Mixed_6a'] = net
-                net = slim.repeat(net, 20, block17, scale=0.10)
+
+                net = slim.repeat(net, config.repeat[1], block17, scale=0.10)
         
                 with tf.variable_scope('Mixed_7a'):
+                    config_ = config.mixed_7a
                     with tf.variable_scope('Branch_0'):
-                        tower_conv = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-                        tower_conv_1 = slim.conv2d(tower_conv, 384, 3, stride=2,
-                                                   padding='VALID', scope='Conv2d_1a_3x3')
+                        branch = config_.branch[0]
+                        tower_conv = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+                        tower_conv_1 = slim.conv2d(tower_conv, branch[1], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
                     with tf.variable_scope('Branch_1'):
-                        tower_conv1 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-                        tower_conv1_1 = slim.conv2d(tower_conv1, 288, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+                        branch = config_.branch[1]
+                        tower_conv1 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+                        tower_conv1_1 = slim.conv2d(tower_conv1, branch[1], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
                     with tf.variable_scope('Branch_2'):
-                        tower_conv2 = slim.conv2d(net, 256, 1, scope='Conv2d_0a_1x1')
-                        tower_conv2_1 = slim.conv2d(tower_conv2, 288, 3, scope='Conv2d_0b_3x3')
-                        tower_conv2_2 = slim.conv2d(tower_conv2_1, 320, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+                        branch = config_.branch[2]
+                        tower_conv2 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
+                        tower_conv2_1 = slim.conv2d(tower_conv2, branch[1], 3, scope='Conv2d_0b_3x3')
+                        tower_conv2_2 = slim.conv2d(tower_conv2_1, branch[2], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
                     with tf.variable_scope('Branch_3'):
                         tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
                     net = tf.concat([tower_conv_1, tower_conv1_1, tower_conv2_2, tower_pool], 3)
         
                 end_points['Mixed_7a'] = net
         
-                net = slim.repeat(net, 9, block8, scale=0.20)
+                net = slim.repeat(net, config.repeat[2], block8, scale=0.20)
                 net = block8(net, activation_fn=None)
         
                 net = slim.conv2d(net, 1536, 1, scope='Conv2d_7b_1x1')
