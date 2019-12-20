@@ -140,7 +140,7 @@ def inception_resnet_v2(inputs, config, is_training=True,
                 end_points['MaxPool_5a_3x3'] = net
         
                 # 35 x 35 x 320
-                with tf.variable_scope('Mixed_5b'):
+                with tf.variable_scope('Mixed_5a'):
                     with tf.variable_scope('Branch_0'):
                         tower_conv = slim.conv2d(net, 96, 1, scope='Conv2d_1x1')
                     with tf.variable_scope('Branch_1'):
@@ -155,7 +155,7 @@ def inception_resnet_v2(inputs, config, is_training=True,
                         tower_pool_1 = slim.conv2d(tower_pool, 64, 1, scope='Conv2d_0b_1x1')
                     net = tf.concat([tower_conv, tower_conv1_1, tower_conv2_2, tower_pool_1], 3)
         
-                end_points['Mixed_5b'] = net
+                end_points['Mixed_5a'] = net
                 net = slim.repeat(net, 10, block35, scale=0.17)
         
                 # 17 x 17 x 1024
