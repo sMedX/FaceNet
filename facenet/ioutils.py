@@ -9,6 +9,7 @@ import datetime
 import tensorflow as tf
 from PIL import Image
 from subprocess import Popen, PIPE
+import facenet
 from facenet.config import src_dir
 
 
@@ -52,11 +53,27 @@ def store_revision_info(output_filename, arg_string, mode='w'):
         f.write('\n')
 
 
-def makedirs(dirname):
-    dirname = plib.Path(dirname).expanduser()
+def write_arguments(arguments, filename):
+    makedirs(filename.parent)
 
-    if not dirname.exists():
-        dirname.mkdir(parents=True)
+    with open(str(filename), 'w') as f:
+        def write_to_file(dct, ident=''):
+            shift = 3 * ' '
+
+            for key, item in dct.items():
+                if isinstance(item, facenet.config.YAMLConfig):
+                    f.write('{}{}:\n'.format(ident, key))
+                    write_to_file(item, ident=ident + shift)
+                else:
+                    f.write('{}{}: {}\n'.format(ident, key, str(item)))
+
+        write_to_file(arguments)
+
+
+def makedirs(dir_name):
+    dir_name = plib.Path(dir_name).expanduser()
+    if not dir_name.exists():
+        dir_name.mkdir(parents=True)
 
 
 def write_image(image, filename, prefix=None, mode='RGB'):

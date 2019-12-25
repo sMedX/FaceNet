@@ -1,0 +1,95 @@
+# coding:utf-8
+
+dataset:
+  # Directory with aligned face patches.
+  path: ~/datasets/vggface2/test_frcnnv3extracted_160
+  # Path to h5 file with information about valid images.
+  h5file: None
+  # Portion of samples to download from data set
+  portion_of_images: 1
+
+
+# Directory where to write trained models and checkpoints
+model_dir: ~/models/facenet
+
+# Directory where to write event logs
+log_dir: None
+
+# Model definition. Points to a module containing the definition of the inference graph.',
+model_def: facenet.models.inception_resnet_v1
+
+# Model config definition
+model_config: None
+
+# Random seed
+seed: 0
+
+# The ratio of the total dataset to use for validation
+validation_set_split_ratio: 0
+
+# Classes with fewer images will be removed from the validation set', default=0)
+min_nrof_val_images_per_class: 0
+
+# Load a pretrained checkpoint before training starts.
+pretrained_checkpoint: None
+
+# Number of images to process in a batch.
+batch_size: 100
+
+# Number of batches per epoch.
+epoch:
+  size: 1000            # Number of batches per epoch.
+  max_nrof_epochs: 500  # Maximal number of epochs to run
+
+# Image size (height, width) in pixels.
+image_size: 160
+
+# Norm to use for prelogits norm loss.
+prelogits_norm_p: 1.0
+
+prelogits_norm_loss_factor: 0.0 # Loss based on the norm of the activations in the prelogits layer
+center_loss_alfa: 0.95          # Center update rate for center loss
+center_loss_factor: 0.0         # Center loss factor
+
+learning_rate_decay_epochs: 100 # Number of epochs between learning rate decay
+learning_rate_decay_factor: 1.0 # Learning rate decay factor
+optimizer: ADAGRAD              # The optimization algorithm to use
+
+# learning rate value or schedule file
+learning_rate:
+  # Initial learning rate. If set to a negative value a learning rate schedule can be specified in the file learning_rate_schedule.txt
+  value: -1
+  # File containing the learning rate schedule that is used when learning_rate is set to to -1
+  schedule_file: data/learning_rate_schedule.txt
+
+moving_average_decay: 0.9999    # Exponential decay for tracking of training parameters
+log_histograms: False           # Enables logging of weight/bias histograms in tensorboard
+
+
+gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process
+
+validate_every_n_epochs: 10     # Number of epoch between validation
+
+
+image:
+  standardization: true # Performs fixed standardization of images
+  random_crop: false    # Performs random cropping of training images. If false, the center image_size pixels from
+                        # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
+  random_flip: false    # Performs random horizontal flipping of training images
+  random_rotate: false  # Performs random rotations of training images
+
+prelogits_hist_max: 10.0 # The max value for the prelogits histogram
+
+nrof_preprocess_threads: 4 # Number of preprocessing (data loading and augmentation)
+
+# Parameters for validation, for example, on LFW
+validation:
+  dir: None             # Path to the data directory containing aligned face patches.
+  pairs: data/pairs.txt # The file containing the pairs to use for validation
+  batch_size: 100       # Number of images to process in a batch in the LFW test set
+  nrof_folds: 10        # Number of folds to use for cross validation. Mainly used for testing
+  distance_metric: 0    # Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.
+  use_flipped_images: false # Concatenates embeddings for the image and its horizontally flipped counterpart
+  subtract_mean: false  # Subtract feature mean before calculating distance
+
+

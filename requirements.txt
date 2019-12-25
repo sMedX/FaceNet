@@ -8,3 +8,5 @@ Pillow
 requests
 psutil
 numpy
+pyyaml
+click
