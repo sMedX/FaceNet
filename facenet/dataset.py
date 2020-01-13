@@ -1,6 +1,6 @@
 
 import os
-import pathlib as plib
+import pathlib
 import numpy as np
 import math
 from facenet import utils, h5utils
@@ -25,8 +25,12 @@ class ImageClass:
         return len(self.files)
 
     @property
+    def nrof_pairs(self):
+        return self.nrof_images * (self.nrof_images - 1) // 2
+
+    @property
     def files_as_posix(self):
-        return [plib.Path(x) for x in self.files]
+        return [pathlib.Path(x) for x in self.files]
 
 
 def list_names(dirname):
@@ -35,30 +39,15 @@ def list_names(dirname):
     return names
 
 
-def list_files(dirname, extension=None):
-    dirname = os.path.expanduser(dirname)
-    files = []
-
-    if os.path.isdir(dirname):
-        for file in list_names(dirname):
-            if extension is None:
-                files.append(os.path.join(dirname, file))
-            else:
-                _, ext = os.path.splitext(file)
-                if ext == extension:
-                    files.append(os.path.join(dirname, file))
-    return files
-
-
 class DBase:
     def __init__(self, config, extension='', seed=0):
         np.random.seed(seed)
 
         self.config = config
-        self.config.path = plib.Path(config.path).expanduser()
+        self.config.path = pathlib.Path(config.path).expanduser()
 
         if self.config.h5file is not None:
-            self.config.h5file = plib.Path(self.config.h5file).expanduser()
+            self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
 
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
@@ -89,7 +78,9 @@ class DBase:
                 'Directory to load images {}\n'.format(self.config.path) +
                 'h5 file to filter images {}\n'.format(self.config.h5file) +
                 'Number of classes {} \n'.format(self.nrof_classes) +
-                'Numbers of images {} and pairs {}\n'.format(self.nrof_images, self.nrof_pairs))
+                'Number of images {}\n'.format(self.nrof_images) +
+                'Number of pairs {}\n'.format(self.nrof_pairs) +
+                'Number of true positive pairs {}\n'.format(self.nrof_tp_pairs))
         return info
 
     @property
@@ -99,6 +90,10 @@ class DBase:
     @property
     def nrof_images(self):
         return sum(cls.nrof_images for cls in self.classes)
+
+    @property
+    def nrof_tp_pairs(self):
+        return sum(cls.nrof_pairs for cls in self.classes)
 
     @property
     def nrof_pairs(self):
