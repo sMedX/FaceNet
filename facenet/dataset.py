@@ -73,10 +73,10 @@ class DBase:
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
                 'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of positive pairs {} ({}%)\n'.format(self.nrof_positive_pairs,
-                                                             100 * self.nrof_positive_pairs / self.nrof_pairs) +
-                'Number of negative pairs {} ({}%)\n'.format(self.nrof_negative_pairs,
-                                                             100 * self.nrof_negative_pairs / self.nrof_pairs))
+                'Number of positive pairs {} ({:.6f} %)\n'.format(self.nrof_positive_pairs,
+                                                                  100 * self.nrof_positive_pairs / self.nrof_pairs) +
+                'Number of negative pairs {} ({:.6f} %)\n'.format(self.nrof_negative_pairs,
+                                                                  100 * self.nrof_negative_pairs / self.nrof_pairs))
         return info
 
     @property
