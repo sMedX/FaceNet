@@ -1,5 +1,4 @@
 
-import os
 import pathlib
 import numpy as np
 import math
@@ -31,12 +30,6 @@ class ImageClass:
     @property
     def files_as_posix(self):
         return [pathlib.Path(x) for x in self.files]
-
-
-def list_names(dirname):
-    names = os.listdir(dirname)
-    names.sort()
-    return names
 
 
 class DBase:
@@ -80,8 +73,10 @@ class DBase:
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
                 'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of tp pairs {} ({}%)\n'.format(self.nrof_tp_pairs, 100*self.nrof_tp_pairs/self.nrof_pairs) +
-                'Number of tn pairs {} ({}%)\n'.format(self.nrof_tn_pairs, 100*self.nrof_tn_pairs/self.nrof_pairs))
+                'Number of positive pairs {} ({}%)\n'.format(self.nrof_positive_pairs,
+                                                             100 * self.nrof_positive_pairs / self.nrof_pairs) +
+                'Number of negative pairs {} ({}%)\n'.format(self.nrof_negative_pairs,
+                                                             100 * self.nrof_negative_pairs / self.nrof_pairs))
         return info
 
     @property
@@ -93,11 +88,11 @@ class DBase:
         return sum(cls.nrof_images for cls in self.classes)
 
     @property
-    def nrof_tn_pairs(self):
-        return self.nrof_pairs - self.nrof_tp_pairs
+    def nrof_negative_pairs(self):
+        return self.nrof_pairs - self.nrof_positive_pairs
 
     @property
-    def nrof_tp_pairs(self):
+    def nrof_positive_pairs(self):
         return sum(cls.nrof_pairs for cls in self.classes)
 
     @property
