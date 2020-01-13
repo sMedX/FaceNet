@@ -80,7 +80,8 @@ class DBase:
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
                 'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of true positive pairs {}\n'.format(self.nrof_tp_pairs))
+                'Number of tp pairs {} ({}%)\n'.format(self.nrof_tp_pairs, 100*self.nrof_tp_pairs/self.nrof_pairs) +
+                'Number of tn pairs {} ({}%)\n'.format(self.nrof_tn_pairs, 100*self.nrof_tn_pairs/self.nrof_pairs))
         return info
 
     @property
@@ -90,6 +91,10 @@ class DBase:
     @property
     def nrof_images(self):
         return sum(cls.nrof_images for cls in self.classes)
+
+    @property
+    def nrof_tn_pairs(self):
+        return self.nrof_pairs - self.nrof_tp_pairs
 
     @property
     def nrof_tp_pairs(self):
