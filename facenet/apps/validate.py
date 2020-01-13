@@ -143,7 +143,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
                        metric=args.validation.metric,
                        subtract_mean=args.validation.subtract_mean)
     stats.print()
-    stats.write_report(dbase, elapsed_time, args, file=args.report)
+    stats.write_report(elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())
 
 
 if __name__ == '__main__':
