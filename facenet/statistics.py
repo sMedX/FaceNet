@@ -85,8 +85,8 @@ class ConfidenceMatrix:
                         tn[n] += self.distances[i][k].size - count
 
         i = (tp + fp) > 0
-        self.precision = np.ones(thresholds.size)
-        self.precision = tp[i] / (tp[i] + fp[i])
+        self.precision = np.ones(thresholds.size, dtype=float)
+        self.precision[i] = tp[i] / (tp[i] + fp[i])
 
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
 
