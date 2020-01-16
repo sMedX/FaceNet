@@ -30,7 +30,7 @@ def main(**args_):
         args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.dataset, nrof_classes=args.nrof_classes)
+    dbase = dataset.DBase(args.dataset, nrof_classes=args.dataset.nrof_classes)
     print(dbase)
 
     with tf.Graph().as_default():
