@@ -177,6 +177,11 @@ class Validation:
         except Exception:
             self.eer = -1
 
+        print('Accuracy:  {:2.5f}+-{:2.5f}'.format(self.accuracy_mean, self.accuracy_std))
+        print('Precision: {:2.5f}+-{:2.5f}\n'.format(self.precision_mean, self.precision_std))
+        print('Sensitivity (TPR): {:2.5f}+-{:2.5f}\n'.format(self.tp_rates_mean, self.tp_rates_std))
+        print('Specificity (TNR): {:2.5f}+-{:2.5f}\n'.format(self.tn_rates_mean, self.tn_rates_std))
+
     def write_report(self, elapsed_time, args, file=None, dbase_info=None):
         if file is None:
             dir_name = pathlib.Path(args.model).expanduser()
