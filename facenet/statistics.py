@@ -113,6 +113,7 @@ class Validation:
         self.subtract_mean = subtract_mean
         self.metric = metric
 
+        self.labels = np.array(labels)
         self.embeddings = embeddings
         assert (embeddings.shape[0] == len(labels))
 
@@ -132,14 +133,14 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            conf_matrix = ConfidenceMatrix(embeddings[train_set], labels[train_set], metric=self.metric)
+            conf_matrix = ConfidenceMatrix(self.embeddings[train_set], self.labels[train_set], metric=self.metric)
             conf_matrix.compute(thresholds)
             best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
             tp_rates[fold_idx, :] = conf_matrix.tp_rates
             tn_rates[fold_idx, :] = conf_matrix.tn_rates
 
             # evaluations with test set
-            conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set], metric=self.metric)
+            conf_matrix = ConfidenceMatrix(self.embeddings[test_set], self.labels[test_set], metric=self.metric)
             conf_matrix.compute(best_thresholds[fold_idx])
             self.accuracy[fold_idx] = conf_matrix.accuracy
             self.precision[fold_idx] = conf_matrix.precision
