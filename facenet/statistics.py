@@ -55,11 +55,14 @@ class ConfidenceMatrix:
         self.tn_rates = None
 
         self.embeddings = split_embeddings(embeddings, labels)
-        self.distances = [[] for _ in range(len(self.embeddings))]
+        self.distances = []
 
         for i, emb1 in enumerate(self.embeddings):
+            self.distances.append([])
+
             for k, emb2 in enumerate(self.embeddings[:i]):
                 self.distances[i].append(pairwise_distances(emb1, emb2, metric=metric))
+
             self.distances[i].append(pairwise_distances(emb1, metric=metric))
 
     def compute(self, thresholds):
@@ -67,10 +70,10 @@ class ConfidenceMatrix:
         if isinstance(thresholds, Iterable) is False:
             thresholds = np.array([thresholds])
 
-        tp = np.zeros(thresholds.size, dtype=int)
-        tn = np.zeros(thresholds.size, dtype=int)
-        fp = np.zeros(thresholds.size, dtype=int)
-        fn = np.zeros(thresholds.size, dtype=int)
+        tp = np.zeros(thresholds.size)
+        tn = np.zeros(thresholds.size)
+        fp = np.zeros(thresholds.size)
+        fn = np.zeros(thresholds.size)
 
         for i, distances_i in enumerate(self.distances):
             for k, distances_k in enumerate(distances_i):
@@ -88,17 +91,17 @@ class ConfidenceMatrix:
 
         # precision
         i = (tp + fp) > 0
-        self.precision = np.ones(thresholds.size, dtype=float)
+        self.precision = np.ones(thresholds.size)
         self.precision[i] = tp[i] / (tp[i] + fp[i])
 
         # true positive rate, validation rate, sensitivity or recall
         i = (tp + fn) > 0
-        self.tp_rates = np.ones(thresholds.size, dtype=float)
+        self.tp_rates = np.ones(thresholds.size)
         self.tp_rates[i] = tp[i] / (tp[i] + fn[i])
 
-        # false positive rate, false alarm rate, 1 - specificity
+        # true negative rate, 1 - false alarm rate, specificity
         i = (fp + tn) > 0
-        self.tn_rates = np.ones(thresholds.size, dtype=float)
+        self.tn_rates = np.ones(thresholds.size)
         self.tn_rates[i] = tn[i] / (tn[i] + fp[i])
 
 
@@ -113,7 +116,7 @@ class Validation:
         self.embeddings = embeddings
         assert (embeddings.shape[0] == len(labels))
 
-        self.best_thresholds = np.zeros(nrof_folds)
+        best_thresholds = np.zeros(nrof_folds)
         self.accuracy = np.zeros(nrof_folds)
         self.precision = np.zeros(nrof_folds)
         self.tp_rates = np.zeros(nrof_folds)
@@ -131,19 +134,17 @@ class Validation:
             # evaluations with train set and define the best threshold for the fold
             conf_matrix = ConfidenceMatrix(embeddings[train_set], labels[train_set], metric=self.metric)
             conf_matrix.compute(thresholds)
-            self.best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
+            best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
+            tp_rates[fold_idx, :] = conf_matrix.tp_rates
+            tn_rates[fold_idx, :] = conf_matrix.tn_rates
 
             # evaluations with test set
             conf_matrix = ConfidenceMatrix(embeddings[test_set], labels[test_set], metric=self.metric)
-            conf_matrix.compute(self.best_thresholds[fold_idx])
+            conf_matrix.compute(best_thresholds[fold_idx])
             self.accuracy[fold_idx] = conf_matrix.accuracy
             self.precision[fold_idx] = conf_matrix.precision
             self.tp_rates[fold_idx] = conf_matrix.tp_rates
             self.tn_rates[fold_idx] = conf_matrix.tn_rates
-
-            conf_matrix.compute(thresholds)
-            tp_rates[fold_idx, :] = conf_matrix.tp_rates
-            tn_rates[fold_idx, :] = conf_matrix.tn_rates
 
         # accuracy
         self.accuracy_mean = np.mean(self.accuracy)
@@ -159,15 +160,15 @@ class Validation:
         self.tn_rates_mean = np.mean(self.tn_rates)
         self.tn_rates_std = np.std(self.tn_rates)
 
-        self.best_threshold = np.mean(self.best_thresholds)
-        self.best_threshold_std = np.std(self.best_thresholds)
+        self.best_threshold = np.mean(best_thresholds)
+        self.best_threshold_std = np.std(best_thresholds)
 
         # compute area under curve and equal error rate
         tp_rates = np.mean(tp_rates, axis=0)
         tn_rates = np.mean(tn_rates, axis=0)
 
         try:
-            self.auc = sklearn.metrics.auc(tn_rates, tp_rates)
+            self.auc = sklearn.metrics.auc(1 - tn_rates, tp_rates)
         except Exception:
             self.auc = -1
 

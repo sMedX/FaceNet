@@ -33,7 +33,7 @@ class ImageClass:
 
 
 class DBase:
-    def __init__(self, config, extension='', seed=0):
+    def __init__(self, config, extension='', seed=0, nrof_classes=None):
         np.random.seed(seed)
 
         self.config = config
@@ -44,6 +44,8 @@ class DBase:
 
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
+        if nrof_classes is not None:
+            classes = classes[:nrof_classes]
 
         self.classes = []
         self.labels = []

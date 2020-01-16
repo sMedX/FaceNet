@@ -30,7 +30,7 @@ def main(**args_):
         args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.dataset)
+    dbase = dataset.DBase(args.dataset, nrof_classes=args.nrof_classes)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -135,9 +135,8 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
-    labels = np.array(dbase.labels)
 
-    stats = Validation(thresholds, embeddings, labels,
+    stats = Validation(thresholds, embeddings, dbase.labels,
                        far_target=1e-3,
                        nrof_folds=args.validation.nrof_folds,
                        metric=args.validation.metric,
