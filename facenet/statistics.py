@@ -183,6 +183,11 @@ class Validation:
         print('Precision: {:2.5f}+-{:2.5f}'.format(self.precision_mean, self.precision_std))
         print('Sensitivity (TPR): {:2.5f}+-{:2.5f}'.format(self.tp_rates_mean, self.tp_rates_std))
         print('Specificity (TNR): {:2.5f}+-{:2.5f}'.format(self.tn_rates_mean, self.tn_rates_std))
+        print()
+        print('Area Under Curve (AUC): {:1.5f}'.format(self.auc))
+        print('Equal Error Rate (EER): {:1.5f}'.format(self.eer))
+        print('Threshold: {:2.5f}+-{:2.5f}'.format(self.best_threshold, self.best_threshold_std))
+        print()
 
     def write_report(self, elapsed_time, args, file=None, dbase_info=None):
         if file is None:
