@@ -65,7 +65,7 @@ class DBase:
                 print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
                       end=utils.end(count, len(classes)))
 
-            self.labels += [count]*len(files)
+                self.labels += [count]*len(files)
 
     def __repr__(self):
         """Representation of the database"""

@@ -100,7 +100,7 @@ class ConfidenceMatrix:
         self.tp_rates[i] = tp[i] / (tp[i] + fn[i])
 
         # true negative rate, 1 - false alarm rate, specificity
-        i = (fp + tn) > 0
+        i = (tn + fp) > 0
         self.tn_rates = np.ones(thresholds.size)
         self.tn_rates[i] = tn[i] / (tn[i] + fp[i])
 
@@ -135,9 +135,10 @@ class Validation:
             # evaluations with train set and define the best threshold for the fold
             conf_matrix = ConfidenceMatrix(self.embeddings[train_set], self.labels[train_set], metric=self.metric)
             conf_matrix.compute(thresholds)
-            best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
             tp_rates[fold_idx, :] = conf_matrix.tp_rates
             tn_rates[fold_idx, :] = conf_matrix.tn_rates
+
+            best_thresholds[fold_idx] = thresholds[np.argmax(conf_matrix.accuracy)]
 
             # evaluations with test set
             conf_matrix = ConfidenceMatrix(self.embeddings[test_set], self.labels[test_set], metric=self.metric)
