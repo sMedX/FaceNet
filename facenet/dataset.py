@@ -39,11 +39,9 @@ class DBase:
         self.config = config
         self.config.path = pathlib.Path(config.path).expanduser()
 
-        if self.config.h5file is not None:
-            self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
-
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
+
         if nrof_classes is not None:
             classes = classes[:nrof_classes]
 
@@ -55,6 +53,7 @@ class DBase:
             files.sort()
 
             if self.config.h5file is not None:
+                self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
             if self.config.portion < 1:
