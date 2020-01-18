@@ -152,12 +152,3 @@ class DBase:
             raise ValueError('Invalid train/test split mode "%s"' % mode)
 
         return train_set, test_set
-
-
-def get_image_paths_and_labels(dataset):
-    image_paths_flat = []
-    labels_flat = []
-    for i in range(len(dataset)):
-        image_paths_flat += dataset[i].files
-        labels_flat += [i] * len(dataset[i].files)
-    return image_paths_flat, labels_flat
