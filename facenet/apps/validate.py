@@ -27,6 +27,8 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
     if args.model is None:
         args.model = DefaultConfig.model
+
+    if args.image_size is None:
         args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
