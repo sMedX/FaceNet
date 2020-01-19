@@ -145,6 +145,8 @@ class Validation:
         self.tp_rates = np.zeros(nrof_folds)
         self.tn_rates = np.zeros(nrof_folds)
 
+        self.accuracy_far_target = np.zeros(nrof_folds)
+        self.precision_far_target = np.zeros(nrof_folds)
         self.tp_rate_far_target = np.zeros(nrof_folds)
         self.tn_rate_far_target = np.zeros(nrof_folds)
 
@@ -181,6 +183,8 @@ class Validation:
             self.tn_rates[fold_idx] = conf_matrix.tn_rates
 
             conf_matrix.compute(self.far_thresholds[fold_idx])
+            self.accuracy_far_target[fold_idx] = conf_matrix.accuracy
+            self.precision_far_target[fold_idx] = conf_matrix.precision
             self.tp_rate_far_target[fold_idx] = conf_matrix.tp_rates
             self.tn_rate_far_target[fold_idx] = conf_matrix.tn_rates
 
@@ -242,6 +246,10 @@ class Validation:
             f.write('Threshold: {:2.5f}+-{:2.5f}\n'.format(np.mean(self.best_thresholds), np.std(self.best_thresholds)))
             f.write('\n')
             f.write('Criterion of false alarm rate target: (FPR, 1 - TNR): {:2.5f}\n'.format(self.far_target))
+            f.write('Accuracy:  {:2.5f}+-{:2.5f}\n'.
+                    format(np.mean(self.accuracy_far_target), np.std(self.accuracy_far_target)))
+            f.write('Precision: {:2.5f}+-{:2.5f}\n'.
+                    format(np.mean(self.precision_far_target), np.std(self.precision_far_target)))
             f.write('Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.
                     format(np.mean(self.tp_rate_far_target), np.std(self.tp_rate_far_target)))
             f.write('Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.
