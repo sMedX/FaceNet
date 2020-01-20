@@ -128,9 +128,8 @@ class ConfidenceMatrix:
 
 
 class Report:
-    def __init__(self, criterion=None, nrof_folds=5):
+    def __init__(self, criterion=None):
         self.criterion = criterion
-        self.nrof_folds = nrof_folds
         self.conf_matrix_train = []
         self.conf_matrix_test = []
 
@@ -206,8 +205,8 @@ class Validation:
         k_fold = KFold(n_splits=nrof_folds, shuffle=False)
         indices = np.arange(len(labels))
 
-        self.report_acc = Report(criterion='Maximum accuracy criterion', nrof_folds=nrof_folds)
-        self.report_far = Report(criterion='False alarm rate target criterion {}'.format(far_target), nrof_folds=nrof_folds)
+        self.report_acc = Report(criterion='Maximum accuracy criterion')
+        self.report_far = Report(criterion='False alarm rate target criterion {}'.format(far_target))
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
