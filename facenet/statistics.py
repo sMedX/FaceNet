@@ -198,7 +198,6 @@ class Validation:
 
         self.subtract_mean = subtract_mean
         self.metric = metric
-        self.far_target = far_target
 
         self.labels = np.array(labels)
         self.embeddings = embeddings
@@ -208,7 +207,7 @@ class Validation:
         indices = np.arange(len(labels))
 
         self.report_acc = Report(criterion='Maximum accuracy criterion', nrof_folds=nrof_folds)
-        self.report_far = Report(criterion='False alarm rate target criterion', nrof_folds=nrof_folds)
+        self.report_far = Report(criterion='False alarm rate target criterion {}'.format(far_target), nrof_folds=nrof_folds)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
@@ -224,9 +223,9 @@ class Validation:
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
             far_threshold = 0.0
-            if np.max(conf_matrix.fp_rates) >= self.far_target:
+            if np.max(conf_matrix.fp_rates) >= far_target:
                 f = interpolate.interp1d(conf_matrix.fp_rates, thresholds, kind='slinear')
-                far_threshold = f(self.far_target)
+                far_threshold = f(far_target)
 
             # evaluations with test set
             distances = compute_distances(self.embeddings[test_set], self.labels[test_set], metric=0)
