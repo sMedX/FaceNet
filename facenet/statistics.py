@@ -219,22 +219,21 @@ class Validation:
             conf_matrix = ConfidenceMatrix(distances, thresholds)
 
             self.report_acc.append_fold('train', conf_matrix)
+
+            # find the threshold that gives maximal accuracy
             accuracy_threshold = thresholds[np.argmax(conf_matrix.accuracy)]
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
+            far_threshold = 0.0
             if np.max(conf_matrix.fp_rates) >= self.far_target:
                 f = interpolate.interp1d(conf_matrix.fp_rates, thresholds, kind='slinear')
                 far_threshold = f(self.far_target)
-            else:
-                far_threshold = 0.0
 
             # evaluations with test set
             distances = compute_distances(self.embeddings[test_set], self.labels[test_set], metric=0)
-            conf_matrix = ConfidenceMatrix(distances, accuracy_threshold)
-            self.report_acc.append_fold('test', conf_matrix)
 
-            conf_matrix = ConfidenceMatrix(distances, far_threshold)
-            self.report_far.append_fold('test', conf_matrix)
+            self.report_acc.append_fold('test', ConfidenceMatrix(distances, accuracy_threshold))
+            self.report_far.append_fold('test', ConfidenceMatrix(distances, far_threshold))
 
         print(self.report_acc)
         print(self.report_far)
