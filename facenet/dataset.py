@@ -46,7 +46,6 @@ class DBase:
             classes = classes[:nrof_classes]
 
         self.classes = []
-        self.labels = []
 
         for count, path in enumerate(classes):
             files = list(path.glob('*' + extension))
@@ -64,7 +63,12 @@ class DBase:
                 print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
                       end=utils.end(count, len(classes)))
 
-                self.labels += [count]*len(files)
+    @property
+    def labels(self):
+        labels = []
+        for idx, cls in enumerate(self.classes):
+            labels += [idx] * cls.nrof_images
+        return np.array(labels)
 
     def __repr__(self):
         """Representation of the database"""
@@ -74,10 +78,10 @@ class DBase:
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
                 'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of positive pairs {} ({:.6f} %)\n'.format(self.nrof_positive_pairs,
-                                                                  100 * self.nrof_positive_pairs / self.nrof_pairs) +
-                'Number of negative pairs {} ({:.6f} %)\n'.format(self.nrof_negative_pairs,
-                                                                  100 * self.nrof_negative_pairs / self.nrof_pairs))
+                'Number of positive pairs {} ({:.6f} %)\n'.
+                format(self.nrof_positive_pairs, 100 * self.nrof_positive_pairs / self.nrof_pairs) +
+                'Number of negative pairs {} ({:.6f} %)\n'.
+                format(self.nrof_negative_pairs, 100 * self.nrof_negative_pairs / self.nrof_pairs))
         return info
 
     @property

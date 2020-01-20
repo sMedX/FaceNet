@@ -198,7 +198,6 @@ class Validation:
         self.subtract_mean = subtract_mean
         self.metric = metric
 
-        self.labels = np.array(labels)
         self.embeddings = embeddings
         assert (embeddings.shape[0] == len(labels))
 
@@ -206,13 +205,13 @@ class Validation:
         indices = np.arange(len(labels))
 
         self.report_acc = Report(criterion='Maximum accuracy criterion')
-        self.report_far = Report(criterion='False alarm rate target criterion {}'.format(far_target))
+        self.report_far = Report(criterion='False alarm rate target criterion (FAR = {})'.format(far_target))
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = compute_distances(self.embeddings[train_set], self.labels[train_set], metric=0)
+            distances = compute_distances(self.embeddings[train_set], labels[train_set], metric=0)
             conf_matrix = ConfidenceMatrix(distances, thresholds)
 
             self.report_acc.append_fold('train', conf_matrix)
@@ -227,7 +226,7 @@ class Validation:
                 far_threshold = f(far_target)
 
             # evaluations with test set
-            distances = compute_distances(self.embeddings[test_set], self.labels[test_set], metric=0)
+            distances = compute_distances(self.embeddings[test_set], labels[test_set], metric=0)
 
             self.report_acc.append_fold('test', ConfidenceMatrix(distances, accuracy_threshold))
             self.report_far.append_fold('test', ConfidenceMatrix(distances, far_threshold))
