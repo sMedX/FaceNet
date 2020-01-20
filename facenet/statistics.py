@@ -224,7 +224,7 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = compute_distances(embeddings[train_set], labels[train_set], metric=0)
+            distances = compute_distances(self.embeddings[train_set], self.labels[train_set], metric=0)
             conf_matrix = ConfidenceMatrix(distances, thresholds)
             # tp_rates[fold_idx, :] = conf_matrix.tp_rates
             # tn_rates[fold_idx, :] = conf_matrix.tn_rates
@@ -240,7 +240,7 @@ class Validation:
                 self.far_thresholds[fold_idx] = 0.0
 
             # evaluations with test set
-            distances = compute_distances(embeddings[test_set], labels[test_set], metric=0)
+            distances = compute_distances(self.embeddings[test_set], self.labels[test_set], metric=0)
             conf_matrix = ConfidenceMatrix(distances, accuracy_threshold)
             # self.accuracy[fold_idx] = conf_matrix.accuracy
             # self.precision[fold_idx] = conf_matrix.precision
