@@ -55,23 +55,21 @@ def split_embeddings(embeddings, labels):
     return emb_list
 
 
+def compute_distances(embeddings, labels, metric=0):
+    embeddings = split_embeddings(embeddings, labels)
+    distances = []
+
+    for i, emb1 in enumerate(embeddings):
+        distances.append([])
+        for k, emb2 in enumerate(embeddings[:i]):
+            distances[i].append(pairwise_distances(emb1, emb2, metric=metric))
+        distances[i].append(pairwise_distances(emb1, metric=metric))
+
+    return distances
+
+
 class ConfidenceMatrix:
-    def __init__(self, embeddings, labels, metric=0):
-        self.tp = self.tn = self.fp = self.fn = None
-        self.threshold = None
-
-        self.embeddings = split_embeddings(embeddings, labels)
-        self.distances = []
-
-        for i, emb1 in enumerate(self.embeddings):
-            self.distances.append([])
-
-            for k, emb2 in enumerate(self.embeddings[:i]):
-                self.distances[i].append(pairwise_distances(emb1, emb2, metric=metric))
-
-            self.distances[i].append(pairwise_distances(emb1, metric=metric))
-
-    def compute(self, threshold):
+    def __init__(self, distances, threshold):
 
         self.threshold = threshold
         if isinstance(self.threshold, Iterable) is False:
@@ -82,7 +80,7 @@ class ConfidenceMatrix:
         self.fp = np.zeros(self.threshold.size)
         self.fn = np.zeros(self.threshold.size)
 
-        for i, distances_i in enumerate(self.distances):
+        for i, distances_i in enumerate(distances):
             for k, distances_k in enumerate(distances_i):
                 for n, threshold in enumerate(self.threshold):
                     count = np.count_nonzero(distances_k < threshold)
@@ -131,10 +129,6 @@ class ConfidenceMatrix:
         # false negative rate,
         return 1 - self.tp_rates
 
-    def clear(self):
-        self.embeddings = None
-        self.distances = None
-
 
 class Report:
     def __init__(self, criterion=None, nrof_folds=5):
@@ -144,11 +138,10 @@ class Report:
         self.conf_matrix_test = []
 
     def append_fold(self, name, conf_matrix):
-        conf_matrix.clear()
         if name == 'train':
-            self.conf_matrix_train.append(conf_matrix)
+            self.conf_matrix_train.append(conf_matrix.copy())
         else:
-            self.conf_matrix_test.append(conf_matrix)
+            self.conf_matrix_test.append(conf_matrix.copy())
 
     def __repr__(self):
         tp_rates = [m.tp_rates for m in self.conf_matrix_train]
@@ -231,8 +224,8 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            conf_matrix = ConfidenceMatrix(self.embeddings[train_set], self.labels[train_set], metric=self.metric)
-            conf_matrix.compute(thresholds)
+            distances = compute_distances(embeddings[train_set], labels[train_set], metric=0)
+            conf_matrix = ConfidenceMatrix(distances, thresholds)
             # tp_rates[fold_idx, :] = conf_matrix.tp_rates
             # tn_rates[fold_idx, :] = conf_matrix.tn_rates
 
@@ -247,15 +240,15 @@ class Validation:
                 self.far_thresholds[fold_idx] = 0.0
 
             # evaluations with test set
-            conf_matrix = ConfidenceMatrix(self.embeddings[test_set], self.labels[test_set], metric=self.metric)
-            conf_matrix.compute(accuracy_threshold)
+            distances = compute_distances(embeddings[test_set], labels[test_set], metric=0)
+            conf_matrix = ConfidenceMatrix(distances, accuracy_threshold)
             # self.accuracy[fold_idx] = conf_matrix.accuracy
             # self.precision[fold_idx] = conf_matrix.precision
             # self.tp_rates[fold_idx] = conf_matrix.tp_rates
             # self.tn_rates[fold_idx] = conf_matrix.tn_rates
             self.report.append_fold('test', conf_matrix)
 
-            conf_matrix.compute(self.far_thresholds[fold_idx])
+            conf_matrix = ConfidenceMatrix(distances, self.far_thresholds[fold_idx])
             self.accuracy_far_target[fold_idx] = conf_matrix.accuracy
             self.precision_far_target[fold_idx] = conf_matrix.precision
             self.tp_rate_far_target[fold_idx] = conf_matrix.tp_rates
