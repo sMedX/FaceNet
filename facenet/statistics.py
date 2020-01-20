@@ -12,7 +12,6 @@ import sklearn
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
 from scipy.optimize import brentq
-from collections.abc import Iterable
 import math
 import pathlib
 
