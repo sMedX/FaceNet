@@ -250,6 +250,7 @@ class Validation:
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n'.format(utils.git_diff()))
             f.write('{}'.format(dbase_info))
+            f.write('\n')
             f.write('model: {}\n'.format(args.model))
             f.write('embedding size: {}\n'. format(self.embeddings.shape[1]))
             f.write('elapsed time: {}\n'.format(elapsed_time))
