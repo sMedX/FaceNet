@@ -139,9 +139,9 @@ class Report:
 
     def append_fold(self, name, conf_matrix):
         if name == 'train':
-            self.conf_matrix_train.append(conf_matrix.copy())
+            self.conf_matrix_train.append(conf_matrix)
         else:
-            self.conf_matrix_test.append(conf_matrix.copy())
+            self.conf_matrix_test.append(conf_matrix)
 
     def __repr__(self):
         tp_rates = [m.tp_rates for m in self.conf_matrix_train]
