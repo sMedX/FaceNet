@@ -246,11 +246,10 @@ class Validation:
         else:
             file = pathlib.Path(file).expanduser()
 
-        git_hash, git_diff = utils.git_hash()
         with file.open('at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
-            f.write('git hash: {}\n'.format(git_hash))
-            f.write('git diff: {}\n'.format(git_diff))
+            f.write('git hash: {}\n'.format(utils.git_hash()))
+            f.write('git diff: {}\n'.format(utils.git_diff()))
             f.write('{}'.format(dbase_info))
             f.write('model: {}\n'.format(args.model))
             f.write('embedding size: {}\n'. format(self.embeddings.shape[1]))
