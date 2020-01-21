@@ -139,7 +139,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     thresholds = np.arange(0, 4, 0.01)
 
     stats = Validation(thresholds, embeddings, dbase.labels,
-                       far_target=1e-3,
+                       far_target=args.validation.far_target,
                        nrof_folds=args.validation.nrof_folds,
                        metric=args.validation.metric,
                        subtract_mean=args.validation.subtract_mean)
