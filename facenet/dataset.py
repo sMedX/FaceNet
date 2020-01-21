@@ -33,26 +33,26 @@ class ImageClass:
 
 
 class DBase:
-    def __init__(self, config, extension='', seed=0):
+    def __init__(self, config, extension='', seed=0, nrof_classes=None):
         np.random.seed(seed)
 
         self.config = config
         self.config.path = pathlib.Path(config.path).expanduser()
 
-        if self.config.h5file is not None:
-            self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
-
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
 
+        if nrof_classes is not None:
+            classes = classes[:nrof_classes]
+
         self.classes = []
-        self.labels = []
 
         for count, path in enumerate(classes):
             files = list(path.glob('*' + extension))
             files.sort()
 
             if self.config.h5file is not None:
+                self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
             if self.config.portion < 1:
@@ -63,7 +63,12 @@ class DBase:
                 print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
                       end=utils.end(count, len(classes)))
 
-            self.labels += [count]*len(files)
+    @property
+    def labels(self):
+        labels = []
+        for idx, cls in enumerate(self.classes):
+            labels += [idx] * cls.nrof_images
+        return np.array(labels)
 
     def __repr__(self):
         """Representation of the database"""
@@ -73,10 +78,10 @@ class DBase:
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
                 'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of positive pairs {} ({:.6f} %)\n'.format(self.nrof_positive_pairs,
-                                                                  100 * self.nrof_positive_pairs / self.nrof_pairs) +
-                'Number of negative pairs {} ({:.6f} %)\n'.format(self.nrof_negative_pairs,
-                                                                  100 * self.nrof_negative_pairs / self.nrof_pairs))
+                'Number of positive pairs {} ({:.6f} %)\n'.
+                format(self.nrof_positive_pairs, 100 * self.nrof_positive_pairs / self.nrof_pairs) +
+                'Number of negative pairs {} ({:.6f} %)\n'.
+                format(self.nrof_negative_pairs, 100 * self.nrof_negative_pairs / self.nrof_pairs))
         return info
 
     @property
@@ -150,12 +155,3 @@ class DBase:
             raise ValueError('Invalid train/test split mode "%s"' % mode)
 
         return train_set, test_set
-
-
-def get_image_paths_and_labels(dataset):
-    image_paths_flat = []
-    labels_flat = []
-    for i in range(len(dataset)):
-        image_paths_flat += dataset[i].files
-        labels_flat += [i] * len(dataset[i].files)
-    return image_paths_flat, labels_flat

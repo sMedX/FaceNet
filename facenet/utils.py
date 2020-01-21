@@ -83,20 +83,26 @@ def git_hash():
         cmd = ['git', 'rev-parse', 'HEAD']
         gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
         (stdout, _) = gitproc.communicate()
-        git_hash = stdout.strip()
+        info = stdout.strip()
     except OSError as e:
-        git_hash = ' '.join(cmd) + ': ' + e.strerror
+        info = ' '.join(cmd) + ': ' + e.strerror
+
+    return info
+
+
+def git_diff():
+    src_path, _ = os.path.split(os.path.realpath(__file__))
 
     try:
         # Get local changes
         cmd = ['git', 'diff', 'HEAD']
         gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
         (stdout, _) = gitproc.communicate()
-        git_diff = stdout.strip()
+        info = stdout.strip()
     except OSError as e:
-        git_diff = ' '.join(cmd) + ': ' + e.strerror
+        info = ' '.join(cmd) + ': ' + e.strerror
 
-    return git_hash, git_diff
+    return info
 
 
 def int64_feature(value):

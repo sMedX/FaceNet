@@ -1,44 +1,38 @@
-//======================================================================================================================
-2019-08-28 00:27:41.439135
-git hash: b'69e20223c0877bbf2df84f25dc644824dd8db982'
-git diff: b'diff --git a/models/20190727-080213/20190727-080213.pb b/models/20190727-080213/20190727-080213.pb\nindex 8f78004..9be1433 100644\nBinary files a/models/20190727-080213/20190727-080213.pb and b/models/20190727-080213/20190727-080213.pb differ'
+2020-01-20 21:21:48.489235
+git hash: b'd03a34a66bc4e4747e6e69b91f3bb754fef1403e'
+git diff: b''
+class DBase
+Directory to load images /media/a/datasets/megaface/megaface_frcnnv3extracted_160
+h5 file to filter images /media/a/datasets/megaface/megaface_frcnnv3extracted_160_20190727-080213.h5
+Number of classes 530 
+Number of images 85607
+Number of pairs 3664236421
+Number of positive pairs 7364994 (0.200997 %)
+Number of negative pairs 3656871427 (99.799003 %)
+
 model: /home/ruslan/models/facenet/20190822-033520
-dataset: /media/a/datasets/megaface/megaface_frcnnv3extracted_160
-h5file : None
-number of folders 530
-numbers of images 86208 and pairs 3715866528
+embedding size: 512
+elapsed time: 300.464005114045
+time per image: 0.0035098065008006937
 distance metric: 0
 subtract mean: False
 
-Accuracy: 0.99646+-0.00049
-Precision: 0.99277+-0.00499
-Sensitivity (TPR): 0.91810+-0.01516
-Specificity (TNR): 0.99887+-0.00055
-
-Validation rate: 0.91810+-0.01516 @ FAR=0.00113
-Area Under Curve (AUC): 0.99405
-Equal Error Rate (EER): 0.02233
-Threshold: 0.81000+-0.00000
-
-//======================================================================================================================
-2019-08-28 08:20:43.561277
-git hash: b'69e20223c0877bbf2df84f25dc644824dd8db982'
-git diff: b'diff --git a/models/20190727-080213/20190727-080213.pb b/models/20190727-080213/20190727-080213.pb\nindex 8f78004..9be1433 100644\nBinary files a/models/20190727-080213/20190727-080213.pb and b/models/20190727-080213/20190727-080213.pb differ'
-model: /home/ruslan/models/facenet/20190822-033520
-dataset: /media/a/datasets/megaface/megaface_frcnnv3extracted_160
-h5file : /media/a/datasets/megaface/megaface_frcnnv3extracted_160_20190727-080213.h5
-number of folders 530
-numbers of images 85607 and pairs 3664236421
-distance metric: 0
-subtract mean: False
-
-Accuracy: 0.99663+-0.00047
+Maximum accuracy criterion
+Accuracy:  0.99663+-0.00047
 Precision: 0.99286+-0.00507
-Sensitivity (TPR): 0.92713+-0.01362
-Specificity (TNR): 0.99888+-0.00055
+Sensitivity (TPR, 1-a type 1 error): 0.83745+-0.02312
+Specificity (TNR, 1-b type 2 error): 0.99988+-0.00009
 
-Validation rate: 0.92713+-0.01362 @ FAR=0.00112
-Area Under Curve (AUC): 0.99845
-Equal Error Rate (EER): 0.01634
+Area under curve (AUC): 0.99855
+Equal error rate (EER): 0.01574
+
 Threshold: 0.81100+-0.00300
+
+False alarm rate target criterion (FAR = 0.001)
+Accuracy:  0.99744+-0.00057
+Precision: 0.94450+-0.02574
+Sensitivity (TPR, 1-a type 1 error): 0.92713+-0.01362
+Specificity (TNR, 1-b type 2 error): 0.99888+-0.00055
+
+Threshold: 0.98127+-0.00230
 

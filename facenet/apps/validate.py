@@ -27,10 +27,12 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
     if args.model is None:
         args.model = DefaultConfig.model
+
+    if args.image_size is None:
         args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.dataset)
+    dbase = dataset.DBase(args.dataset, nrof_classes=args.dataset.nrof_classes)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -135,14 +137,12 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
-    labels = np.array(dbase.labels)
 
-    stats = Validation(thresholds, embeddings, labels,
-                       far_target=1e-3,
+    stats = Validation(thresholds, embeddings, dbase.labels,
+                       far_target=args.validation.far_target,
                        nrof_folds=args.validation.nrof_folds,
                        metric=args.validation.metric,
                        subtract_mean=args.validation.subtract_mean)
-    stats.print()
     stats.write_report(elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())
 
 

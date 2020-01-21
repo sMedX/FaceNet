@@ -1,9 +1,16 @@
 # coding:utf-8
 
-model: None         # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-image_size: None    # Image size (height, width) in pixels.
-batch_size: 100     # Number of images to process in a batch
-report: None        # File to write statistical report
+# Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+model: None
+
+# Image size (height, width) in pixels.
+image_size: 160
+
+# Number of images to process in a batch
+batch_size: 100
+
+# File to write statistical report
+report: None
 
 
 dataset:
@@ -21,7 +28,9 @@ validation:
   subtract_mean: false      # Subtract feature mean before calculating distance
 
 image:
-  standardization: false    # Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation
-  use_flipped_images: false # Concatenates embeddings for the image and its horizontally flipped counterpart
+  # Performs standardization of images
+  standardization: true
+  # Concatenates embeddings for the image and its horizontally flipped counterpart
+  use_flipped_images: false
 
 
