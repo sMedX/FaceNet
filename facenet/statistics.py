@@ -54,17 +54,30 @@ def split_embeddings(embeddings, labels):
     return emb_list
 
 
-def compute_distances(embeddings, labels, metric=0):
-    embeddings = split_embeddings(embeddings, labels)
-    distances = []
+class DistanceCalculator:
+    def __init__(self, embeddings, labels, metric=0):
+        self.metric = metric
+        self.embeddings = split_embeddings(embeddings, labels)
+        self.nrof_classes = len(self.embeddings)
 
-    for i, emb1 in enumerate(embeddings):
-        distances.append([])
-        for k, emb2 in enumerate(embeddings[:i]):
-            distances[i].append(pairwise_distances(emb1, emb2, metric=metric))
-        distances[i].append(pairwise_distances(emb1, metric=metric))
+    def compute(self, i, k):
+        factor = self.nrof_classes * (self.nrof_classes + 1)/2
 
-    return distances
+        if i == k:
+            nrof_class_pairs = self.nrof_classes
+            nrof_image_pairs = self.nrof_images(i) * (self.nrof_images(i) - 1)/2
+
+            distances = pairwise_distances(self.embeddings[i], metric=self.metric)
+        else:
+            nrof_class_pairs = self.nrof_classes * (self.nrof_classes - 1)/2
+            nrof_image_pairs = self.nrof_images(i) * self.nrof_images(k)
+
+            distances = pairwise_distances(self.embeddings[i], self.embeddings[k], metric=self.metric)
+
+        return nrof_class_pairs*nrof_image_pairs/factor, distances
+
+    def nrof_images(self, i):
+        return self.embeddings[i].shape[0]
 
 
 class ConfidenceMatrix:
@@ -77,17 +90,18 @@ class ConfidenceMatrix:
         self.fp = np.zeros(self.threshold.size)
         self.fn = np.zeros(self.threshold.size)
 
-        for i, distances_i in enumerate(distances):
-            for k, distances_k in enumerate(distances_i):
+        for i in range(distances.nrof_classes):
+            for k in range(i+1):
                 for n, threshold in enumerate(self.threshold):
-                    count = np.count_nonzero(distances_k < threshold)
+                    weight, dist = distances.compute(i, k)
+                    count = np.count_nonzero(dist < threshold)
 
                     if i == k:
-                        self.tp[n] += count
-                        self.fn[n] += distances_k.size - count
+                        self.tp[n] += count/weight
+                        self.fn[n] += (dist.size - count)/weight
                     else:
-                        self.fp[n] += count
-                        self.tn[n] += distances_k.size - count
+                        self.fp[n] += count/weight
+                        self.tn[n] += (dist.size - count)/weight
 
     @property
     def accuracy(self):
@@ -211,7 +225,8 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = compute_distances(self.embeddings[train_set], labels[train_set], metric=0)
+            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=0)
+
             conf_matrix = ConfidenceMatrix(distances, thresholds)
 
             self.report_acc.append_fold('train', conf_matrix)
@@ -226,7 +241,7 @@ class Validation:
                 far_threshold = f(far_target)
 
             # evaluations with test set
-            distances = compute_distances(self.embeddings[test_set], labels[test_set], metric=0)
+            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=0)
 
             self.report_acc.append_fold('test', ConfidenceMatrix(distances, accuracy_threshold))
             self.report_far.append_fold('test', ConfidenceMatrix(distances, far_threshold))
