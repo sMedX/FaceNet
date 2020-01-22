@@ -33,7 +33,7 @@ class ImageClass:
 
 
 class DBase:
-    def __init__(self, config, extension='', seed=0, nrof_classes=None):
+    def __init__(self, config, extension='', seed=0):
         np.random.seed(seed)
 
         self.config = config
@@ -42,8 +42,8 @@ class DBase:
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
 
-        if nrof_classes is not None:
-            classes = classes[:nrof_classes]
+        if self.config.nrof_classes is not None:
+            classes = classes[:self.config.nrof_classes]
 
         self.classes = []
 
@@ -55,8 +55,8 @@ class DBase:
                 self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if self.config.portion < 1:
-                files = np.random.choice(files, size=int(len(files) * self.config.portion), replace=False)
+            if self.config.nrof_images is not None:
+                files = np.random.choice(files, size=self.config.nrof_images, replace=False)
 
             if len(files) > 0:
                 self.classes.append(ImageClass(path.stem, files, count=count))
