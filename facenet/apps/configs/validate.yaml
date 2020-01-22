@@ -27,7 +27,6 @@ dataset:
 validation:
   nrof_folds: 10            # Number of folds to use for cross validation. Mainly used for testing
   metric: 0                 # Distance metric  0: euclidean, 1: cosine similarity
-  subtract_mean: false      # Subtract feature mean before calculating distance
   far_target: 0.001
 
 image:
