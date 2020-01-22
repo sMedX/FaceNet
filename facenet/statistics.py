@@ -61,6 +61,7 @@ class DistanceCalculator:
         self.nrof_classes = len(self.embeddings)
 
     def compute(self, i, k):
+        # number of positive pairs classes plus negative pairs classes
         factor = self.nrof_classes * (self.nrof_classes + 1)/2
 
         if i == k:
@@ -197,7 +198,7 @@ class Report:
 class Validation:
     def __init__(self, thresholds, embeddings, labels,
                  far_target=1e-3, nrof_folds=10,
-                 metric=0, subtract_mean=False):
+                 metric=0):
         """
 
         :param thresholds:
@@ -206,10 +207,8 @@ class Validation:
         :param far_target: target false alarm rate (face pairs that was incorrectly classified as the same)
         :param nrof_folds:
         :param metric:
-        :param subtract_mean:
         """
 
-        self.subtract_mean = subtract_mean
         self.metric = metric
 
         self.embeddings = embeddings
@@ -225,7 +224,7 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=0)
+            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=metric)
 
             conf_matrix = ConfidenceMatrix(distances, thresholds)
 
@@ -241,7 +240,7 @@ class Validation:
                 far_threshold = f(far_target)
 
             # evaluations with test set
-            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=0)
+            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=metric)
 
             self.report_acc.append_fold('test', ConfidenceMatrix(distances, accuracy_threshold))
             self.report_far.append_fold('test', ConfidenceMatrix(distances, far_threshold))
@@ -269,7 +268,6 @@ class Validation:
             f.write('elapsed time: {}\n'.format(elapsed_time))
             f.write('time per image: {}\n'.format(elapsed_time/self.embeddings.shape[0]))
             f.write('distance metric: {}\n'.format(self.metric))
-            f.write('subtract mean: {}\n'.format(self.subtract_mean))
             f.write('\n')
             f.write(self.report_acc.__repr__())
             f.write('\n')
