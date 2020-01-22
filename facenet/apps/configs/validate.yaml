@@ -18,14 +18,16 @@ dataset:
   path: None
   # Path to h5 file with information about valid images
   h5file: None
-  # Portion of samples to download from data set
-  portion: 1
+  # Number of images to download from data set
+  nrof_images: None
+  # Number of classes to download from data set
+  nrof_classes: None
 
 
 validation:
   nrof_folds: 10            # Number of folds to use for cross validation. Mainly used for testing
   metric: 0                 # Distance metric  0: euclidean, 1: cosine similarity
-  subtract_mean: false      # Subtract feature mean before calculating distance
+  far_target: 0.001
 
 image:
   # Performs standardization of images

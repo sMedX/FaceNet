@@ -23,8 +23,13 @@ DefaultConfig = config.DefaultConfig()
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=pathlib.Path,
               help='Path to yaml config file with used options for the application.')
+@click.option('--model', default=None, type=pathlib.Path,
+              help='Could be either a directory containing the meta and ckpt files or a model protobuf (.pb) file')
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
+    if args_['model'] is not None:
+        args.model = args_['model']
+
     if args.model is None:
         args.model = DefaultConfig.model
 
@@ -32,7 +37,7 @@ def main(**args_):
         args.image_size = DefaultConfig.image_size
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.dataset, nrof_classes=args.dataset.nrof_classes)
+    dbase = dataset.DBase(args.dataset)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -141,8 +146,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
     stats = Validation(thresholds, embeddings, dbase.labels,
                        far_target=args.validation.far_target,
                        nrof_folds=args.validation.nrof_folds,
-                       metric=args.validation.metric,
-                       subtract_mean=args.validation.subtract_mean)
+                       metric=args.validation.metric)
     stats.write_report(elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())
 
 

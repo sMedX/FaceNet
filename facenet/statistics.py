@@ -54,17 +54,31 @@ def split_embeddings(embeddings, labels):
     return emb_list
 
 
-def compute_distances(embeddings, labels, metric=0):
-    embeddings = split_embeddings(embeddings, labels)
-    distances = []
+class DistanceCalculator:
+    def __init__(self, embeddings, labels, metric=0):
+        self.metric = metric
+        self.embeddings = split_embeddings(embeddings, labels)
+        self.nrof_classes = len(self.embeddings)
 
-    for i, emb1 in enumerate(embeddings):
-        distances.append([])
-        for k, emb2 in enumerate(embeddings[:i]):
-            distances[i].append(pairwise_distances(emb1, emb2, metric=metric))
-        distances[i].append(pairwise_distances(emb1, metric=metric))
+    def compute(self, i, k):
+        # number of positive pairs classes plus negative pairs classes
+        factor = self.nrof_classes * (self.nrof_classes + 1)/2
 
-    return distances
+        if i == k:
+            nrof_class_pairs = self.nrof_classes
+            nrof_image_pairs = self.nrof_images(i) * (self.nrof_images(i) - 1)/2
+
+            distances = pairwise_distances(self.embeddings[i], metric=self.metric)
+        else:
+            nrof_class_pairs = self.nrof_classes * (self.nrof_classes - 1)/2
+            nrof_image_pairs = self.nrof_images(i) * self.nrof_images(k)
+
+            distances = pairwise_distances(self.embeddings[i], self.embeddings[k], metric=self.metric)
+
+        return nrof_class_pairs*nrof_image_pairs/factor, distances
+
+    def nrof_images(self, i):
+        return self.embeddings[i].shape[0]
 
 
 class ConfidenceMatrix:
@@ -77,17 +91,19 @@ class ConfidenceMatrix:
         self.fp = np.zeros(self.threshold.size)
         self.fn = np.zeros(self.threshold.size)
 
-        for i, distances_i in enumerate(distances):
-            for k, distances_k in enumerate(distances_i):
+        for i in range(distances.nrof_classes):
+            for k in range(i+1):
+                weight, dist = distances.compute(i, k)
+
                 for n, threshold in enumerate(self.threshold):
-                    count = np.count_nonzero(distances_k < threshold)
+                    count = np.count_nonzero(dist < threshold)
 
                     if i == k:
-                        self.tp[n] += count
-                        self.fn[n] += distances_k.size - count
+                        self.tp[n] += count/weight
+                        self.fn[n] += (dist.size - count)/weight
                     else:
-                        self.fp[n] += count
-                        self.tn[n] += distances_k.size - count
+                        self.fp[n] += count/weight
+                        self.tn[n] += (dist.size - count)/weight
 
     @property
     def accuracy(self):
@@ -143,47 +159,48 @@ class Report:
         auc = -1
         eer = -1
 
-        if len(self.conf_matrix_train) > 0:
-            tp_rates = [m.tp_rates for m in self.conf_matrix_train]
-            tn_rates = [m.tn_rates for m in self.conf_matrix_train]
+        tp_rates = [m.tp_rates for m in self.conf_matrix_train]
+        tn_rates = [m.tn_rates for m in self.conf_matrix_train]
 
-            tp_rates = np.mean(np.array(tp_rates), axis=0)
-            tn_rates = np.mean(np.array(tn_rates), axis=0)
+        tp_rates = np.mean(np.array(tp_rates), axis=0)
+        tn_rates = np.mean(np.array(tn_rates), axis=0)
 
-            try:
-                auc = sklearn.metrics.auc(1 - tn_rates, tp_rates)
-            except Exception:
-                pass
+        try:
+            auc = sklearn.metrics.auc(1 - tn_rates, tp_rates)
+        except Exception:
+            pass
 
-            try:
-                eer = brentq(lambda x: 1. - x - interpolate.interp1d(1 - tn_rates, tp_rates)(x), 0., 1.)
-            except Exception:
-                pass
+        try:
+            eer = brentq(lambda x: 1. - x - interpolate.interp1d(1 - tn_rates, tp_rates)(x), 0., 1.)
+        except Exception:
+            pass
 
-        accuracy = [m.accuracy for m in self.conf_matrix_test]
-        precision = [m.precision for m in self.conf_matrix_test]
-        tp_rates = [m.tp_rates for m in self.conf_matrix_test]
-        tn_rates = [m.tn_rates for m in self.conf_matrix_test]
-        threshold = [m.threshold for m in self.conf_matrix_test]
+        info = 'Area under curve (AUC): {:1.5f}\n'.format(auc) + \
+               'Equal error rate (EER): {:1.5f}\n'.format(eer) + '\n'
 
-        info = self.criterion + '\n' + \
-            'Accuracy:  {:2.5f}+-{:2.5f}\n'.format(mean(accuracy), std(accuracy)) + \
-            'Precision: {:2.5f}+-{:2.5f}\n'.format(mean(precision), std(precision)) + \
-            'Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.format(mean(tp_rates), std(tp_rates)) + \
-            'Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.format(mean(tn_rates), std(tn_rates)) + '\n'
+        for i, criterion in enumerate(self.criterion):
 
-        if len(self.conf_matrix_train) > 0:
-            info += 'Area under curve (AUC): {:1.5f}\n'.format(auc) + \
-                    'Equal error rate (EER): {:1.5f}\n'.format(eer) + '\n'
+            accuracy = [m.accuracy[i] for m in self.conf_matrix_test]
+            precision = [m.precision[i] for m in self.conf_matrix_test]
+            tp_rates = [m.tp_rates[i] for m in self.conf_matrix_test]
+            tn_rates = [m.tn_rates[i] for m in self.conf_matrix_test]
+            threshold = [m.threshold[i] for m in self.conf_matrix_test]
 
-        info += 'Threshold: {:2.5f}+-{:2.5f}\n'.format(mean(threshold), std(threshold))
+            info += criterion + '\n' \
+                'Accuracy:  {:2.5f}+-{:2.5f}\n'.format(mean(accuracy), std(accuracy)) + \
+                'Precision: {:2.5f}+-{:2.5f}\n'.format(mean(precision), std(precision)) + \
+                'Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.format(mean(tp_rates), std(tp_rates)) + \
+                'Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.format(mean(tn_rates), std(tn_rates)) + \
+                'Threshold: {:2.5f}+-{:2.5f}\n'.format(mean(threshold), std(threshold)) + \
+                '\n'
+
         return info
 
 
 class Validation:
     def __init__(self, thresholds, embeddings, labels,
                  far_target=1e-3, nrof_folds=10,
-                 metric=0, subtract_mean=False):
+                 metric=0):
         """
 
         :param thresholds:
@@ -192,10 +209,8 @@ class Validation:
         :param far_target: target false alarm rate (face pairs that was incorrectly classified as the same)
         :param nrof_folds:
         :param metric:
-        :param subtract_mean:
         """
 
-        self.subtract_mean = subtract_mean
         self.metric = metric
 
         self.embeddings = embeddings
@@ -204,17 +219,18 @@ class Validation:
         k_fold = KFold(n_splits=nrof_folds, shuffle=False)
         indices = np.arange(len(labels))
 
-        self.report_acc = Report(criterion='Maximum accuracy criterion')
-        self.report_far = Report(criterion='False alarm rate target criterion (FAR = {})'.format(far_target))
+        criterion = ('Maximum accuracy criterion',
+                     'False alarm rate target criterion (FAR = {})'.format(far_target))
+        self.report = Report(criterion=criterion)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = compute_distances(self.embeddings[train_set], labels[train_set], metric=0)
-            conf_matrix = ConfidenceMatrix(distances, thresholds)
+            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=metric)
 
-            self.report_acc.append_fold('train', conf_matrix)
+            conf_matrix = ConfidenceMatrix(distances, thresholds)
+            self.report.append_fold('train', conf_matrix)
 
             # find the threshold that gives maximal accuracy
             accuracy_threshold = thresholds[np.argmax(conf_matrix.accuracy)]
@@ -226,13 +242,12 @@ class Validation:
                 far_threshold = f(far_target)
 
             # evaluations with test set
-            distances = compute_distances(self.embeddings[test_set], labels[test_set], metric=0)
+            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=metric)
 
-            self.report_acc.append_fold('test', ConfidenceMatrix(distances, accuracy_threshold))
-            self.report_far.append_fold('test', ConfidenceMatrix(distances, far_threshold))
+            conf_matrix = ConfidenceMatrix(distances, [accuracy_threshold, far_threshold])
+            self.report.append_fold('test', conf_matrix)
 
-        print(self.report_acc)
-        print(self.report_far)
+        print(self.report)
 
     def write_report(self, elapsed_time, args, file=None, dbase_info=None):
         if file is None:
@@ -254,11 +269,8 @@ class Validation:
             f.write('elapsed time: {}\n'.format(elapsed_time))
             f.write('time per image: {}\n'.format(elapsed_time/self.embeddings.shape[0]))
             f.write('distance metric: {}\n'.format(self.metric))
-            f.write('subtract mean: {}\n'.format(self.subtract_mean))
             f.write('\n')
-            f.write(self.report_acc.__repr__())
-            f.write('\n')
-            f.write(self.report_far.__repr__())
+            f.write(self.report.__repr__())
             f.write('\n')
 
         print('Report has been printed to the file: {}'.format(file))
