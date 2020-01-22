@@ -56,7 +56,8 @@ class DBase:
                 files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
             if self.config.nrof_images is not None:
-                files = np.random.choice(files, size=self.config.nrof_images, replace=False)
+                if len(files) > self.config.nrof_images:
+                    files = np.random.choice(files, size=self.config.nrof_images, replace=False)
 
             if len(files) > 0:
                 self.classes.append(ImageClass(path.stem, files, count=count))
