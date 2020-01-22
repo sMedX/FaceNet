@@ -23,8 +23,13 @@ DefaultConfig = config.DefaultConfig()
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=pathlib.Path,
               help='Path to yaml config file with used options for the application.')
+@click.option('--model', default=None, type=pathlib.Path,
+              help='Could be either a directory containing the meta and ckpt files or a model protobuf (.pb) file')
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
+    if args_['model'] is not None:
+        args.model = args_['model']
+
     if args.model is None:
         args.model = DefaultConfig.model
 
