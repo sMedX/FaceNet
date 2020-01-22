@@ -1,5 +1,5 @@
-2020-01-20 21:21:48.489235
-git hash: b'd03a34a66bc4e4747e6e69b91f3bb754fef1403e'
+2020-01-22 08:07:06.101808
+git hash: b'205d7e0d0d44179565f191d8c0594f033bb5f1f8'
 git diff: b''
 class DBase
 Directory to load images /media/a/datasets/megaface/megaface_frcnnv3extracted_160
@@ -12,27 +12,59 @@ Number of negative pairs 3656871427 (99.799003 %)
 
 model: /home/ruslan/models/facenet/20190822-033520
 embedding size: 512
-elapsed time: 300.464005114045
-time per image: 0.0035098065008006937
+elapsed time: 256.351341328118
+time per image: 0.002994513781911736
 distance metric: 0
-subtract mean: False
+
+Area under curve (AUC): 0.99831
+Equal error rate (EER): 0.01678
 
 Maximum accuracy criterion
-Accuracy:  0.99663+-0.00047
-Precision: 0.99286+-0.00507
-Sensitivity (TPR, 1-a type 1 error): 0.83745+-0.02312
-Specificity (TNR, 1-b type 2 error): 0.99988+-0.00009
-
-Area under curve (AUC): 0.99855
-Equal error rate (EER): 0.01574
-
-Threshold: 0.81100+-0.00300
+Accuracy:  0.98317+-0.00269
+Precision: 0.98605+-0.00334
+Sensitivity (TPR, 1-a type 1 error): 0.98023+-0.00402
+Specificity (TNR, 1-b type 2 error): 0.98612+-0.00337
+Threshold: 1.24900+-0.00300
 
 False alarm rate target criterion (FAR = 0.001)
-Accuracy:  0.99744+-0.00057
-Precision: 0.94450+-0.02574
-Sensitivity (TPR, 1-a type 1 error): 0.92713+-0.01362
-Specificity (TNR, 1-b type 2 error): 0.99888+-0.00055
+Accuracy:  0.96149+-0.00558
+Precision: 0.99885+-0.00052
+Sensitivity (TPR, 1-a type 1 error): 0.92404+-0.01113
+Specificity (TNR, 1-b type 2 error): 0.99894+-0.00048
+Threshold: 0.97859+-0.00253
 
-Threshold: 0.98127+-0.00230
+2020-01-22 10:13:35.717912
+git hash: b'1ba2fdf62c83a47066916bc68b1f5f99ba39770e'
+git diff: b''
+class DBase
+Directory to load images /media/a/datasets/megaface/megaface_frcnnv3extracted_160
+h5 file to filter images /media/a/datasets/megaface/megaface_frcnnv3extracted_160_20190727-080213.h5
+Number of classes 530 
+Number of images 51754
+Number of pairs 1339212381
+Number of positive pairs 2519639 (0.188143 %)
+Number of negative pairs 1336692742 (99.811857 %)
+
+model: /home/ruslan/models/facenet/20190822-033520
+embedding size: 512
+elapsed time: 148.58211579406634
+time per image: 0.002870930088380924
+distance metric: 0
+
+Area under curve (AUC): 0.99834
+Equal error rate (EER): 0.01655
+
+Maximum accuracy criterion
+Accuracy:  0.98337+-0.00264
+Precision: 0.98622+-0.00304
+Sensitivity (TPR, 1-a type 1 error): 0.98045+-0.00430
+Specificity (TNR, 1-b type 2 error): 0.98630+-0.00307
+Threshold: 1.24800+-0.00400
+
+False alarm rate target criterion (FAR = 0.001)
+Accuracy:  0.96155+-0.00602
+Precision: 0.99887+-0.00047
+Sensitivity (TPR, 1-a type 1 error): 0.92414+-0.01196
+Specificity (TNR, 1-b type 2 error): 0.99896+-0.00043
+Threshold: 0.97911+-0.00248
 
