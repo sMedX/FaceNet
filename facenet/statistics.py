@@ -93,8 +93,9 @@ class ConfidenceMatrix:
 
         for i in range(distances.nrof_classes):
             for k in range(i+1):
+                weight, dist = distances.compute(i, k)
+
                 for n, threshold in enumerate(self.threshold):
-                    weight, dist = distances.compute(i, k)
                     count = np.count_nonzero(dist < threshold)
 
                     if i == k:
