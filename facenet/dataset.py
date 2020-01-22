@@ -1,4 +1,3 @@
-
 import pathlib
 import numpy as np
 import math
@@ -9,6 +8,7 @@ class ImageClass:
     """
     Stores the paths to images for a given class
     """
+
     def __init__(self, name, files, count=None):
         self.name = name
         self.count = count
@@ -53,7 +53,8 @@ class DBase:
 
             if self.config.h5file is not None:
                 self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
-                files = [f for f in files if h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
+                files = [f for f in files if
+                         h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
             if self.config.nrof_images is not None:
                 if len(files) > self.config.nrof_images:
@@ -73,17 +74,26 @@ class DBase:
 
     def __repr__(self):
         """Representation of the database"""
-        info = ('class {}\n'.format(self.__class__.__name__) +
-                'Directory to load images {}\n'.format(self.config.path) +
-                'h5 file to filter images {}\n'.format(self.config.h5file) +
-                'Number of classes {} \n'.format(self.nrof_classes) +
-                'Number of images {}\n'.format(self.nrof_images) +
-                'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of positive pairs {} ({:.6f} %)\n'.
-                format(self.nrof_positive_pairs, 100 * self.nrof_positive_pairs / self.nrof_pairs) +
-                'Number of negative pairs {} ({:.6f} %)\n'.
-                format(self.nrof_negative_pairs, 100 * self.nrof_negative_pairs / self.nrof_pairs))
+        info = 'class {}\n'.format(self.__class__.__name__) + \
+               'Directory to load images {}\n'.format(self.config.path) + \
+               'h5 file to filter images {}\n'.format(self.config.h5file) + \
+               'Number of classes {} \n'.format(self.nrof_classes) + \
+               'Number of images {}\n'.format(self.nrof_images) + \
+               'Number of pairs {}\n'.format(self.nrof_pairs) + \
+               'Number of positive pairs {} ({:.6f} %)\n'.format(self.nrof_positive_pairs, 100 * self.nrof_positive_pairs / self.nrof_pairs) + \
+               'Number of negative pairs {} ({:.6f} %)\n'.format(self.nrof_negative_pairs, 100 * self.nrof_negative_pairs / self.nrof_pairs) + \
+               'Minimal number of images in class {}\n'.format(self.min_nrof_images) + \
+               'Maximal number of images in class {}\n'.format(self.max_nrof_images)
+
         return info
+
+    @property
+    def min_nrof_images(self):
+        return min(cls.nrof_images for cls in self.classes)
+
+    @property
+    def max_nrof_images(self):
+        return max(cls.nrof_images for cls in self.classes)
 
     @property
     def nrof_classes(self):
