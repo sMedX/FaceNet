@@ -33,22 +33,24 @@ Sensitivity (TPR, 1-a type 1 error): 0.92404+-0.01113
 Specificity (TNR, 1-b type 2 error): 0.99894+-0.00048
 Threshold: 0.97859+-0.00253
 
-2020-01-22 10:13:35.717912
-git hash: b'1ba2fdf62c83a47066916bc68b1f5f99ba39770e'
+2020-01-22 16:11:09.909594
+git hash: b'04b5bbde929e0a841acb194f546d265dc095ea39'
 git diff: b''
 class DBase
 Directory to load images /media/a/datasets/megaface/megaface_frcnnv3extracted_160
 h5 file to filter images /media/a/datasets/megaface/megaface_frcnnv3extracted_160_20190727-080213.h5
-Number of classes 530 
+Number of classes 530
 Number of images 51754
 Number of pairs 1339212381
 Number of positive pairs 2519639 (0.188143 %)
 Number of negative pairs 1336692742 (99.811857 %)
+Minimal number of images in class 45
+Maximal number of images in class 100
 
 model: /home/ruslan/models/facenet/20190822-033520
 embedding size: 512
-elapsed time: 148.58211579406634
-time per image: 0.002870930088380924
+elapsed time: 160.11055724928156
+time per image: 0.0030936846861939473
 distance metric: 0
 
 Area under curve (AUC): 0.99834
