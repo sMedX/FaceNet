@@ -9,17 +9,19 @@ dataset:
   portion_of_images: 1
 
 
+
+# Model definition
+model:
+  # Points to a module containing the definition of the inference graph.',
+  module: facenet.models.inception_resnet_v1
+  # Model config
+  config: None
+
 # Directory where to write trained models and checkpoints
 model_dir: ~/models/facenet
 
 # Directory where to write event logs
 log_dir: None
-
-# Model definition. Points to a module containing the definition of the inference graph.',
-model_def: facenet.models.inception_resnet_v1
-
-# Model config definition
-model_config: None
 
 # Random seed
 seed: 0
@@ -40,9 +42,6 @@ batch_size: 100
 epoch:
   size: 1000            # Number of batches per epoch.
   max_nrof_epochs: 500  # Maximal number of epochs to run
-
-# Image size (height, width) in pixels.
-image_size: 160
 
 # Norm to use for prelogits norm loss.
 prelogits_norm_p: 1.0
@@ -70,13 +69,18 @@ gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that w
 
 validate_every_n_epochs: 10     # Number of epoch between validation
 
-
 image:
-  standardization: true # Performs fixed standardization of images
-  random_crop: false    # Performs random cropping of training images. If false, the center image_size pixels from
-                        # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
-  random_flip: false    # Performs random horizontal flipping of training images
-  random_rotate: false  # Performs random rotations of training images
+  # Image size (height, width) in pixels.
+  size: 160
+  # Performs fixed standardization of images
+  standardization: true
+  # Performs random cropping of training images. If false, the center image_size pixels from
+  # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
+  random_crop: false
+  # Performs random horizontal flipping of training images
+  random_flip: false
+  # Performs random rotations of training images
+  random_rotate: false
 
 prelogits_hist_max: 10.0 # The max value for the prelogits histogram
 
