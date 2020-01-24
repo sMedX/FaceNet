@@ -46,6 +46,8 @@ from facenet import dataset, lfw, ioutils, facenet, config
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=pathlib.Path,
               help='Path to yaml config file with used options of the application.')
+@click.option('--learning_rate', default=None, type=float,
+              help='Learning rate value')
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
@@ -54,6 +56,9 @@ def main(**args_):
     network = importlib.import_module(args.model_def)
     if args.model_config is None:
         args.update_from_file(network.config_file)
+
+    if args_['learning_rate'] is not None:
+        args.learning_rate.value = args_['learning_rate']
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
     args.model_dir = pathlib.Path(args.model_dir).expanduser().joinpath(subdir)
