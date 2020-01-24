@@ -52,10 +52,10 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
     # import network
-    print('import model \'{}\''.format(args.model_def))
-    network = importlib.import_module(args.model_def)
-    if args.model_config is None:
-        args.update_from_file(network.config_file)
+    print('import model \'{}\''.format(args.model.module))
+    network = importlib.import_module(args.model.module)
+    if args.model.config is None:
+        args.model.update_from_file(network.config_file)
 
     if args_['learning_rate'] is not None:
         args.learning_rate.value = args_['learning_rate']
@@ -131,7 +131,7 @@ def main(**args_):
                                     shared_name=None, name=None)
         enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name='enqueue_op')
 
-        image_size = (args.image_size, args.image_size)
+        image_size = (args.image.size, args.image.size)
         image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, args.nrof_preprocess_threads, batch_size_placeholder)
 
         image_batch = tf.identity(image_batch, 'image_batch')
@@ -147,12 +147,12 @@ def main(**args_):
         # Build the inference graph
         print('Building training graph')
         prelogits, _ = network.inference(image_batch,
-                                         config=args.model_config,
+                                         config=args.model.config,
                                          phase_train=phase_train_placeholder)
 
         logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
                                       weights_initializer=slim.initializers.xavier_initializer(),
-                                      weights_regularizer=slim.l2_regularizer(args.model_config.weight_decay),
+                                      weights_regularizer=slim.l2_regularizer(args.model.config.weight_decay),
                                       scope='Logits', reuse=False)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')

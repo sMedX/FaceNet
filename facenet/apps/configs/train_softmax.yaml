@@ -5,10 +5,10 @@ dataset:
   path: ~/datasets/vggface2/test_frcnnv3extracted_160
   # Path to h5 file with information about valid images.
   h5file: None
-  # Portion of samples to download from data set
-  portion_of_images: 1
-
-
+  # Number of images to download from data set
+  nrof_images: None
+  # Number of classes to download from data set
+  nrof_classes: None
 
 # Model definition
 model:
