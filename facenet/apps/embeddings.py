@@ -6,44 +6,44 @@ in the same directory, and the metagraph should have the extension '.meta'.
 # MIT License
 # 
 # Copyright (c) 2019 SMedX
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
-import os
-import sys
+import click
 import time
-import tensorflow as tf
+from pathlib import Path
 import math
 import numpy as np
-import argparse
-from facenet import dataset, utils
-from facenet import facenet
+import tensorflow as tf
 from tensorflow.python.ops import data_flow_ops
+from facenet import dataset, ioutils, utils, config, facenet
 
-from facenet.config import DefaultConfig
-config = DefaultConfig()
+DefaultConfig = config.DefaultConfig()
 
 
-def main(args):
+@click.command()
+@click.option('--config', default=config.default_app_config(__file__), type=Path,
+              help='Path to yaml config file with used options for the application.')
+@click.option('--model', default=None, type=Path,
+              help='Could be either a directory containing the meta and ckpt files or a model protobuf (.pb) file')
+def main(**args_):
+    args = config.YAMLConfig(args_['config'])
+
+    if args_['model'] is not None:
+        args.model = args_['model']
+
+    if args.model is None:
+        args.model = DefaultConfig.model
+
+    if args.tfrecord is None:
+        args.tfrecord = Path(args.dataset.path).expanduser()
+    else:
+        args.tfrecord = Path(args.tfrecord).expanduser()
+
+    args.tfrecord = Path(str(args.tfrecord) + '_' + args.model.stem)
+    ioutils.makedirs(args.tfrecord)
+    print('tf record files will be saved to directory {}'.format(args.tfrecord))
 
     # Get the paths for the corresponding images
-    dbase = dataset.DBase(args.data_dir, h5file=args.h5file)
+    dbase = dataset.DBase(args.dataset)
     print(dbase)
 
     with tf.Graph().as_default():
@@ -55,7 +55,7 @@ def main(args):
             phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
  
             nrof_preprocess_threads = 4
-            image_size = (args.image_size, args.image_size)
+            image_size = (args.image.size, args.image.size)
             eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                                        dtypes=[tf.string, tf.int32, tf.int32],
                                                        shapes=[(1,), (1,), (1,)],
@@ -87,17 +87,6 @@ def main(args):
 def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
              batch_size_placeholder, control_placeholder, embeddings, labels, dbase, args):
 
-    if args.tfrecord is None:
-        tf_dir = os.path.expanduser(args.data_dir)
-    else:
-        tf_dir = os.path.expanduser(args.tfrecord)
-
-    model = os.path.splitext(os.path.basename(args.model))[0]
-    tf_dir += '_' + model
-    if not os.path.isdir(tf_dir):
-        os.mkdir(tf_dir)
-    print('save tf records to dir {}'.format(tf_dir))
-
     # Run forward pass to calculate embeddings
     print('Running forward pass on images')
     embedding_size = int(embeddings.get_shape()[1])
@@ -111,7 +100,7 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
         image_paths_array = np.expand_dims(np.array(cls.files), 1)
 
-        if args.image_standardization:
+        if args.image.standardization:
             control_array += np.ones_like(labels_array) * facenet.FIXED_STANDARDIZATION
 
         sess.run(enqueue_op, {image_paths_placeholder: image_paths_array,
@@ -148,36 +137,12 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
         # write tf record file
         emb_array = (emb_array.transpose() / np.linalg.norm(emb_array, axis=1)).transpose()
 
-        tf_file = os.path.join(tf_dir, cls.name + '.tfrecord')
-        utils.write_tfrecord(tf_file, cls.files, [cls_index]*nrof_images, emb_array)
+        tf_file = args.tfrecord.joinpath(cls.name + '.tfrecord')
+        utils.write_tfrecord(tf_file, cls.files, [cls_index] * nrof_images, emb_array)
 
         print('  elapsed time: {}'.format(elapsed_time))
         print('time per image: {}'.format(elapsed_time / emb_array.shape[0]))
 
 
-def parse_arguments(argv):
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument('data_dir', type=str,
-        help='Path to the data directory containing aligned face patches.')
-    parser.add_argument('--h5file', type=str,
-        help='Path to h5 file with information about valid images.', default=None)
-    parser.add_argument('--model', type=str,
-        help='Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file',
-        default=config.model)
-    parser.add_argument('--tfrecord', type=str,
-        help='Path to save tf record file.', default=None)
-    parser.add_argument('--nrof_classes', type=int,
-        help='Number of classes to evaluate embeddings.', default=0)
-    parser.add_argument('--batch_size', type=int,
-        help='Number of images to process in a batch.', default=1000)
-    parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=config.image_size)
-    parser.add_argument('--image_standardization', type=bool,
-        help='Performs standardization of images: 0 - per image standardization, 1 - fixed standardisation.',
-        default=config.image_standardization)
-    return parser.parse_args(argv[1:])
-
-
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv))
+    main()
