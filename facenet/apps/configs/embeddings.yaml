@@ -1,0 +1,30 @@
+# coding:utf-8
+
+# Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+model: None
+
+# Number of images to process in a batch
+batch_size: 100
+
+# Path to output tf record file
+tfrecord: None
+
+dataset:
+  # Path to the data directory containing aligned face patches
+  path: None
+  # Path to h5 file with information about valid images
+  h5file: None
+  # Number of images to download from data set
+  nrof_images: None
+  # Number of classes to download from data set
+  nrof_classes: None
+
+image:
+  # Image size (height, width) in pixels.
+  size: 160
+  # Performs standardization of images
+  standardization: true
+  # Concatenates embeddings for the image and its horizontally flipped counterpart
+  use_flipped_images: false
+
+
