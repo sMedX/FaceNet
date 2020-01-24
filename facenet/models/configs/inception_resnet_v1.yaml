@@ -1,8 +1,8 @@
 ---
 # inception resnet v1 config
-model_def: facenet.models.inception_resnet_v1
+module: facenet.models.inception_resnet_v1
 
-model_config:
+config:
   reduction_a:
     branch: [[384], [192, 192, 256]]
 
