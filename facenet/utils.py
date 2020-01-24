@@ -128,7 +128,7 @@ def bytes_feature(value):
 
 def write_tfrecord(tfrecord, files, labels, embeddings):
 
-    with tf.python_io.TFRecordWriter(tfrecord) as tfwriter:
+    with tf.python_io.TFRecordWriter(str(tfrecord)) as tfwriter:
         for i, (file, label, embedding) in enumerate(zip(files, labels, embeddings)):
             add_to_tfrecord(tfwriter, file.encode(), label, embedding.tolist())
 
