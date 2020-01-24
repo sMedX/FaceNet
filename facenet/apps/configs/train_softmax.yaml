@@ -29,7 +29,7 @@ seed: 0
 # The ratio of the total dataset to use for validation
 validation_set_split_ratio: 0
 
-# Classes with fewer images will be removed from the validation set', default=0)
+# Classes with fewer images will be removed from the validation set
 min_nrof_val_images_per_class: 0
 
 # Load a pretrained checkpoint before training starts.
@@ -50,9 +50,8 @@ prelogits_norm_loss_factor: 0.0 # Loss based on the norm of the activations in t
 center_loss_alfa: 0.95          # Center update rate for center loss
 center_loss_factor: 0.0         # Center loss factor
 
-learning_rate_decay_epochs: 100 # Number of epochs between learning rate decay
-learning_rate_decay_factor: 1.0 # Learning rate decay factor
-optimizer: ADAGRAD              # The optimization algorithm to use
+# The optimization algorithm to use
+optimizer: ADAM
 
 # learning rate value or schedule file
 learning_rate:
@@ -60,6 +59,10 @@ learning_rate:
   value: -1
   # File containing the learning rate schedule that is used when learning_rate is set to to -1
   schedule_file: data/learning_rate_schedule.txt
+  # Number of epochs between learning rate decay
+  decay_epochs: 100
+  # Learning rate decay factor
+  decay_factor: 1.0
 
 moving_average_decay: 0.9999    # Exponential decay for tracking of training parameters
 log_histograms: False           # Enables logging of weight/bias histograms in tensorboard

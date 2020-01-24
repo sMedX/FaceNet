@@ -167,7 +167,8 @@ def main(**args_):
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.center_loss_factor)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
-            args.learning_rate_decay_epochs*args.epoch.size, args.learning_rate_decay_factor, staircase=True)
+                                                   args.learning_rate.decay_epochs*args.epoch.size,
+                                                   args.learning_rate.decay_factor, staircase=True)
         tf.summary.scalar('learning_rate', learning_rate)
 
         # Calculate the average cross entropy loss across the batch
