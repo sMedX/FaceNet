@@ -12,7 +12,7 @@ dataset:
 
 # Model definition
 model:
-  # Points to a module containing the definition of the inference graph.',
+  # module containing the definition of the inference graph.',
   module: facenet.models.inception_resnet_v1
   # Model config
   config: None
