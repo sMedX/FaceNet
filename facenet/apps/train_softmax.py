@@ -118,7 +118,6 @@ def main(**args_):
         
         index_dequeue_op = index_queue.dequeue_many(args.batch_size*args.epoch.size, 'index_dequeue')
         
-        learning_rate_placeholder = tf.placeholder(tf.float32, name='learning_rate')
         batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
         phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
         image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
@@ -166,6 +165,8 @@ def main(**args_):
         prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.center_loss_alfa, nrof_classes)
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.center_loss_factor)
 
+        # define learning rate tensor
+        learning_rate_placeholder = tf.placeholder(tf.float32, name='learning_rate')
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
                                                    args.learning_rate.decay_epochs*args.epoch.size,
                                                    args.learning_rate.decay_factor, staircase=True)
@@ -185,8 +186,7 @@ def main(**args_):
         total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
 
         # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train(total_loss, global_step, args.optimizer, 
-            learning_rate, args.moving_average_decay, tf.global_variables(), args.log_histograms)
+        train_op = facenet.train(total_loss, global_step, args.optimizer, learning_rate, args.moving_average_decay, tf.global_variables(), args.log_histograms)
         
         # Create a saver
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
