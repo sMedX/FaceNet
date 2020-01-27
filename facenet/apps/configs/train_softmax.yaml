@@ -18,7 +18,7 @@ model:
   config: None
 
 # Directory where to write trained models and checkpoints
-model_dir: ~/models/facenet
+model_dir: ~/models/facenet/test
 
 # Directory where to write event logs
 log_dir: None
@@ -40,8 +40,8 @@ batch_size: 100
 
 # Number of batches per epoch.
 epoch:
-  size: 1000            # Number of batches per epoch.
-  max_nrof_epochs: 500  # Maximal number of epochs to run
+  size: 2            # Number of batches per epoch.
+  max_nrof_epochs: 2  # Maximal number of epochs to run
 
 # Norm to use for prelogits norm loss.
 prelogits_norm_p: 1.0
@@ -89,14 +89,38 @@ prelogits_hist_max: 10.0 # The max value for the prelogits histogram
 
 nrof_preprocess_threads: 4 # Number of preprocessing (data loading and augmentation)
 
-# Parameters for validation, for example, on LFW
+# Config for validation
 validation:
-  dir: None             # Path to the data directory containing aligned face patches.
-  pairs: data/pairs.txt # The file containing the pairs to use for validation
-  batch_size: 100       # Number of images to process in a batch in the LFW test set
-  nrof_folds: 10        # Number of folds to use for cross validation. Mainly used for testing
-  distance_metric: 0    # Type of distance metric to use. 0: Euclidian, 1:Cosine similarity distance.
-  use_flipped_images: false # Concatenates embeddings for the image and its horizontally flipped counterpart
-  subtract_mean: false  # Subtract feature mean before calculating distance
+  # Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+  model: None
 
+  # Number of images to process in a batch
+  batch_size: 100
 
+  dataset:
+    # Path to the data directory containing aligned face patches
+    path: none
+    # Path to h5 file with information about valid images
+    h5file: none
+    # Number of classes to download from data set
+    nrof_classes: 5
+    # Maximal number of images to download from class
+    nrof_images: 10
+
+  validation:
+    # Number of folds to use for cross validation. Mainly used for testing
+    nrof_folds: 10
+    # Distance metric  0: euclidean, 1: cosine similarity
+    metric: 0
+    # Target false alarm rate (face pairs that was incorrectly classified as the same)
+    far_target: 0.001
+    # File to write statistical report
+    file: none
+
+  image:
+    # Performs standardization of images
+    standardization: true
+    # Concatenates embeddings for the image and its horizontally flipped counterpart
+    use_flipped_images: false
+    # Image size (height, width) in pixels.
+    size: 160

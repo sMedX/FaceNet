@@ -39,7 +39,7 @@ def main(**args_):
 
     stats = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
     stats.evaluate()
-    stats.write_report(emb.elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())
+    stats.write_report(path=args.model, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
     print(stats)
 
 

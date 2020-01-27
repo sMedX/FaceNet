@@ -1,14 +1,10 @@
 # coding:utf-8
 
-# Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-model: None
+# Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+model: none
 
 # Number of images to process in a batch
 batch_size: 100
-
-# File to write statistical report
-report: None
-
 
 dataset:
   # Path to the data directory containing aligned face patches
@@ -20,7 +16,6 @@ dataset:
   # Maximal number of images to download from class
   nrof_images: None
 
-
 validation:
   # Number of folds to use for cross validation. Mainly used for testing
   nrof_folds: 10
@@ -28,6 +23,8 @@ validation:
   metric: 0
   # Target false alarm rate (face pairs that was incorrectly classified as the same)
   far_target: 0.001
+  # File to write statistical report
+  file: none
 
 image:
   # Performs standardization of images
