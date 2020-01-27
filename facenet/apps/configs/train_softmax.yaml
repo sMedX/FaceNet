@@ -102,9 +102,9 @@ validation:
     # Path to h5 file with information about valid images
     h5file: none
     # Number of classes to download from data set
-    nrof_classes: 5
+    nrof_classes: none
     # Maximal number of images to download from class
-    nrof_images: 10
+    nrof_images: none
 
   validation:
     # Number of folds to use for cross validation. Mainly used for testing
@@ -117,9 +117,9 @@ validation:
     file: none
 
   image:
+    # Image size (height, width) in pixels.
+    size: 160
     # Performs standardization of images
     standardization: true
     # Concatenates embeddings for the image and its horizontally flipped counterpart
     use_flipped_images: false
-    # Image size (height, width) in pixels.
-    size: 160
