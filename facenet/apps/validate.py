@@ -9,7 +9,7 @@ in the same directory, and the metagraph should have the extension '.meta'.
 
 import click
 import pathlib
-from facenet import dataset, config, validate, facenet
+from facenet import dataset, config, statistics, facenet
 
 DefaultConfig = config.DefaultConfig()
 
@@ -30,7 +30,15 @@ def main(**args_):
     if args.image.size is None:
         args.image.size = DefaultConfig.image_size
 
-    validate.validate(args)
+    # Get the paths for the corresponding images
+    dbase = dataset.DBase(args.dataset)
+    print(dbase)
+
+    emb = facenet.Embeddings(dbase, args)
+    emb.evaluate()
+
+    stats = statistics.Validation(emb.embeddings, dbase.labels, config=args.validation)
+    stats.write_report(emb.elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())
 
 
 if __name__ == '__main__':
