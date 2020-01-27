@@ -247,25 +247,24 @@ class Validation:
             conf_matrix = ConfidenceMatrix(distances, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
 
-    def write_report(self, elapsed_time, args, file=None, dbase_info=None):
-        if file is None:
-            dir_name = pathlib.Path(args.model).expanduser()
+    def write_report(self, path=None, dbase_info=None, emb_info=None):
+        if self.config.file is None:
+            dir_name = pathlib.Path(path).expanduser()
             if dir_name.is_file():
                 dir_name = dir_name.parent
             self.report_file = dir_name.joinpath('report.txt')
         else:
-            self.report_file = pathlib.Path(file).expanduser()
+            self.report_file = pathlib.Path(self.config.file).expanduser()
 
         with self.report_file.open('at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n'.format(utils.git_diff()))
+            f.write('\n')
             f.write('{}'.format(dbase_info))
             f.write('\n')
-            f.write('model: {}\n'.format(args.model))
-            f.write('embedding size: {}\n'. format(self.embeddings.shape[1]))
-            f.write('elapsed time: {}\n'.format(elapsed_time))
-            f.write('time per image: {}\n'.format(elapsed_time/self.embeddings.shape[0]))
+            f.write('{}'.format(emb_info))
+            f.write('\n')
             f.write('distance metric: {}\n'.format(self.config.metric))
             f.write('\n')
             f.write(self.report.__repr__())

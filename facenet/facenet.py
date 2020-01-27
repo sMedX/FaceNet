@@ -781,11 +781,14 @@ def save_freeze_graph(model_dir, output_file=None):
 
 
 class Embeddings:
-    def __init__(self, dbase, config, nrof_preprocess_threads=4):
+    def __init__(self, dbase, config, model=None, nrof_preprocess_threads=4):
         self.config = config
         self.dbase = dbase
         self.embeddings = None
         self.elapsed_time = None
+
+        if model is not None:
+            self.config.model = model
 
         image_size = (config.image.size, config.image.size)
 
@@ -882,3 +885,11 @@ class Embeddings:
 
         assert np.array_equal(lab_array, np.arange(nrof_images)), \
             'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
+
+    def __repr__(self):
+        info = 'class {}\n'.format(self.__class__.__name__) + \
+               'model: {}\n'.format(self.config.model) + \
+               'embedding size: {}\n'.format(self.embeddings.shape) + \
+               'elapsed time  : {}\n'.format(self.elapsed_time) + \
+               'time per image: {}\n'.format(self.elapsed_time / self.embeddings.shape[0])
+        return info

@@ -40,7 +40,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
 import facenet
-from facenet import dataset, lfw, ioutils, facenet, config
+from facenet import dataset, lfw, ioutils, statistics, config, facenet
 
 
 @click.command()
@@ -89,13 +89,13 @@ def main(**args_):
         args.pretrained_checkpoint = pathlib.Path(args.pretrained_checkpoint).expanduser()
     print('Pre-trained checkpoint: {}'.format(args.pretrained_checkpoint))
 
-    if args.validation.dir:
-        print('LFW directory: {}'.format(args.validation.dir))
-        args.validation.dir = pathlib.Path(args.validation.dir).expanduser()
-        # read the file containing the pairs used for testing
-        pairs = lfw.read_pairs(args.validation.pairs)
-        # get the paths for the corresponding images
-        lfw_paths, actual_issame = lfw.get_paths(args.validation.dir, pairs)
+    # if args.validation.dir:
+    #     print('LFW directory: {}'.format(args.validation.dir))
+    #     args.validation.dir = pathlib.Path(args.validation.dir).expanduser()
+    #     # read the file containing the pairs used for testing
+    #     pairs = lfw.read_pairs(args.validation.pairs)
+    #     # get the paths for the corresponding images
+    #     lfw_paths, actual_issame = lfw.get_paths(args.validation.dir, pairs)
 
     tf.reset_default_graph()
     tf.Graph().as_default()
@@ -256,12 +256,12 @@ def main(**args_):
                 save_variables_and_metagraph(sess, saver, summary_writer, args.model_dir, subdir, epoch)
 
                 # Evaluate on LFW
-                t = time.time()
-                if args.validation.dir:
-                    evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-                             batch_size_placeholder, control_placeholder, embeddings, label_batch, lfw_paths, actual_issame,
-                             step, summary_writer, stat, epoch)
-                stat['time_evaluate'][epoch-1] = time.time() - t
+                # t = time.time()
+                # if args.validation.dir:
+                #     evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
+                #              batch_size_placeholder, control_placeholder, embeddings, label_batch, lfw_paths, actual_issame,
+                #              step, summary_writer, stat, epoch)
+                # stat['time_evaluate'][epoch-1] = time.time() - t
 
                 print('Saving statistics')
                 with h5py.File(stat_file_name, 'w') as f:
@@ -272,6 +272,21 @@ def main(**args_):
     print('Log directory: %s' % args.log_dir)
 
     facenet.save_freeze_graph(model_dir=args.model_dir)
+
+    # perform validation
+    if args.validation is not None:
+        config_ = args.validation
+        dbase = dataset.DBase(config_.dataset)
+        print(dbase)
+
+        emb = facenet.Embeddings(dbase, config_, model=args.model_dir)
+        emb.evaluate()
+        print(emb)
+
+        stats = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
+        stats.evaluate()
+        stats.write_report(path=args.model_dir, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
+        print(stats)
 
     return args.model_dir
 
