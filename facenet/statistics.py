@@ -200,12 +200,10 @@ class Report:
 
 
 class Validation:
-    def __init__(self, thresholds, embeddings, labels,
-                 far_target=1e-3, nrof_folds=10,
-                 metric=0):
+    def __init__(self, embeddings, labels, config):
+                 # far_target=1e-3, nrof_folds=10,
+                 # metric=0):
         """
-
-        :param thresholds:
         :param embeddings:
         :param labels:
         :param far_target: target false alarm rate (face pairs that was incorrectly classified as the same)
@@ -213,23 +211,26 @@ class Validation:
         :param metric:
         """
 
-        self.metric = metric
-
         self.embeddings = embeddings
+        self.labels = labels
         assert (embeddings.shape[0] == len(labels))
 
-        k_fold = KFold(n_splits=nrof_folds, shuffle=False)
-        indices = np.arange(len(labels))
+        self.config = config
+
+        thresholds = np.arange(0, 4, 0.01)
+
+        k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=False)
+        indices = np.arange(len(self.labels))
 
         criterion = ('Maximum accuracy criterion',
-                     'False alarm rate target criterion (FAR = {})'.format(far_target))
+                     'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
         self.report = Report(criterion=criterion)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
+            print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=metric)
+            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=self.config.metric)
 
             conf_matrix = ConfidenceMatrix(distances, thresholds)
             self.report.append_fold('train', conf_matrix)
@@ -239,12 +240,12 @@ class Validation:
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
             far_threshold = 0.0
-            if np.max(conf_matrix.fp_rates) >= far_target:
+            if np.max(conf_matrix.fp_rates) >= self.config.far_target:
                 f = interpolate.interp1d(conf_matrix.fp_rates, thresholds, kind='slinear')
-                far_threshold = f(far_target)
+                far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=metric)
+            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=self.config.metric)
 
             conf_matrix = ConfidenceMatrix(distances, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
@@ -270,7 +271,7 @@ class Validation:
             f.write('embedding size: {}\n'. format(self.embeddings.shape[1]))
             f.write('elapsed time: {}\n'.format(elapsed_time))
             f.write('time per image: {}\n'.format(elapsed_time/self.embeddings.shape[0]))
-            f.write('distance metric: {}\n'.format(self.metric))
+            f.write('distance metric: {}\n'.format(self.config.metric))
             f.write('\n')
             f.write(self.report.__repr__())
             f.write('\n')

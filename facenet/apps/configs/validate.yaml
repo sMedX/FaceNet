@@ -3,9 +3,6 @@
 # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
 model: None
 
-# Image size (height, width) in pixels.
-image_size: 160
-
 # Number of images to process in a batch
 batch_size: 100
 
@@ -34,5 +31,7 @@ image:
   standardization: true
   # Concatenates embeddings for the image and its horizontally flipped counterpart
   use_flipped_images: false
+  # Image size (height, width) in pixels.
+  size: 160
 
 
