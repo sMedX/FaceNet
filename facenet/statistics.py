@@ -201,14 +201,9 @@ class Report:
 
 class Validation:
     def __init__(self, embeddings, labels, config):
-                 # far_target=1e-3, nrof_folds=10,
-                 # metric=0):
         """
         :param embeddings:
         :param labels:
-        :param far_target: target false alarm rate (face pairs that was incorrectly classified as the same)
-        :param nrof_folds:
-        :param metric:
         """
 
         self.embeddings = embeddings

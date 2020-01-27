@@ -125,7 +125,4 @@ def evaluate(sess, enqueue_op, image_paths_placeholder, labels_placeholder, phas
 
     # Calculate metrics
     stats = Validation(embeddings, dbase.labels, config=args.validation)
-                       # far_target=args.validation.far_target,
-                       # nrof_folds=args.validation.nrof_folds,
-                       # metric=args.validation.metric)
     stats.write_report(elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())

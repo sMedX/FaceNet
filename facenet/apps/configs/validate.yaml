@@ -22,8 +22,11 @@ dataset:
 
 
 validation:
-  nrof_folds: 10            # Number of folds to use for cross validation. Mainly used for testing
-  metric: 0                 # Distance metric  0: euclidean, 1: cosine similarity
+  # Number of folds to use for cross validation. Mainly used for testing
+  nrof_folds: 10
+  # Distance metric  0: euclidean, 1: cosine similarity
+  metric: 0
+  # Target false alarm rate (face pairs that was incorrectly classified as the same)
   far_target: 0.001
 
 image:
