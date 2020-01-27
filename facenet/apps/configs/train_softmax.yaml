@@ -2,9 +2,9 @@
 
 dataset:
   # Directory with aligned face patches.
-  path: ~/datasets/vggface2/test_frcnnv3extracted_160
+  path: none
   # Path to h5 file with information about valid images.
-  h5file: None
+  h5file: none
   # Number of classes to download from data set
   nrof_classes: none
   # Maximal number of images to download from class
@@ -15,13 +15,13 @@ model:
   # module containing the definition of the inference graph.',
   module: facenet.models.inception_resnet_v1
   # Model config
-  config: None
-
-# Directory where to write trained models and checkpoints
-model_dir: ~/models/facenet/test
-
-# Directory where to write event logs
-log_dir: None
+  config: none
+  # Load a pretrained checkpoint before training starts.
+  pretrained_checkpoint: none
+  # Directory where to write trained models and checkpoints
+  model_dir: ~/models/facenet
+  # Directory where to write event logs
+  log_dir: None
 
 # Random seed
 seed: 0
@@ -32,16 +32,15 @@ validation_set_split_ratio: 0
 # Classes with fewer images will be removed from the validation set
 min_nrof_val_images_per_class: 0
 
-# Load a pretrained checkpoint before training starts.
-pretrained_checkpoint: None
-
 # Number of images to process in a batch.
 batch_size: 100
 
 # Number of batches per epoch.
 epoch:
-  size: 2            # Number of batches per epoch.
-  max_nrof_epochs: 2  # Maximal number of epochs to run
+  # Number of batches per epoch.
+  size: 1000
+  # Maximal number of epochs to run
+  max_nrof_epochs: 1000
 
 # Norm to use for prelogits norm loss.
 prelogits_norm_p: 1.0
@@ -65,8 +64,8 @@ learning_rate:
   decay_factor: 1.0
 
 moving_average_decay: 0.9999    # Exponential decay for tracking of training parameters
-log_histograms: False           # Enables logging of weight/bias histograms in tensorboard
 
+log_histograms: False           # Enables logging of weight/bias histograms in tensorboard
 
 gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process
 

@@ -8,13 +8,13 @@ batch_size: 100
 
 dataset:
   # Path to the data directory containing aligned face patches
-  path: None
+  path: none
   # Path to h5 file with information about valid images
-  h5file: None
+  h5file: none
   # Number of classes to download from data set
-  nrof_classes: None
+  nrof_classes: none
   # Maximal number of images to download from class
-  nrof_images: None
+  nrof_images: none
 
 validation:
   # Number of folds to use for cross validation. Mainly used for testing

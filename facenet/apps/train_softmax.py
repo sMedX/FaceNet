@@ -25,7 +25,7 @@
 
 import sys
 import click
-import pathlib
+from pathlib import Path
 import time
 from datetime import datetime
 import random
@@ -44,7 +44,7 @@ from facenet import dataset, lfw, ioutils, statistics, config, facenet
 
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__), type=pathlib.Path,
+@click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options of the application.')
 @click.option('--learning_rate', default=None, type=float,
               help='Learning rate value')
@@ -61,20 +61,20 @@ def main(**args_):
         args.learning_rate.value = args_['learning_rate']
 
     subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
-    args.model_dir = pathlib.Path(args.model_dir).expanduser().joinpath(subdir)
+    args.model.model_dir = Path(args.model.model_dir).expanduser().joinpath(subdir)
 
-    if args.log_dir is None:
-        args.log_dir = args.model_dir.joinpath('logs')
+    if args.model.log_dir is None:
+        args.model.log_dir = args.model.model_dir.joinpath('logs')
     else:
-        args.log_dir = pathlib.Path(args.log_dir).expanduser()
+        args.model.log_dir = Path(args.model.log_dir).expanduser()
 
-    stat_file_name = args.log_dir.joinpath('stat.h5')
+    stat_file_name = args.model.log_dir.joinpath('stat.h5')
 
     # Write arguments to a text file
-    ioutils.write_arguments(args, args.log_dir.joinpath('arguments.yaml'))
+    ioutils.write_arguments(args, args.model.log_dir.joinpath('arguments.yaml'))
 
     # store some git revision info in a text file in the log directory
-    ioutils.store_revision_info(args.log_dir, sys.argv)
+    ioutils.store_revision_info(args.model.log_dir, sys.argv)
 
     np.random.seed(seed=args.seed)
     random.seed(args.seed)
@@ -84,18 +84,6 @@ def main(**args_):
 
     train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
     nrof_classes = len(train_set)
-    
-    if args.pretrained_checkpoint is not None:
-        args.pretrained_checkpoint = pathlib.Path(args.pretrained_checkpoint).expanduser()
-    print('Pre-trained checkpoint: {}'.format(args.pretrained_checkpoint))
-
-    # if args.validation.dir:
-    #     print('LFW directory: {}'.format(args.validation.dir))
-    #     args.validation.dir = pathlib.Path(args.validation.dir).expanduser()
-    #     # read the file containing the pairs used for testing
-    #     pairs = lfw.read_pairs(args.validation.pairs)
-    #     # get the paths for the corresponding images
-    #     lfw_paths, actual_issame = lfw.get_paths(args.validation.dir, pairs)
 
     tf.reset_default_graph()
     tf.Graph().as_default()
@@ -199,14 +187,15 @@ def main(**args_):
         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        summary_writer = tf.summary.FileWriter(args.log_dir, sess.graph)
+        summary_writer = tf.summary.FileWriter(args.model.log_dir, sess.graph)
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
-            if args.pretrained_checkpoint is not None:
-                print('Restoring pre-trained model: {}'.format(args.pretrained_checkpoint))
-                saver.restore(sess, str(args.pretrained_checkpoint))
+            if args.model.pretrained_checkpoint is not None:
+                args.model.pretrained_checkpoint = Path(args.model.pretrained_checkpoint).expanduser()
+                print('Restoring pre-trained model: {}'.format(args.model.pretrained_checkpoint))
+                saver.restore(sess, str(args.model.pretrained_checkpoint))
 
             # Training and validation loop
             print('Running training')
@@ -253,25 +242,17 @@ def main(**args_):
                 stat['time_validate'][epoch-1] = time.time() - t
 
                 # Save variables and the metagraph if it doesn't exist already
-                save_variables_and_metagraph(sess, saver, summary_writer, args.model_dir, subdir, epoch)
-
-                # Evaluate on LFW
-                # t = time.time()
-                # if args.validation.dir:
-                #     evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-                #              batch_size_placeholder, control_placeholder, embeddings, label_batch, lfw_paths, actual_issame,
-                #              step, summary_writer, stat, epoch)
-                # stat['time_evaluate'][epoch-1] = time.time() - t
+                save_variables_and_metagraph(sess, saver, summary_writer, args.model.model_dir, subdir, epoch)
 
                 print('Saving statistics')
                 with h5py.File(stat_file_name, 'w') as f:
                     for key, value in stat.items():
                         f.create_dataset(key, data=value)
 
-    print('Model directory: %s' % args.model_dir)
-    print('Log directory: %s' % args.log_dir)
+    print('Model directory: {}'.format(args.model.model_dir))
+    print('Log directory: {}'.format(args.model.log_dir))
 
-    facenet.save_freeze_graph(model_dir=args.model_dir)
+    facenet.save_freeze_graph(model_dir=args.model.model_dir)
 
     # perform validation
     if args.validation is not None:
@@ -279,16 +260,16 @@ def main(**args_):
         dbase = dataset.DBase(config_.dataset)
         print(dbase)
 
-        emb = facenet.Embeddings(dbase, config_, model=args.model_dir)
+        emb = facenet.Embeddings(dbase, config_, model=args.model.model_dir)
         emb.evaluate()
         print(emb)
 
         stats = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
         stats.evaluate()
-        stats.write_report(path=args.model_dir, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
+        stats.write_report(path=args.model.model_dir, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
         print(stats)
 
-    return args.model_dir
+    return args.model.model_dir
 
 
 def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
