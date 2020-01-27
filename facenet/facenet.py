@@ -383,6 +383,7 @@ def load_model(model, input_map=None):
     # if it is a protobuf file with a frozen graph
 
     model_exp = pathlib.Path(model).expanduser()
+    print('load model: {}'.format(model))
 
     if model_exp.is_file():
         print('Model filename: {}'.format(model_exp))
