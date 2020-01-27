@@ -205,15 +205,17 @@ class Validation:
         :param embeddings:
         :param labels:
         """
-
+        self.report_file = None
         self.embeddings = embeddings
         self.labels = labels
         assert (embeddings.shape[0] == len(labels))
 
+        self.report = None
         self.config = config
 
-        thresholds = np.arange(0, 4, 0.01)
+        self.thresholds = np.arange(0, 4, 0.01)
 
+    def evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=False)
         indices = np.arange(len(self.labels))
 
@@ -225,38 +227,36 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=self.config.metric)
+            distances = DistanceCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
 
-            conf_matrix = ConfidenceMatrix(distances, thresholds)
+            conf_matrix = ConfidenceMatrix(distances, self.thresholds)
             self.report.append_fold('train', conf_matrix)
 
             # find the threshold that gives maximal accuracy
-            accuracy_threshold = thresholds[np.argmax(conf_matrix.accuracy)]
+            accuracy_threshold = self.thresholds[np.argmax(conf_matrix.accuracy)]
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
             far_threshold = 0.0
             if np.max(conf_matrix.fp_rates) >= self.config.far_target:
-                f = interpolate.interp1d(conf_matrix.fp_rates, thresholds, kind='slinear')
+                f = interpolate.interp1d(conf_matrix.fp_rates, self.thresholds, kind='slinear')
                 far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=self.config.metric)
+            distances = DistanceCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
 
             conf_matrix = ConfidenceMatrix(distances, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
-
-        print(self.report)
 
     def write_report(self, elapsed_time, args, file=None, dbase_info=None):
         if file is None:
             dir_name = pathlib.Path(args.model).expanduser()
             if dir_name.is_file():
                 dir_name = dir_name.parent
-            file = dir_name.joinpath('report.txt')
+            self.report_file = dir_name.joinpath('report.txt')
         else:
-            file = pathlib.Path(file).expanduser()
+            self.report_file = pathlib.Path(file).expanduser()
 
-        with file.open('at') as f:
+        with self.report_file.open('at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n'.format(utils.git_diff()))
@@ -271,7 +271,12 @@ class Validation:
             f.write(self.report.__repr__())
             f.write('\n')
 
-        print('Report has been printed to the file: {}'.format(file))
+    def __repr__(self):
+        """Representation of the database"""
+        info = 'class {}'.format(self.__class__.__name__) + '\n' + \
+               self.report.__repr__() + \
+               'Report has been written to the file: {}'.format(self.report_file)
+        return info
 
 
 class FalseExamples:

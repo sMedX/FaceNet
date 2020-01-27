@@ -38,7 +38,9 @@ def main(**args_):
     emb.evaluate()
 
     stats = statistics.Validation(emb.embeddings, dbase.labels, config=args.validation)
+    stats.evaluate()
     stats.write_report(emb.elapsed_time, args, file=args.report, dbase_info=dbase.__repr__())
+    print(stats)
 
 
 if __name__ == '__main__':
