@@ -18,10 +18,10 @@ dataset:
   path: None
   # Path to h5 file with information about valid images
   h5file: None
-  # Number of images to download from data set
-  nrof_images: None
   # Number of classes to download from data set
   nrof_classes: None
+  # Maximal number of images to download from class
+  nrof_images: None
 
 
 validation:
