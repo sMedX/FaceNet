@@ -42,6 +42,8 @@ from tensorflow.python.ops import array_ops
 import facenet
 from facenet import dataset, lfw, ioutils, statistics, config, facenet
 
+subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+
 
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
@@ -60,13 +62,8 @@ def main(**args_):
     if args_['learning_rate'] is not None:
         args.learning_rate.value = args_['learning_rate']
 
-    subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
-    args.model.model_dir = Path(args.model.model_dir).expanduser().joinpath(subdir)
-
-    if args.model.log_dir is None:
-        args.model.log_dir = args.model.model_dir.joinpath('logs')
-    else:
-        args.model.log_dir = Path(args.model.log_dir).expanduser()
+    args.model.path = Path(args.model.path).expanduser().joinpath(subdir)
+    args.model.log_dir = args.model.path.joinpath('logs')
 
     stat_file_name = args.model.log_dir.joinpath('stat.h5')
 
@@ -101,25 +98,24 @@ def main(**args_):
         # Create a queue that produces indices into the image_list and label_list 
         labels = ops.convert_to_tensor(label_list, dtype=tf.int32)
         range_size = array_ops.shape(labels)[0]
-        index_queue = tf.train.range_input_producer(range_size, num_epochs=None,
-                             shuffle=True, seed=None, capacity=32)
-        
+        index_queue = tf.train.range_input_producer(range_size, num_epochs=None, shuffle=True, seed=None, capacity=32)
         index_dequeue_op = index_queue.dequeue_many(args.batch_size*args.epoch.size, 'index_dequeue')
-        
-        batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
-        phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
-        image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
-        labels_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
-        control_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='control')
-        
+
+        placeholders = facenet.Placeholders()
+        placeholders.batch_size = tf.placeholder(tf.int32, name='batch_size')
+        placeholders.phase_train = tf.placeholder(tf.bool, name='phase_train')
+        placeholders.image_paths = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
+        placeholders.labels = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
+        placeholders.control = tf.placeholder(tf.int32, shape=(None, 1), name='control')
+        placeholders.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
         input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
-                                    dtypes=[tf.string, tf.int32, tf.int32],
-                                    shapes=[(1,), (1,), (1,)],
-                                    shared_name=None, name=None)
-        enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder, control_placeholder], name='enqueue_op')
+                                              dtypes=[tf.string, tf.int32, tf.int32],
+                                              shapes=[(1,), (1,), (1,)],
+                                              shared_name=None, name=None)
+        enqueue_op = input_queue.enqueue_many([placeholders.image_paths, placeholders.labels, placeholders.control], name='enqueue_op')
 
         image_size = (args.image.size, args.image.size)
-        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, args.nrof_preprocess_threads, batch_size_placeholder)
+        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, args.nrof_preprocess_threads, placeholders.batch_size)
 
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
@@ -135,7 +131,7 @@ def main(**args_):
         print('Building training graph')
         prelogits, _ = network.inference(image_batch,
                                          config=args.model.config,
-                                         phase_train=phase_train_placeholder)
+                                         phase_train=placeholders.phase_train)
 
         logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
                                       weights_initializer=slim.initializers.xavier_initializer(),
@@ -154,8 +150,7 @@ def main(**args_):
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.center_loss_factor)
 
         # define learning rate tensor
-        learning_rate_placeholder = tf.placeholder(tf.float32, name='learning_rate')
-        learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
+        learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
                                                    args.learning_rate.decay_epochs*args.epoch.size,
                                                    args.learning_rate.decay_factor, staircase=True)
         tf.summary.scalar('learning_rate', learning_rate)
@@ -224,35 +219,39 @@ def main(**args_):
                 step = sess.run(global_step, feed_dict=None)
                 # Train for one epoch
                 t = time.time()
-                cont = train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
-                    learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, global_step, 
-                    total_loss, train_op, summary_op, summary_writer, regularization_losses,
-                    stat, cross_entropy_mean, accuracy,
-                    prelogits, prelogits_center_loss, prelogits_norm, learning_rate)
+                cont = train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, global_step,
+                             total_loss, train_op, summary_op, summary_writer, regularization_losses,
+                             stat, cross_entropy_mean, accuracy, prelogits,
+                             prelogits_center_loss, prelogits_norm, learning_rate, placeholders)
                 stat['time_train'][epoch-1] = time.time() - t
                 
                 if not cont:
                     break
                   
                 t = time.time()
-                if len(val_image_list)>0 and ((epoch-1) % args.validate_every_n_epochs == args.validate_every_n_epochs-1 or epoch==args.max_nrof_epochs):
-                    validate(args, sess, epoch, val_image_list, val_label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
-                        phase_train_placeholder, batch_size_placeholder, 
-                        stat, total_loss, regularization_losses, cross_entropy_mean, accuracy, args.validate_every_n_epochs, args.image_standardization)
+                # if len(val_image_list)>0 and ((epoch-1) % args.validate_every_n_epochs == args.validate_every_n_epochs-1 or epoch==args.max_nrof_epochs):
+                #     validate(args, sess, epoch, val_image_list, val_label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
+                #         phase_train_placeholder, batch_size_placeholder,
+                #         stat, total_loss, regularization_losses, cross_entropy_mean, accuracy, args.validate_every_n_epochs, args.image_standardization)
                 stat['time_validate'][epoch-1] = time.time() - t
 
                 # Save variables and the metagraph if it doesn't exist already
-                save_variables_and_metagraph(sess, saver, summary_writer, args.model.model_dir, subdir, epoch)
+                save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, epoch)
 
+                t = time.time()
+                # if args.validation.dir:
+                #     evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder,
+                #              phase_train_placeholder,
+                #              batch_size_placeholder, control_placeholder, embeddings, label_batch,
+                #              lfw_paths, actual_issame, step, summary_writer, stat, epoch)
+
+                stat['time_evaluate'][epoch - 1] = time.time() - t
                 print('Saving statistics')
                 with h5py.File(stat_file_name, 'w') as f:
                     for key, value in stat.items():
                         f.create_dataset(key, data=value)
 
-    print('Model directory: {}'.format(args.model.model_dir))
-    print('Log directory: {}'.format(args.model.log_dir))
-
-    facenet.save_freeze_graph(model_dir=args.model.model_dir)
+    facenet.save_freeze_graph(model_dir=args.model.path)
 
     # perform validation
     if args.validation is not None:
@@ -260,23 +259,23 @@ def main(**args_):
         dbase = dataset.DBase(config_.dataset)
         print(dbase)
 
-        emb = facenet.Embeddings(dbase, config_, model=args.model.model_dir)
+        emb = facenet.Embeddings(dbase, config_, model=args.model.path)
         emb.evaluate()
         print(emb)
 
         stats = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
         stats.evaluate()
-        stats.write_report(path=args.model.model_dir, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
+        stats.write_report(path=args.model.path, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
         print(stats)
 
-    return args.model.model_dir
+    print('Model has been saved to the directory: {}'.format(args.model.path))
+    return args.model.path
 
 
-def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, image_paths_placeholder, labels_placeholder,
-      learning_rate_placeholder, phase_train_placeholder, batch_size_placeholder, control_placeholder, step, 
-      loss, train_op, summary_op, summary_writer, reg_losses,
-      stat, cross_entropy_mean, accuracy, 
-      prelogits, prelogits_center_loss, prelogits_norm, learning_rate):
+def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op,
+          step, loss, train_op, summary_op, summary_writer, reg_losses, stat, cross_entropy_mean, accuracy,
+          prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
+
     batch_number = 0
     
     if args.learning_rate.value > 0.0:
@@ -300,13 +299,14 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
                     facenet.FIXED_STANDARDIZATION * args.image.standardization
 
     control_array = np.ones_like(labels_array) * control_value
-    sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
+    sess.run(enqueue_op, {placeholders.image_paths: image_paths_array,
+                          placeholders.labels: labels_array, placeholders.control: control_array})
 
     # Training loop
     train_time = 0
     while batch_number < args.epoch.size:
         start_time = time.time()
-        feed_dict = {learning_rate_placeholder: lr, phase_train_placeholder:True, batch_size_placeholder:args.batch_size}
+        feed_dict = {placeholders.learning_rate: lr, placeholders.phase_train: True, placeholders.batch_size: args.batch_size}
         tensor_list = [loss, train_op, step, reg_losses, prelogits, cross_entropy_mean, learning_rate, prelogits_norm, accuracy, prelogits_center_loss]
         if batch_number % 100 == 0:
             loss_, _, step_, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_, summary_str = sess.run(tensor_list + [summary_op], feed_dict=feed_dict)
@@ -329,9 +329,9 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
               (epoch, batch_number+1, args.epoch.size, duration, loss_, cross_entropy_mean_, np.sum(reg_losses_), accuracy_, lr_, center_loss_))
         batch_number += 1
         train_time += duration
-    # Add validation loss and accuracy to summary
+
+    # add validation loss and accuracy to summary
     summary = tf.Summary()
-    #pylint: disable=maybe-no-member
     summary.value.add(tag='time/total', simple_value=train_time)
     summary_writer.add_summary(summary, global_step=step_)
     return True
@@ -466,7 +466,7 @@ def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_n
     summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
     summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
     summary_writer.add_summary(summary, step)
-  
+
 
 if __name__ == '__main__':
     main()

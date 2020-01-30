@@ -41,6 +41,15 @@ import pathlib
 from facenet import utils
 
 
+class Placeholders:
+    batch_size = None
+    phase_train = None
+    image_paths = None
+    labels = None
+    control = None
+    learning_rate = None
+
+
 def triplet_loss(anchor, positive, negative, alpha):
     """Calculate the triplet loss according to the FaceNet paper
     
@@ -60,7 +69,7 @@ def triplet_loss(anchor, positive, negative, alpha):
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
       
     return loss
-  
+
 def center_loss(features, label, alfa, nrof_classes):
     """Center loss based on the paper "A Discriminative Feature Learning Approach for Deep Face Recognition"
        (http://ydwen.github.io/papers/WenECCV16.pdf)
