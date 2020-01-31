@@ -19,7 +19,7 @@ model:
   # Load a pretrained checkpoint before training starts.
   pretrained_checkpoint: none
   # Directory where to write trained models and checkpoints
-  model_dir: ~/models/facenet
+  model_dir: ~/models/facenet/softmax
   # Directory where to write event logs
   log_dir: None
 
@@ -90,9 +90,6 @@ nrof_preprocess_threads: 4 # Number of preprocessing (data loading and augmentat
 
 # Config for validation
 validation:
-  # Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-  model: None
-
   # Number of images to process in a batch
   batch_size: 100
 
