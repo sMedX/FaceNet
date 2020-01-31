@@ -187,10 +187,10 @@ def main(**args_):
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
-            if args.model.pretrained_checkpoint is not None:
-                args.model.pretrained_checkpoint = Path(args.model.pretrained_checkpoint).expanduser()
-                print('Restoring pre-trained model: {}'.format(args.model.pretrained_checkpoint))
-                saver.restore(sess, str(args.model.pretrained_checkpoint))
+            if args.model.checkpoint is not None:
+                args.model.checkpoint = Path(args.model.checkpoint).expanduser()
+                print('Restoring pre-trained model: {}'.format(args.model.checkpoint))
+                saver.restore(sess, str(args.model.checkpoint))
 
             # Training and validation loop
             print('Running training')

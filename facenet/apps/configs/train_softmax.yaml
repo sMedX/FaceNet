@@ -1,14 +1,13 @@
 # coding:utf-8
 
 dataset:
-  # Directory with aligned face patches.
-  path: none
+  path: ~/datasets/vggface2/test_frcnnv3extracted_160
   # Path to h5 file with information about valid images.
   h5file: none
   # Number of classes to download from data set
-  nrof_classes: none
+  nrof_classes: 5
   # Maximal number of images to download from class
-  nrof_images: none
+  nrof_images: 5
 
 # Model definition
 model:
@@ -17,7 +16,7 @@ model:
   # Model config
   config: none
   # Load a pretrained checkpoint before training starts.
-  pretrained_checkpoint: none
+  checkpoint: none
   # Directory where to write trained models and checkpoints
   path: ~/models/facenet/softmax
 
@@ -36,7 +35,7 @@ batch_size: 100
 # Number of batches per epoch.
 epoch:
   # Number of batches per epoch.
-  size: 1000
+  size: 2
   # Maximal number of epochs to run
   max_nrof_epochs: 1000
 
@@ -60,9 +59,9 @@ learning_rate:
   decay_factor: 1.0
   # Learning rate schedule that is used when value is none
   schedule:
-    - [100, 0.5]
-    - [200, 0.005]
-    - [300, 0.0005]
+    - [2, 0.05]
+    - [5, 0.005]
+    - [6, 0.0005]
 
 moving_average_decay: 0.9999    # Exponential decay for tracking of training parameters
 
