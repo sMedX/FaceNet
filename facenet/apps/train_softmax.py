@@ -215,9 +215,10 @@ def main(**args_):
                 'prelogits_hist': np.zeros((args.epoch.max_nrof_epochs, 1000), np.float32),
               }
 
-            for epoch in range(1, args.epoch.max_nrof_epochs + 1):
+            for epoch in range(args.epoch.max_nrof_epochs):
                 step = sess.run(global_step, feed_dict=None)
-                # Train for one epoch
+
+                # train for one epoch
                 t = time.time()
                 cont = train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, global_step,
                              total_loss, train_op, summary_op, summary_writer, regularization_losses,
@@ -245,14 +246,14 @@ def main(**args_):
                 #              batch_size_placeholder, control_placeholder, embeddings, label_batch,
                 #              lfw_paths, actual_issame, step, summary_writer, stat, epoch)
 
-                stat['time_evaluate'][epoch - 1] = time.time() - t
+                stat['time_evaluate'][epoch] = time.time() - t
                 print('Saving statistics')
                 with h5py.File(stat_file_name, 'w') as f:
                     for key, value in stat.items():
                         f.create_dataset(key, data=value)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
-
+    exit(0)
     # perform validation
     if args.validation is not None:
         config_ = args.validation
@@ -277,14 +278,10 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
           prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
 
     batch_number = 0
-    
-    if args.learning_rate.value > 0.0:
-        lr = args.learning_rate.value
-    else:
-        lr = facenet.get_learning_rate_from_file(args.learning_rate.schedule_file, epoch)
-        
-    if lr <= 0:
-        return False 
+
+    lr = facenet.learning_rate_value(epoch, args.learning_rate)
+    if lr is None:
+        return False
 
     index_epoch = sess.run(index_dequeue_op)
     label_epoch = np.array(label_list)[index_epoch]
@@ -322,11 +319,18 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
         stat['prelogits_norm'][step_-1] = prelogits_norm_
         stat['learning_rate'][epoch-1] = lr_
         stat['accuracy'][step_-1] = accuracy_
-        stat['prelogits_hist'][epoch-1,:] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max), bins=1000, range=(0.0, args.prelogits_hist_max))[0]
+        stat['prelogits_hist'][epoch-1, :] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max), bins=1000, range=(0.0, args.prelogits_hist_max))[0]
         
         duration = time.time() - start_time
-        print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f\tXent %2.3f\tRegLoss %2.3f\tAccuracy %2.3f\tLr %2.5f\tCl %2.3f' %
-              (epoch, batch_number+1, args.epoch.size, duration, loss_, cross_entropy_mean_, np.sum(reg_losses_), accuracy_, lr_, center_loss_))
+        info = 'Epoch: [{}][{}/{}]\tTime {:.3f}\t'.format(epoch, batch_number+1, args.epoch.size, duration) + \
+               'Loss {:2.3f}\t'.format(loss_, cross_entropy_mean_) + \
+               'Xent {:2.3f}\t'.format(cross_entropy_mean_) + \
+               'RegLoss {:2.3f}\t'.format(np.sum(reg_losses_)) + \
+               'Accuracy {:2.3f}\t'.format(accuracy_) + \
+               'Lr {:2.5f}\t'.format(lr_) + \
+               'Center loss {:2.3f}'.format(center_loss_)
+        print(info)
+
         batch_number += 1
         train_time += duration
 

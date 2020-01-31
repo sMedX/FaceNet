@@ -759,19 +759,19 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
 
 def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
     # save the model checkpoint
-    print('saving variables')
     start_time = time.time()
     checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
     saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
     save_time_variables = time.time() - start_time
+    print('saving checkpoint: ', checkpoint_path)
 
     metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
 
     if not metagraph_filename.exists():
-        print('saving metagraph')
         start_time = time.time()
         saver.export_meta_graph(str(metagraph_filename))
         save_time_metagraph = time.time() - start_time
+        print('saving meta graph: ', metagraph_filename)
     else:
         save_time_metagraph = 0
 
@@ -811,6 +811,18 @@ def save_freeze_graph(model_dir, output_file=None):
         with tf.gfile.GFile(str(output_file), 'wb') as f:
             f.write(output_graph_def.SerializeToString())
         print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
+
+
+def learning_rate_value(epoch, config):
+    if config.value is not None:
+        return config.value
+
+    if epoch >= config.schedule[-1][0]:
+        return None
+
+    for (epoch_, lr_) in config.schedule:
+        if epoch < epoch_:
+            return lr_
 
 
 class Embeddings:
