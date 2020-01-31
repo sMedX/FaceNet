@@ -192,7 +192,7 @@ def main(**args_):
                 train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
                       batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                       input_queue, global_step, embeddings, total_loss, train_op, summary_op, summary_writer,
-                      args.learning_rate.schedule_file, args.model.config.embedding_size, anchor, positive, negative, triplet_loss)
+                      args.model.config.embedding_size, anchor, positive, negative, triplet_loss)
 
                 # Save variables and the metagraph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, step)
@@ -226,14 +226,12 @@ def main(**args_):
 
 def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
           batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, input_queue, global_step,
-          embeddings, loss, train_op, summary_op, summary_writer, learning_rate_schedule_file,
-          embedding_size, anchor, positive, negative, triplet_loss):
+          embeddings, loss, train_op, summary_op, summary_writer, embedding_size, anchor, positive, negative, triplet_loss):
     batch_number = 0
 
-    if args.learning_rate.value > 0.0:
-        lr = args.learning_rate.value
-    else:
-        lr = facenet.get_learning_rate_from_file(args.learning_rate.schedule_file, epoch)
+    lr = facenet.learning_rate_value(epoch, args.learning_rate)
+    if lr is None:
+        return False
 
     while batch_number < args.epoch.size:
         # Sample people randomly from the dataset

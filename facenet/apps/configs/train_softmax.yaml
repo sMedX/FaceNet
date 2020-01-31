@@ -51,7 +51,7 @@ optimizer: ADAM
 
 # learning rate value or schedule file
 learning_rate:
-  # Initial learning rate. If set to a none a learning rate schedule can be specified in the file learning_rate_schedule.txt
+  # Initial learning rate value
   value: none
   # Number of epochs between learning rate decay
   decay_epochs: 100
