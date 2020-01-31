@@ -757,6 +757,30 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
+def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
+    # save the model checkpoint
+    print('saving variables')
+    start_time = time.time()
+    checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
+    saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
+    save_time_variables = time.time() - start_time
+
+    metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
+
+    if not metagraph_filename.exists():
+        print('saving metagraph')
+        start_time = time.time()
+        saver.export_meta_graph(str(metagraph_filename))
+        save_time_metagraph = time.time() - start_time
+    else:
+        save_time_metagraph = 0
+
+    summary = tf.Summary()
+    summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
+    summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
+    summary_writer.add_summary(summary, step)
+
+
 def save_freeze_graph(model_dir, output_file=None):
     if output_file is None:
         output_file = model_dir.joinpath(model_dir.name + '.pb')
