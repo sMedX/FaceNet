@@ -19,9 +19,7 @@ model:
   # Load a pretrained checkpoint before training starts.
   pretrained_checkpoint: none
   # Directory where to write trained models and checkpoints
-  model_dir: ~/models/facenet/softmax
-  # Directory where to write event logs
-  log_dir: None
+  path: ~/models/facenet/softmax
 
 # Random seed
 seed: 0
@@ -54,14 +52,17 @@ optimizer: ADAM
 
 # learning rate value or schedule file
 learning_rate:
-  # Initial learning rate. If set to a negative value a learning rate schedule can be specified in the file learning_rate_schedule.txt
-  value: -1
-  # File containing the learning rate schedule that is used when learning_rate is set to to -1
-  schedule_file: data/learning_rate_schedule.txt
+  # Initial learning rate. If set to a none a learning rate schedule can be specified in the file learning_rate_schedule.txt
+  value: none
   # Number of epochs between learning rate decay
   decay_epochs: 100
   # Learning rate decay factor
   decay_factor: 1.0
+  # Learning rate schedule that is used when value is none
+  schedule:
+    - [100, 0.5]
+    - [200, 0.005]
+    - [300, 0.0005]
 
 moving_average_decay: 0.9999    # Exponential decay for tracking of training parameters
 
