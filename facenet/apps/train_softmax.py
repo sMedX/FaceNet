@@ -235,8 +235,8 @@ def main(**args_):
                 #         stat, total_loss, regularization_losses, cross_entropy_mean, accuracy, args.validate_every_n_epochs, args.image_standardization)
                 stat['time_validate'][epoch-1] = time.time() - t
 
-                # Save variables and the metagraph if it doesn't exist already
-                save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, epoch)
+                # save variables and the metagraph if it doesn't exist already
+                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, epoch)
 
                 t = time.time()
                 # if args.validation.dir:
@@ -444,28 +444,6 @@ def evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder
         f.write('%d\t%.5f\t%.5f\n' % (step, np.mean(accuracy), val))
     stat['lfw_accuracy'][epoch-1] = np.mean(accuracy)
     stat['lfw_valrate'][epoch-1] = val
-
-
-def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
-    # Save the model checkpoint
-    print('Saving variables')
-    start_time = time.time()
-    checkpoint_path = model_dir.joinpath('model-%s.ckpt' % model_name)
-    saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
-    save_time_variables = time.time() - start_time
-    print('Variables saved in %.2f seconds' % save_time_variables)
-    metagraph_filename = model_dir.joinpath('model-%s.meta' % model_name)
-    save_time_metagraph = 0  
-    if not metagraph_filename.exists():
-        print('Saving metagraph')
-        start_time = time.time()
-        saver.export_meta_graph(str(metagraph_filename))
-        save_time_metagraph = time.time() - start_time
-        print('Metagraph saved in %.2f seconds' % save_time_metagraph)
-    summary = tf.Summary()
-    summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
-    summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
-    summary_writer.add_summary(summary, step)
 
 
 if __name__ == '__main__':
