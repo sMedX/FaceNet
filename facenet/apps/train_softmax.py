@@ -189,7 +189,7 @@ def main(**args_):
         with sess.as_default():
             if args.model.checkpoint is not None:
                 args.model.checkpoint = Path(args.model.checkpoint).expanduser()
-                print('Restoring pre-trained model: {}'.format(args.model.checkpoint))
+                print('Restoring pre-trained model: {}'.format(str(args.model.checkpoint)))
                 saver.restore(sess, str(args.model.checkpoint))
 
             # Training and validation loop
