@@ -235,7 +235,7 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
               (nrof_random_negs, nrof_triplets, selection_time))
 
         # Perform training on the selected triplets
-        nrof_batches = int(np.ceil(nrof_triplets * 3 / args_.batch_size))
+        nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
         triplet_paths = list(itertools.chain(*triplets))
         labels_array = np.reshape(np.arange(len(triplet_paths)), (-1, 3))
         triplet_paths_array = np.reshape(np.expand_dims(np.array(triplet_paths), 1), (-1, 3))
@@ -249,7 +249,7 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
         step = 0
         while i < nrof_batches:
             start_time = time.time()
-            batch_size = min(nrof_examples - i * args_.batch_size, args_.batch_size)
+            batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size, learning_rate_placeholder: lr,
                          phase_train_placeholder: True}
             err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch],
