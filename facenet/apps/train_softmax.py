@@ -27,7 +27,6 @@ import sys
 import click
 from pathlib import Path
 import time
-from datetime import datetime
 import random
 import numpy as np
 import importlib
@@ -39,7 +38,6 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-import facenet
 from facenet import dataset, lfw, ioutils, statistics, config, facenet
 
 subdir = config.subdir()
