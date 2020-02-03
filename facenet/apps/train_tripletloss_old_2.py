@@ -23,10 +23,10 @@ FaceNet: A Unified Embedding for Face Recognition and Clustering: http://arxiv.o
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from pathlib import Path
-import os.path
-import time
 import sys
+import click
+from pathlib import Path
+import time
 import tensorflow as tf
 import numpy as np
 import importlib
@@ -34,13 +34,18 @@ import itertools
 import argparse
 from tensorflow.python.ops import data_flow_ops
 
-from facenet import dataset, ioutils, config, facenet, facenet_old
+from facenet import dataset, ioutils, config, facenet
 
 subdir = config.subdir()
 
 
-def main(args_):
-    args = config.YAMLConfig(args_.config)
+@click.command()
+@click.option('--config', default=config.default_app_config(__file__), type=Path,
+              help='Path to yaml config file with used options of the application.')
+@click.option('--learning_rate', default=None, type=float,
+              help='Learning rate value')
+def main(**args_):
+    args = config.YAMLConfig(args_['config'])
 
     # import network
     print('import model \'{}\''.format(args.model.module))
@@ -496,4 +501,4 @@ def parse_arguments(argv):
 
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+    main()
