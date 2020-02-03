@@ -191,7 +191,7 @@ def main(args_):
                       args_.embedding_size, anchor, positive, negative, triplet_loss)
 
                 # Save variables and the metagraph if it doesn't exist already
-                save_variables_and_metagraph(sess, saver, summary_writer, model_dir, subdir, step)
+                save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, step)
 
                 # Evaluate on LFW
                 # if args.lfw_dir:
@@ -203,31 +203,31 @@ def main(args_):
     return args.model.path
 
 
-def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+def train(args_, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
           batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, input_queue,
           global_step,
           embeddings, loss, train_op, summary_op, summary_writer, learning_rate_schedule_file,
           embedding_size, anchor, positive, negative, triplet_loss):
     batch_number = 0
 
-    if args.learning_rate > 0.0:
-        lr = args.learning_rate
+    if args_.learning_rate > 0.0:
+        lr = args_.learning_rate
     else:
         lr = facenet_old.get_learning_rate_from_file(learning_rate_schedule_file, epoch)
-    while batch_number < args.epoch_size:
+    while batch_number < args_.epoch_size:
         # Sample people randomly from the dataset
-        image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
+        image_paths, num_per_class = sample_people(dataset, args_.people_per_batch, args_.images_per_person)
 
         print('Running forward pass on sampled images: ', end='')
         start_time = time.time()
-        nrof_examples = args.people_per_batch * args.images_per_person
+        nrof_examples = args_.people_per_batch * args_.images_per_person
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
         image_paths_array = np.reshape(np.expand_dims(np.array(image_paths), 1), (-1, 3))
         sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
         emb_array = np.zeros((nrof_examples, embedding_size))
-        nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
+        nrof_batches = int(np.ceil(nrof_examples / args_.batch_size))
         for i in range(nrof_batches):
-            batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
+            batch_size = min(nrof_examples - i * args_.batch_size, args_.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
                                                                        learning_rate_placeholder: lr,
                                                                        phase_train_placeholder: True})
@@ -237,13 +237,13 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         # Select triplets based on the embeddings
         print('Selecting suitable triplets for training')
         triplets, nrof_random_negs, nrof_triplets = select_triplets(emb_array, num_per_class,
-                                                                    image_paths, args.people_per_batch, args.alpha)
+                                                                    image_paths, args_.people_per_batch, args_.alpha)
         selection_time = time.time() - start_time
         print('(nrof_random_negs, nrof_triplets) = (%d, %d): time=%.3f seconds' %
               (nrof_random_negs, nrof_triplets, selection_time))
 
         # Perform training on the selected triplets
-        nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
+        nrof_batches = int(np.ceil(nrof_triplets * 3 / args_.batch_size))
         triplet_paths = list(itertools.chain(*triplets))
         labels_array = np.reshape(np.arange(len(triplet_paths)), (-1, 3))
         triplet_paths_array = np.reshape(np.expand_dims(np.array(triplet_paths), 1), (-1, 3))
@@ -257,7 +257,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         step = 0
         while i < nrof_batches:
             start_time = time.time()
-            batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
+            batch_size = min(nrof_examples - i * args_.batch_size, args_.batch_size)
             feed_dict = {batch_size_placeholder: batch_size, learning_rate_placeholder: lr,
                          phase_train_placeholder: True}
             err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch],
@@ -266,7 +266,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             loss_array[i] = err
             duration = time.time() - start_time
             print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f' %
-                  (epoch, batch_number + 1, args.epoch_size, duration, err))
+                  (epoch, batch_number + 1, args_.epoch_size, duration, err))
             batch_number += 1
             i += 1
             train_time += duration
