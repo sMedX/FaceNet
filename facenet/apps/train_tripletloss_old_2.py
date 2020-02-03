@@ -133,8 +133,8 @@ def main(args_):
         triplet_loss = facenet.triplet_loss(anchor, positive, negative, args_.alpha)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
-                                                   args_.learning_rate_decay_epochs * args_.epoch_size,
-                                                   args_.learning_rate_decay_factor, staircase=True)
+                                                   args.learning_rate.decay_epochs * args.epoch.size,
+                                                   args.learning_rate.decay_factor, staircase=True)
         tf.summary.scalar('learning_rate', learning_rate)
 
         # Calculate the total losses
