@@ -55,9 +55,10 @@ def main(args):
     # Write arguments to a text file
     facenet_old.write_arguments_to_file(args, os.path.join(log_dir, 'arguments.txt'))
 
-    # Store some git revision info in a text file in the log directory
-    src_path, _ = os.path.split(os.path.realpath(__file__))
-    facenet_old.store_revision_info(src_path, log_dir, ' '.join(sys.argv))
+    # store some git revision info in a text file in the log directory
+    # src_path, _ = os.path.split(os.path.realpath(__file__))
+    # facenet_old.store_revision_info(src_path, log_dir, ' '.join(sys.argv))
+    ioutils.store_revision_info(log_dir, sys.argv)
 
     np.random.seed(seed=args.seed)
     train_set = facenet_old.get_dataset(args.data_dir)
