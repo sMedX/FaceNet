@@ -183,7 +183,7 @@ def main(**args_):
                     break
 
                 # Save variables and the metagraph if it doesn't exist already
-                save_variables_and_metagraph(sess, saver, summary_writer, model_dir, subdir, step)
+                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, step)
 
                 # Evaluate on LFW
                 # if args.lfw_dir:
@@ -192,7 +192,25 @@ def main(**args_):
                 #              actual_issame, args.batch_size,
                 #              args.lfw_nrof_folds, log_dir, step, summary_writer, args.embedding_size)
 
-    return model_dir
+    facenet.save_freeze_graph(model_dir=args.model.path)
+
+    # perform validation
+    if args.validation is not None:
+        config_ = args.validation
+        dbase = dataset.DBase(config_.dataset)
+        print(dbase)
+
+        emb = facenet.Embeddings(dbase, config_, model=args.model.path)
+        emb.evaluate()
+        print(emb)
+
+        stats = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
+        stats.evaluate()
+        stats.write_report(path=args.model.path, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
+        print(stats)
+
+    print('Model has been saved to the directory: {}'.format(args.model.path))
+    return args.model.path
 
 
 def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,

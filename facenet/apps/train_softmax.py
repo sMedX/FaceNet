@@ -253,7 +253,7 @@ def main(**args_):
                         f.create_dataset(key, data=value)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
-    exit(0)
+
     # perform validation
     if args.validation is not None:
         config_ = args.validation
