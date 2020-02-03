@@ -51,22 +51,13 @@ def main(args_):
     args.model.path = Path(args.model.path).expanduser().joinpath(subdir)
     args.model.log_dir = args.model.path.joinpath('logs')
 
-    # network = importlib.import_module(args_.model_def)
-    # log_dir = os.path.join(os.path.expanduser(args_.logs_base_dir), subdir)
-    # if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
-    #     os.makedirs(log_dir)
-    # model_dir = os.path.join(os.path.expanduser(args_.models_base_dir), subdir)
-    # if not os.path.isdir(model_dir):  # Create the model directory if it doesn't exist
-    #     os.makedirs(model_dir)
-
-    # Write arguments to a text file
-    # facenet_old.write_arguments_to_file(args_, os.path.join(log_dir, 'arguments.txt'))
+    # write arguments to a text file
     ioutils.write_arguments(args, args.model.log_dir.joinpath('arguments.yaml'))
 
     # store some git revision info in a text file in the log directory
     ioutils.store_revision_info(args.model.log_dir, sys.argv)
 
-    np.random.seed(seed=args_.seed)
+    np.random.seed(seed=args.seed)
 
     train_set = dataset.DBase(args.dataset)
     print(train_set)
@@ -84,7 +75,7 @@ def main(args_):
     #     lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
 
     with tf.Graph().as_default():
-        tf.set_random_seed(args_.seed)
+        tf.set_random_seed(args.seed)
         global_step = tf.Variable(0, trainable=False)
 
         # Placeholder for the learning rate
@@ -127,7 +118,7 @@ def main(args_):
         image_batch, labels_batch = tf.train.batch_join(
             images_and_labels, batch_size=batch_size_placeholder,
             shapes=[(args.image.size, args.image.size, 3), ()], enqueue_many=True,
-            capacity=4 * nrof_preprocess_threads * args_.batch_size,
+            capacity=4 * nrof_preprocess_threads * args.batch_size,
             allow_smaller_final_batch=True)
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
