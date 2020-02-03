@@ -39,6 +39,8 @@ subdir = config.subdir()
 
 
 def main(args):
+    conf = config.YAMLConfig(args.config)
+
     network = importlib.import_module(args.model_def)
     log_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
     if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
@@ -56,11 +58,7 @@ def main(args):
     np.random.seed(seed=args.seed)
 
     # train_set = facenet_old.get_dataset(args.data_dir)
-    args.dataset.path = args.data_dir
-    args.dataset.h5file = None
-    args.dataset.nrof_classes = None
-    args.dataset.nrof_images = None
-    train_set = dataset.DBase(args.dataset)
+    train_set = dataset.DBase(conf.dataset)
     print(train_set)
 
     print('Model directory: %s' % model_dir)
