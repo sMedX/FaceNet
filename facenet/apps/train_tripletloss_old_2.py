@@ -206,13 +206,13 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
     if lr is None:
         return False
 
-    while batch_number < args_.epoch_size:
+    while batch_number < args.epoch_size:
         # Sample people randomly from the dataset
-        image_paths, num_per_class = sample_people(dataset, args_.people_per_batch, args_.images_per_person)
+        image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
         print('Running forward pass on sampled images: ', end='')
         start_time = time.time()
-        nrof_examples = args_.people_per_batch * args_.images_per_person
+        nrof_examples = args.people_per_batch * args.images_per_person
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
         image_paths_array = np.reshape(np.expand_dims(np.array(image_paths), 1), (-1, 3))
         sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
@@ -229,7 +229,7 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
         # Select triplets based on the embeddings
         print('Selecting suitable triplets for training')
         triplets, nrof_random_negs, nrof_triplets = select_triplets(emb_array, num_per_class,
-                                                                    image_paths, args_.people_per_batch, args_.alpha)
+                                                                    image_paths, args.people_per_batch, args.alpha)
         selection_time = time.time() - start_time
         print('(nrof_random_negs, nrof_triplets) = (%d, %d): time=%.3f seconds' %
               (nrof_random_negs, nrof_triplets, selection_time))
@@ -258,7 +258,7 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
             loss_array[i] = err
             duration = time.time() - start_time
             print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f' %
-                  (epoch, batch_number + 1, args_.epoch_size, duration, err))
+                  (epoch, batch_number + 1, args.epoch_size, duration, err))
             batch_number += 1
             i += 1
             train_time += duration
