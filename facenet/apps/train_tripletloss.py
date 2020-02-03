@@ -68,7 +68,7 @@ def main(**args_):
     print(train_set)
 
     from facenet import facenet_old
-    train_set = facenet_old.get_dataset(args.dataset.path)
+    train_set = facenet_old.get_dataset(str(args.dataset.path))
 
     # if args.lfw_dir:
     #     print('LFW directory: %s' % args.lfw_dir)
