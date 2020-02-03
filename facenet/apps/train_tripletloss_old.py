@@ -39,7 +39,7 @@ import argparse
 from tensorflow.python.ops import data_flow_ops
 from six.moves import xrange  # @UnresolvedImport
 
-from facenet import facenet_old
+from facenet import ioutils, facenet, facenet_old
 
 
 def main(args):
@@ -131,7 +131,7 @@ def main(args):
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
         # Split embeddings into anchor, positive and negative and calculate triplet loss
         anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.embedding_size]), 3, 1)
-        triplet_loss = facenet_old.triplet_loss(anchor, positive, negative, args.alpha)
+        triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
                                                    args.learning_rate_decay_epochs * args.epoch_size,
