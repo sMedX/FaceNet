@@ -3,7 +3,7 @@ FaceNet: A Unified Embedding for Face Recognition and Clustering: http://arxiv.o
 """
 # MIT License
 #
-# Copyright (c) 2016 David Sandberg
+# Copyright (c) 2019 sMedX
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -38,13 +38,13 @@ import itertools
 import argparse
 from tensorflow.python.ops import data_flow_ops
 
-from facenet import ioutils, facenet, facenet_old
+from facenet import ioutils, config, facenet, facenet_old
+
+subdir = config.subdir()
 
 
 def main(args):
     network = importlib.import_module(args.model_def)
-
-    subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
     log_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
     if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
         os.makedirs(log_dir)
@@ -56,8 +56,6 @@ def main(args):
     facenet_old.write_arguments_to_file(args, os.path.join(log_dir, 'arguments.txt'))
 
     # store some git revision info in a text file in the log directory
-    # src_path, _ = os.path.split(os.path.realpath(__file__))
-    # facenet_old.store_revision_info(src_path, log_dir, ' '.join(sys.argv))
     ioutils.store_revision_info(log_dir, sys.argv)
 
     np.random.seed(seed=args.seed)
