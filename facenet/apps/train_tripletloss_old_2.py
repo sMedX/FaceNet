@@ -171,9 +171,9 @@ def main(args_):
 
             # Training and validation loop
             epoch = 0
-            while epoch < args_.max_nrof_epochs:
+            while epoch < args.epoch.max_nrof_epochs:
                 step = sess.run(global_step, feed_dict=None)
-                epoch = step // args_.epoch_size
+                epoch = step // args.epoch.size
                 # Train for one epoch
                 train(args_, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
                       batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
