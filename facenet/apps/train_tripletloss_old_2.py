@@ -142,8 +142,8 @@ def main(args_):
         total_loss = tf.add_n([triplet_loss] + regularization_losses, name='total_loss')
 
         # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train(total_loss, global_step, args_.optimizer,
-                                 learning_rate, args_.moving_average_decay, tf.global_variables())
+        train_op = facenet.train(total_loss, global_step, args.optimizer,
+                                 learning_rate, args.moving_average_decay, tf.global_variables())
 
         # Create a saver
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
@@ -152,7 +152,7 @@ def main(args_):
         summary_op = tf.summary.merge_all()
 
         # Start running operations on the Graph.
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args_.gpu_memory_fraction)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
         # Initialize variables
@@ -165,9 +165,9 @@ def main(args_):
 
         with sess.as_default():
 
-            if args_.pretrained_model:
-                print('Restoring pretrained model: %s' % args_.pretrained_model)
-                saver.restore(sess, os.path.expanduser(args_.pretrained_model))
+            # if args_.pretrained_model:
+            #     print('Restoring pretrained model: %s' % args_.pretrained_model)
+            #     saver.restore(sess, os.path.expanduser(args_.pretrained_model))
 
             # Training and validation loop
             epoch = 0
@@ -175,11 +175,11 @@ def main(args_):
                 step = sess.run(global_step, feed_dict=None)
                 epoch = step // args.epoch.size
                 # Train for one epoch
-                train(args, args_, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+                train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
                       batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                       input_queue, global_step,
                       embeddings, total_loss, train_op, summary_op, summary_writer,
-                      args_.embedding_size, anchor, positive, negative, triplet_loss)
+                      anchor, positive, negative, triplet_loss)
 
                 # Save variables and the metagraph if it doesn't exist already
                 save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, step)
@@ -194,11 +194,11 @@ def main(args_):
     return args.model.path
 
 
-def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
           batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, input_queue,
           global_step,
           embeddings, loss, train_op, summary_op, summary_writer,
-          embedding_size, anchor, positive, negative, triplet_loss):
+          anchor, positive, negative, triplet_loss):
 
     batch_number = 0
     embedding_size = int(embeddings.get_shape()[1])
