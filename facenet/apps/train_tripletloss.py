@@ -178,11 +178,14 @@ def main(**args_):
                 step = sess.run(global_step, feed_dict=None)
                 epoch = step // args.epoch.size
                 # Train for one epoch
-                train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
-                      batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
-                      input_queue, global_step,
-                      embeddings, total_loss, train_op, summary_op, summary_writer,
-                      anchor, positive, negative, triplet_loss)
+                cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+                             batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
+                             input_queue, global_step,
+                             embeddings, total_loss, train_op, summary_op, summary_writer,
+                             anchor, positive, negative, triplet_loss)
+
+                if not cont:
+                    break
 
                 # Save variables and the metagraph if it doesn't exist already
                 save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, step)
@@ -291,7 +294,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         # pylint: disable=maybe-no-member
         summary.value.add(tag='time/selection', simple_value=selection_time)
         summary_writer.add_summary(summary, step)
-    return step
+    return True
 
 
 def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_batch, alpha):
