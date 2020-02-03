@@ -285,12 +285,12 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
     #  latter is a form of hard-negative mining, but it is not as aggressive (and much cheaper) than
     #  choosing the maximally violating example, as often done in structured output learning.
 
-    for i in xrange(people_per_batch):
+    for i in range(people_per_batch):
         nrof_images = int(nrof_images_per_class[i])
-        for j in xrange(1, nrof_images):
+        for j in range(1, nrof_images):
             a_idx = emb_start_idx + j - 1
             neg_dists_sqr = np.sum(np.square(embeddings[a_idx] - embeddings), 1)
-            for pair in xrange(j, nrof_images):  # For every possible positive pair.
+            for pair in range(j, nrof_images):  # For every possible positive pair.
                 p_idx = emb_start_idx + pair
                 pos_dist_sqr = np.sum(np.square(embeddings[a_idx] - embeddings[p_idx]))
                 neg_dists_sqr[emb_start_idx:emb_start_idx + nrof_images] = np.NaN
