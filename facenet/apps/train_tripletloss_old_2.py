@@ -175,7 +175,7 @@ def main(args_):
                 step = sess.run(global_step, feed_dict=None)
                 epoch = step // args.epoch.size
                 # Train for one epoch
-                train(args_, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+                train(args, args_, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
                       batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                       input_queue, global_step,
                       embeddings, total_loss, train_op, summary_op, summary_writer, args_.learning_rate_schedule_file,
@@ -194,17 +194,21 @@ def main(args_):
     return args.model.path
 
 
-def train(args_, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
           batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, input_queue,
           global_step,
           embeddings, loss, train_op, summary_op, summary_writer, learning_rate_schedule_file,
           embedding_size, anchor, positive, negative, triplet_loss):
     batch_number = 0
 
-    if args_.learning_rate > 0.0:
-        lr = args_.learning_rate
-    else:
-        lr = facenet_old.get_learning_rate_from_file(learning_rate_schedule_file, epoch)
+    # if args_.learning_rate > 0.0:
+    #     lr = args_.learning_rate
+    # else:
+    #     lr = facenet_old.get_learning_rate_from_file(learning_rate_schedule_file, epoch)
+    lr = facenet.learning_rate_value(epoch, args.learning_rate)
+    if lr is None:
+        return False
+
     while batch_number < args_.epoch_size:
         # Sample people randomly from the dataset
         image_paths, num_per_class = sample_people(dataset, args_.people_per_batch, args_.images_per_person)
