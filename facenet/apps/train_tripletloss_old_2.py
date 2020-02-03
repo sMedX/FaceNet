@@ -39,33 +39,32 @@ from facenet import dataset, ioutils, config, facenet, facenet_old
 subdir = config.subdir()
 
 
-def main(args):
-    conf = config.YAMLConfig(args.config)
+def main(args_):
+    args = config.YAMLConfig(args_.config)
 
-    network = importlib.import_module(args.model_def)
-    log_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
+    network = importlib.import_module(args_.model_def)
+    log_dir = os.path.join(os.path.expanduser(args_.logs_base_dir), subdir)
     if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
         os.makedirs(log_dir)
-    model_dir = os.path.join(os.path.expanduser(args.models_base_dir), subdir)
+    model_dir = os.path.join(os.path.expanduser(args_.models_base_dir), subdir)
     if not os.path.isdir(model_dir):  # Create the model directory if it doesn't exist
         os.makedirs(model_dir)
 
     # Write arguments to a text file
-    facenet_old.write_arguments_to_file(args, os.path.join(log_dir, 'arguments.txt'))
+    facenet_old.write_arguments_to_file(args_, os.path.join(log_dir, 'arguments.txt'))
 
     # store some git revision info in a text file in the log directory
     ioutils.store_revision_info(log_dir, sys.argv)
 
-    np.random.seed(seed=args.seed)
+    np.random.seed(seed=args_.seed)
 
-    # train_set = facenet_old.get_dataset(args.data_dir)
-    train_set = dataset.DBase(conf.dataset)
+    train_set = dataset.DBase(args.dataset)
     print(train_set)
 
     print('Model directory: %s' % model_dir)
     print('Log directory: %s' % log_dir)
-    if args.pretrained_model:
-        print('Pre-trained model: %s' % os.path.expanduser(args.pretrained_model))
+    if args_.pretrained_model:
+        print('Pre-trained model: %s' % os.path.expanduser(args_.pretrained_model))
 
     # if args.lfw_dir:
     #     print('LFW directory: %s' % args.lfw_dir)
@@ -75,7 +74,7 @@ def main(args):
     #     lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
 
     with tf.Graph().as_default():
-        tf.set_random_seed(args.seed)
+        tf.set_random_seed(args_.seed)
         global_step = tf.Variable(0, trainable=False)
 
         # Placeholder for the learning rate
@@ -88,7 +87,7 @@ def main(args):
         image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 3), name='image_paths')
         labels_placeholder = tf.placeholder(tf.int64, shape=(None, 3), name='labels')
 
-        input_queue = data_flow_ops.FIFOQueue(capacity=1000000,
+        input_queue = data_flow_ops.FIFOQueue(capacity=train_set.nrof_images,
                                               dtypes=[tf.string, tf.int64],
                                               shapes=[(3,), (3,)],
                                               shared_name=None, name=None)
@@ -103,22 +102,22 @@ def main(args):
                 file_contents = tf.read_file(filename)
                 image = tf.image.decode_image(file_contents, channels=3)
 
-                if args.random_crop:
-                    image = tf.random_crop(image, [args.image_size, args.image_size, 3])
+                if args_.random_crop:
+                    image = tf.random_crop(image, [args_.image_size, args_.image_size, 3])
                 else:
-                    image = tf.image.resize_image_with_crop_or_pad(image, args.image_size, args.image_size)
-                if args.random_flip:
+                    image = tf.image.resize_image_with_crop_or_pad(image, args_.image_size, args_.image_size)
+                if args_.random_flip:
                     image = tf.image.random_flip_left_right(image)
 
                 # pylint: disable=no-member
-                image.set_shape((args.image_size, args.image_size, 3))
+                image.set_shape((args_.image_size, args_.image_size, 3))
                 images.append(tf.image.per_image_standardization(image))
             images_and_labels.append([images, label])
 
         image_batch, labels_batch = tf.train.batch_join(
             images_and_labels, batch_size=batch_size_placeholder,
-            shapes=[(args.image_size, args.image_size, 3), ()], enqueue_many=True,
-            capacity=4 * nrof_preprocess_threads * args.batch_size,
+            shapes=[(args_.image_size, args_.image_size, 3), ()], enqueue_many=True,
+            capacity=4 * nrof_preprocess_threads * args_.batch_size,
             allow_smaller_final_batch=True)
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
@@ -129,12 +128,12 @@ def main(args):
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
         # Split embeddings into anchor, positive and negative and calculate triplet loss
-        anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.embedding_size]), 3, 1)
-        triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
+        anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args_.embedding_size]), 3, 1)
+        triplet_loss = facenet.triplet_loss(anchor, positive, negative, args_.alpha)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
-                                                   args.learning_rate_decay_epochs * args.epoch_size,
-                                                   args.learning_rate_decay_factor, staircase=True)
+                                                   args_.learning_rate_decay_epochs * args_.epoch_size,
+                                                   args_.learning_rate_decay_factor, staircase=True)
         tf.summary.scalar('learning_rate', learning_rate)
 
         # Calculate the total losses
@@ -142,8 +141,8 @@ def main(args):
         total_loss = tf.add_n([triplet_loss] + regularization_losses, name='total_loss')
 
         # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train(total_loss, global_step, args.optimizer,
-                                 learning_rate, args.moving_average_decay, tf.global_variables())
+        train_op = facenet.train(total_loss, global_step, args_.optimizer,
+                                 learning_rate, args_.moving_average_decay, tf.global_variables())
 
         # Create a saver
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
@@ -152,7 +151,7 @@ def main(args):
         summary_op = tf.summary.merge_all()
 
         # Start running operations on the Graph.
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args_.gpu_memory_fraction)
         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
         # Initialize variables
@@ -165,21 +164,21 @@ def main(args):
 
         with sess.as_default():
 
-            if args.pretrained_model:
-                print('Restoring pretrained model: %s' % args.pretrained_model)
-                saver.restore(sess, os.path.expanduser(args.pretrained_model))
+            if args_.pretrained_model:
+                print('Restoring pretrained model: %s' % args_.pretrained_model)
+                saver.restore(sess, os.path.expanduser(args_.pretrained_model))
 
             # Training and validation loop
             epoch = 0
-            while epoch < args.max_nrof_epochs:
+            while epoch < args_.max_nrof_epochs:
                 step = sess.run(global_step, feed_dict=None)
-                epoch = step // args.epoch_size
+                epoch = step // args_.epoch_size
                 # Train for one epoch
-                train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+                train(args_, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
                       batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                       input_queue, global_step,
-                      embeddings, total_loss, train_op, summary_op, summary_writer, args.learning_rate_schedule_file,
-                      args.embedding_size, anchor, positive, negative, triplet_loss)
+                      embeddings, total_loss, train_op, summary_op, summary_writer, args_.learning_rate_schedule_file,
+                      args_.embedding_size, anchor, positive, negative, triplet_loss)
 
                 # Save variables and the metagraph if it doesn't exist already
                 save_variables_and_metagraph(sess, saver, summary_writer, model_dir, subdir, step)
