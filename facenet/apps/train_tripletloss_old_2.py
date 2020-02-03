@@ -317,7 +317,7 @@ def sample_people(dataset, people_per_batch, images_per_person):
     nrof_images = people_per_batch * images_per_person
 
     # Sample classes from the dataset
-    nrof_classes = len(dataset)
+    nrof_classes = dataset.nrof_classes
     class_indices = np.arange(nrof_classes)
     np.random.shuffle(class_indices)
 
