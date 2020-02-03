@@ -42,7 +42,7 @@ from tensorflow.python.ops import array_ops
 import facenet
 from facenet import dataset, lfw, ioutils, statistics, config, facenet
 
-subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+subdir = config.subdir()
 
 
 @click.command()

@@ -3,9 +3,14 @@ __author__ = 'Ruslan N. Kosarev'
 
 import oyaml as yaml
 import pathlib
+from datetime import datetime
 
 src_dir = pathlib.Path(__file__).parents[1]
 file_extension = '.png'
+
+
+def subdir():
+    return datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 
 
 def default_app_config(apps_file_name):
