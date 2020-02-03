@@ -67,8 +67,8 @@ def main(**args_):
     train_set = dataset.DBase(args.dataset)
     print(train_set)
 
-    # from facenet import facenet_old
-    # train_set = facenet_old.get_dataset(args.dataset.path)
+    from facenet import facenet_old
+    train_set = facenet_old.get_dataset(args.dataset.path)
 
     # if args.lfw_dir:
     #     print('LFW directory: %s' % args.lfw_dir)
@@ -88,7 +88,7 @@ def main(**args_):
         image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 3), name='image_paths')
         labels_placeholder = tf.placeholder(tf.int64, shape=(None, 3), name='labels')
 
-        input_queue = data_flow_ops.FIFOQueue(capacity=train_set.nrof_images,
+        input_queue = data_flow_ops.FIFOQueue(capacity=10000000,
                                               dtypes=[tf.string, tf.int64],
                                               shapes=[(3,), (3,)],
                                               shared_name=None, name=None)
@@ -295,6 +295,7 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
     emb_start_idx = 0
     num_trips = 0
     triplets = []
+    from six.moves import xrange  # @UnresolvedImport
 
     # VGG Face: Choosing good triplets is crucial and should strike a balance between
     #  selecting informative (i.e. challenging) examples and swamping training with examples that
@@ -303,12 +304,12 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
     #  latter is a form of hard-negative mining, but it is not as aggressive (and much cheaper) than
     #  choosing the maximally violating example, as often done in structured output learning.
 
-    for i in range(people_per_batch):
+    for i in xrange(people_per_batch):
         nrof_images = int(nrof_images_per_class[i])
-        for j in range(1, nrof_images):
+        for j in xrange(1, nrof_images):
             a_idx = emb_start_idx + j - 1
             neg_dists_sqr = np.sum(np.square(embeddings[a_idx] - embeddings), 1)
-            for pair in range(j, nrof_images):  # For every possible positive pair.
+            for pair in xrange(j, nrof_images):  # For every possible positive pair.
                 p_idx = emb_start_idx + pair
                 pos_dist_sqr = np.sum(np.square(embeddings[a_idx] - embeddings[p_idx]))
                 neg_dists_sqr[emb_start_idx:emb_start_idx + nrof_images] = np.NaN
@@ -335,7 +336,7 @@ def sample_people(dataset, people_per_batch, images_per_person):
     nrof_images = people_per_batch * images_per_person
 
     # Sample classes from the dataset
-    nrof_classes = dataset.nrof_classes
+    nrof_classes = len(dataset)
     class_indices = np.arange(nrof_classes)
     np.random.shuffle(class_indices)
 
@@ -346,12 +347,12 @@ def sample_people(dataset, people_per_batch, images_per_person):
     # Sample images from these classes until we have enough
     while len(image_paths) < nrof_images:
         class_index = class_indices[i]
-        nrof_images_in_class = dataset.classes[class_index].nrof_images
+        nrof_images_in_class = len(dataset[class_index])
         image_indices = np.arange(nrof_images_in_class)
         np.random.shuffle(image_indices)
         nrof_images_from_class = min(nrof_images_in_class, images_per_person, nrof_images - len(image_paths))
         idx = image_indices[0:nrof_images_from_class]
-        image_paths_for_class = [dataset.classes[class_index].files[j] for j in idx]
+        image_paths_for_class = [dataset[class_index].image_paths[j] for j in idx]
         sampled_class_indices += [class_index] * nrof_images_from_class
         image_paths += image_paths_for_class
         num_per_class.append(nrof_images_from_class)
@@ -401,43 +402,6 @@ def evaluate(sess, image_paths, embeddings, labels_batch, image_paths_placeholde
     summary_writer.add_summary(summary, step)
     with open(os.path.join(log_dir, 'lfw_result.txt'), 'at') as f:
         f.write('%d\t%.5f\t%.5f\n' % (step, np.mean(accuracy), val))
-
-
-def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
-    # Save the model checkpoint
-    print('Saving variables')
-    start_time = time.time()
-    checkpoint_path = os.path.join(model_dir, 'model-%s.ckpt' % model_name)
-    saver.save(sess, checkpoint_path, global_step=step, write_meta_graph=False)
-    save_time_variables = time.time() - start_time
-    print('Variables saved in %.2f seconds' % save_time_variables)
-    metagraph_filename = os.path.join(model_dir, 'model-%s.meta' % model_name)
-    save_time_metagraph = 0
-    if not os.path.exists(metagraph_filename):
-        print('Saving metagraph')
-        start_time = time.time()
-        saver.export_meta_graph(metagraph_filename)
-        save_time_metagraph = time.time() - start_time
-        print('Metagraph saved in %.2f seconds' % save_time_metagraph)
-    summary = tf.Summary()
-    # pylint: disable=maybe-no-member
-    summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
-    summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
-    summary_writer.add_summary(summary, step)
-
-
-def get_learning_rate_from_file(filename, epoch):
-    with open(filename, 'r') as f:
-        for line in f.readlines():
-            line = line.split('#', 1)[0]
-            if line:
-                par = line.strip().split(':')
-                e = int(par[0])
-                lr = float(par[1])
-                if e <= epoch:
-                    learning_rate = lr
-                else:
-                    return learning_rate
 
 
 if __name__ == '__main__':
