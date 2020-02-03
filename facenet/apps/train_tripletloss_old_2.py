@@ -42,29 +42,39 @@ subdir = config.subdir()
 def main(args_):
     args = config.YAMLConfig(args_.config)
 
-    network = importlib.import_module(args_.model_def)
-    log_dir = os.path.join(os.path.expanduser(args_.logs_base_dir), subdir)
-    if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
-        os.makedirs(log_dir)
-    model_dir = os.path.join(os.path.expanduser(args_.models_base_dir), subdir)
-    if not os.path.isdir(model_dir):  # Create the model directory if it doesn't exist
-        os.makedirs(model_dir)
+    # import network
+    print('import model \'{}\''.format(args.model.module))
+    network = importlib.import_module(args.model.module)
+    if args.model.config is None:
+        args.model.update_from_file(network.config_file)
+
+    args.model.path = Path(args.model.path).expanduser().joinpath(subdir)
+    args.model.log_dir = args.model.path.joinpath('logs')
+
+    # network = importlib.import_module(args_.model_def)
+    # log_dir = os.path.join(os.path.expanduser(args_.logs_base_dir), subdir)
+    # if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
+    #     os.makedirs(log_dir)
+    # model_dir = os.path.join(os.path.expanduser(args_.models_base_dir), subdir)
+    # if not os.path.isdir(model_dir):  # Create the model directory if it doesn't exist
+    #     os.makedirs(model_dir)
 
     # Write arguments to a text file
-    facenet_old.write_arguments_to_file(args_, os.path.join(log_dir, 'arguments.txt'))
+    # facenet_old.write_arguments_to_file(args_, os.path.join(log_dir, 'arguments.txt'))
+    ioutils.write_arguments(args, args.model.log_dir.joinpath('arguments.yaml'))
 
     # store some git revision info in a text file in the log directory
-    ioutils.store_revision_info(log_dir, sys.argv)
+    ioutils.store_revision_info(args.model.log_dir, sys.argv)
 
     np.random.seed(seed=args_.seed)
 
     train_set = dataset.DBase(args.dataset)
     print(train_set)
 
-    print('Model directory: %s' % model_dir)
-    print('Log directory: %s' % log_dir)
-    if args_.pretrained_model:
-        print('Pre-trained model: %s' % os.path.expanduser(args_.pretrained_model))
+    # print('Model directory: %s' % model_dir)
+    # print('Log directory: %s' % log_dir)
+    # if args_.pretrained_model:
+    #     print('Pre-trained model: %s' % os.path.expanduser(args_.pretrained_model))
 
     # if args.lfw_dir:
     #     print('LFW directory: %s' % args.lfw_dir)
