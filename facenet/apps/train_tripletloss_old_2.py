@@ -206,7 +206,7 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
     if lr is None:
         return False
 
-    while batch_number < args.epoch_size:
+    while batch_number < args.epoch.size:
         # Sample people randomly from the dataset
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
@@ -258,7 +258,7 @@ def train(args, args_, sess, dataset, epoch, image_paths_placeholder, labels_pla
             loss_array[i] = err
             duration = time.time() - start_time
             print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f' %
-                  (epoch, batch_number + 1, args.epoch_size, duration, err))
+                  (epoch, batch_number + 1, args.epoch.size, duration, err))
             batch_number += 1
             i += 1
             train_time += duration
