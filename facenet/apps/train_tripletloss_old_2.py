@@ -23,6 +23,7 @@ FaceNet: A Unified Embedding for Face Recognition and Clustering: http://arxiv.o
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from pathlib import Path
 import os.path
 import time
 import sys
@@ -480,6 +481,7 @@ def parse_arguments(argv):
     parser.add_argument('--learning_rate_schedule_file', type=str,
                         help='File containing the learning rate schedule that is used when learning_rate is set to to -1.',
                         default='data/learning_rate_schedule.txt')
+    parser.add_argument('--config', type=Path, default='train_tripletloss.yaml')
 
     # Parameters for validation on LFW
     parser.add_argument('--lfw_pairs', type=str,
