@@ -103,20 +103,20 @@ def main(args_):
                 image = tf.image.decode_image(file_contents, channels=3)
 
                 if args_.random_crop:
-                    image = tf.random_crop(image, [args_.image_size, args_.image_size, 3])
+                    image = tf.random_crop(image, [args.image.size, args.image.size, 3])
                 else:
-                    image = tf.image.resize_image_with_crop_or_pad(image, args_.image_size, args_.image_size)
+                    image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
                 if args_.random_flip:
                     image = tf.image.random_flip_left_right(image)
 
                 # pylint: disable=no-member
-                image.set_shape((args_.image_size, args_.image_size, 3))
+                image.set_shape((args.image.size, args.image.size, 3))
                 images.append(tf.image.per_image_standardization(image))
             images_and_labels.append([images, label])
 
         image_batch, labels_batch = tf.train.batch_join(
             images_and_labels, batch_size=batch_size_placeholder,
-            shapes=[(args_.image_size, args_.image_size, 3), ()], enqueue_many=True,
+            shapes=[(args.image.size, args.image.size, 3), ()], enqueue_many=True,
             capacity=4 * nrof_preprocess_threads * args_.batch_size,
             allow_smaller_final_batch=True)
         image_batch = tf.identity(image_batch, 'image_batch')
