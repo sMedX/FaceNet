@@ -168,7 +168,7 @@ def main(args_):
         sess.run(tf.global_variables_initializer(), feed_dict={phase_train_placeholder: True})
         sess.run(tf.local_variables_initializer(), feed_dict={phase_train_placeholder: True})
 
-        summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
+        summary_writer = tf.summary.FileWriter(args.model.log_dir, sess.graph)
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
@@ -200,7 +200,7 @@ def main(args_):
                 #              actual_issame, args.batch_size,
                 #              args.lfw_nrof_folds, log_dir, step, summary_writer, args.embedding_size)
 
-    return model_dir
+    return args.model.path
 
 
 def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
