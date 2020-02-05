@@ -114,8 +114,13 @@ def main(**args_):
                 if args.image.random_flip:
                     image = tf.image.random_flip_left_right(image)
 
-                image.set_shape((args.image.size, args.image.size, 3))
-                images.append(tf.image.per_image_standardization(image))
+                # image.set_shape((args.image.size, args.image.size, 3))
+                if args.image.standardization:
+                    image = (tf.cast(image, tf.float32) - 127.5) / 128.0
+                else:
+                    image = tf.image.per_image_standardization(image)
+
+                images.append(image)
             images_and_labels.append([images, label])
 
         image_batch, labels_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size_placeholder,
