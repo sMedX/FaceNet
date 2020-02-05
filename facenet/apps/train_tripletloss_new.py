@@ -98,39 +98,44 @@ def main(**args_):
                                               shared_name=None, name=None)
         enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder])
 
-        nrof_preprocess_threads = 4
-        images_and_labels = []
-        for _ in range(nrof_preprocess_threads):
-            filenames, label = input_queue.dequeue()
-            images = []
-            for filename in tf.unstack(filenames):
-                file_contents = tf.read_file(filename)
-                image = tf.image.decode_image(file_contents, channels=3)
+        image_size = (args.image.size, args.image.size)
+        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, args.nrof_preprocess_threads,
+                                                                 batch_size_placeholder)
 
-                if args.image.random_crop:
-                    image = tf.random_crop(image, [args.image.size, args.image.size, 3])
-                else:
-                    image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
-                if args.image.random_flip:
-                    image = tf.image.random_flip_left_right(image)
+        # nrof_preprocess_threads = 4
+        # images_and_labels = []
+        # for _ in range(nrof_preprocess_threads):
+        #     filenames, label = input_queue.dequeue()
+        #     images = []
+        #     for filename in tf.unstack(filenames):
+        #         file_contents = tf.read_file(filename)
+        #         image = tf.image.decode_image(file_contents, channels=3)
+        #
+        #         if args.image.random_crop:
+        #             image = tf.random_crop(image, [args.image.size, args.image.size, 3])
+        #         else:
+        #             image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
+        #         if args.image.random_flip:
+        #             image = tf.image.random_flip_left_right(image)
+        #
+        #         image.set_shape((args.image.size, args.image.size, 3))
+        #         images.append(tf.image.per_image_standardization(image))
+        #     images_and_labels.append([images, label])
 
-                image.set_shape((args.image.size, args.image.size, 3))
-                images.append(tf.image.per_image_standardization(image))
-            images_and_labels.append([images, label])
-
-        image_batch, labels_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size_placeholder,
-                                                        shapes=[(args.image.size, args.image.size, 3), ()], enqueue_many=True,
-                                                        capacity=4 * nrof_preprocess_threads * args.batch_size,
-                                                        allow_smaller_final_batch=True)
+        # image_batch, labels_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size_placeholder,
+        #                                                 shapes=[(args.image.size, args.image.size, 3), ()], enqueue_many=True,
+        #                                                 capacity=4 * nrof_preprocess_threads * args.batch_size,
+        #                                                 allow_smaller_final_batch=True)
 
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
-        labels_batch = tf.identity(labels_batch, 'label_batch')
+        label_batch = tf.identity(label_batch, 'label_batch')
 
         # Build the inference graph
         prelogits, _ = network.inference(image_batch, phase_train=phase_train_placeholder)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
+
         # Split embeddings into anchor, positive and negative and calculate triplet loss
         anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size]), 3, 1)
         triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
@@ -175,7 +180,7 @@ def main(**args_):
                 step = sess.run(global_step, feed_dict=None)
                 epoch = step // args.epoch.size
                 # Train for one epoch
-                cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+                cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
                              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                              input_queue, global_step,
                              embeddings, total_loss, train_op, summary_op, summary_writer,
