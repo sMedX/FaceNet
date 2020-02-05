@@ -284,10 +284,10 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     labels_array = np.expand_dims(np.array(label_epoch), 1)
     image_paths_array = np.expand_dims(np.array(image_epoch), 1)
 
-    control_value = facenet.RANDOM_ROTATE * args.image.random_rotate + \
-                    facenet.RANDOM_CROP * args.image.random_crop + \
-                    facenet.RANDOM_FLIP * args.image.random_flip + \
-                    facenet.FIXED_STANDARDIZATION * args.image.standardization
+    control_value = (facenet.RANDOM_ROTATE * args.image.random_rotate +
+                     facenet.RANDOM_CROP * args.image.random_crop +
+                     facenet.RANDOM_FLIP * args.image.random_flip +
+                     facenet.FIXED_STANDARDIZATION * args.image.standardization)
 
     control_array = np.ones_like(labels_array) * control_value
     sess.run(enqueue_op, {placeholders.image_paths: image_paths_array,
@@ -299,9 +299,6 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
 
     for batch_number in range(args.epoch.size):
         start_time = time.time()
-        feed_dict = {placeholders.learning_rate: lr,
-                     placeholders.phase_train: True,
-                     placeholders.batch_size: args.batch_size}
 
         tensor_list = [loss, train_op, step, reg_losses, prelogits, cross_entropy_mean, learning_rate, prelogits_norm, accuracy, prelogits_center_loss]
 
