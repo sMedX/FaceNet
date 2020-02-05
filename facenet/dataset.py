@@ -12,9 +12,7 @@ class ImageClass:
     def __init__(self, name, files, count=None):
         self.name = name
         self.count = count
-
         self.files = [str(f) for f in files]
-        self.files.sort()
 
     def __str__(self):
         return self.name + ', ' + str(self.nrof_images) + ' images'
