@@ -167,10 +167,10 @@ def main(**args_):
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
-
-            # if args_.pretrained_model:
-            #     print('Restoring pretrained model: %s' % args_.pretrained_model)
-            #     saver.restore(sess, os.path.expanduser(args_.pretrained_model))
+            if args.model.checkpoint:
+                args.model.checkpoint = Path(args.model.checkpoint).expanduser()
+                print('Restoring pre-trained model: {}'.format(str(args.model.checkpoint)))
+                saver.restore(sess, str(args.model.checkpoint))
 
             # Training and validation loop
             epoch = 0
@@ -283,15 +283,12 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             emb_array[lab, :] = emb
             loss_array[i] = err
             duration = time.time() - start_time
-            print('Epoch: [%d][%d/%d]\tTime %.3f\tLoss %2.3f' %
-                  (epoch, batch_number + 1, args.epoch.size, duration, err))
+            print('Epoch: [{}][{}/{}]\tTime {}\tLoss {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
             batch_number += 1
             i += 1
             train_time += duration
             summary.value.add(tag='loss', simple_value=err)
 
-        # Add validation loss and accuracy to summary
-        # pylint: disable=maybe-no-member
         summary.value.add(tag='time/selection', simple_value=selection_time)
         summary_writer.add_summary(summary, step)
     return True
