@@ -272,8 +272,6 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
           step, loss, train_op, summary_op, summary_writer, reg_losses, stat, cross_entropy_mean, accuracy,
           prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
 
-    batch_number = 0
-
     lr = facenet.learning_rate_value(epoch, args.learning_rate)
     if lr is None:
         return False
@@ -283,8 +281,9 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     image_epoch = np.array(image_list)[index_epoch]
     
     # Enqueue one epoch of image paths and labels
-    labels_array = np.expand_dims(np.array(label_epoch),1)
-    image_paths_array = np.expand_dims(np.array(image_epoch),1)
+    labels_array = np.expand_dims(np.array(label_epoch), 1)
+    image_paths_array = np.expand_dims(np.array(image_epoch), 1)
+
     control_value = facenet.RANDOM_ROTATE * args.image.random_rotate + \
                     facenet.RANDOM_CROP * args.image.random_crop + \
                     facenet.RANDOM_FLIP * args.image.random_flip + \
@@ -292,14 +291,20 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
 
     control_array = np.ones_like(labels_array) * control_value
     sess.run(enqueue_op, {placeholders.image_paths: image_paths_array,
-                          placeholders.labels: labels_array, placeholders.control: control_array})
+                          placeholders.labels: labels_array,
+                          placeholders.control: control_array})
 
     # Training loop
     train_time = 0
-    while batch_number < args.epoch.size:
+
+    for batch_number in range(args.epoch.size):
         start_time = time.time()
-        feed_dict = {placeholders.learning_rate: lr, placeholders.phase_train: True, placeholders.batch_size: args.batch_size}
+        feed_dict = {placeholders.learning_rate: lr,
+                     placeholders.phase_train: True,
+                     placeholders.batch_size: args.batch_size}
+
         tensor_list = [loss, train_op, step, reg_losses, prelogits, cross_entropy_mean, learning_rate, prelogits_norm, accuracy, prelogits_center_loss]
+
         if batch_number % 100 == 0:
             loss_, _, step_, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_, summary_str = sess.run(tensor_list + [summary_op], feed_dict=feed_dict)
             summary_writer.add_summary(summary_str, global_step=step_)
@@ -307,6 +312,8 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
             loss_, _, step_, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_ = sess.run(tensor_list, feed_dict=feed_dict)
          
         duration = time.time() - start_time
+        train_time += duration
+
         stat['loss'][step_-1] = loss_
         stat['center_loss'][step_-1] = center_loss_
         stat['reg_loss'][step_-1] = np.sum(reg_losses_)
@@ -315,19 +322,15 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
         stat['learning_rate'][epoch-1] = lr_
         stat['accuracy'][step_-1] = accuracy_
         stat['prelogits_hist'][epoch-1, :] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max), bins=1000, range=(0.0, args.prelogits_hist_max))[0]
-        
-        duration = time.time() - start_time
-        info = 'Epoch: [{}][{}/{}]\tTime {:.3f}\t'.format(epoch, batch_number+1, args.epoch.size, duration) + \
-               'Loss {:2.3f}\t'.format(loss_, cross_entropy_mean_) + \
-               'Xent {:2.3f}\t'.format(cross_entropy_mean_) + \
-               'RegLoss {:2.3f}\t'.format(np.sum(reg_losses_)) + \
-               'Accuracy {:2.3f}\t'.format(accuracy_) + \
-               'Lr {:2.5f}\t'.format(lr_) + \
-               'Center loss {:2.3f}'.format(center_loss_)
-        print(info)
 
-        batch_number += 1
-        train_time += duration
+        print('Epoch: [{}][{}/{}]\t'.format(epoch, batch_number+1, args.epoch.size) +
+              'Time {:.3f}\t'.format(duration) +
+              'Loss {:2.3f}\t'.format(loss_) +
+              'Xent {:2.3f}\t'.format(cross_entropy_mean_) +
+              'RegLoss {:2.3f}\t'.format(np.sum(reg_losses_)) +
+              'Accuracy {:2.3f}\t'.format(accuracy_) +
+              'Lr {:2.5f}\t'.format(lr_) +
+              'Center loss {:2.3f}'.format(center_loss_))
 
     # add validation loss and accuracy to summary
     summary = tf.Summary()
