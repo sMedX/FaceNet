@@ -167,10 +167,7 @@ def main(**args_):
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
-            if args.model.checkpoint:
-                args.model.checkpoint = Path(args.model.checkpoint).expanduser()
-                print('Restoring pre-trained model: {}'.format(str(args.model.checkpoint)))
-                saver.restore(sess, str(args.model.checkpoint))
+            facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             # Training and validation loop
             epoch = 0
@@ -283,7 +280,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             emb_array[lab, :] = emb
             loss_array[i] = err
             duration = time.time() - start_time
-            print('Epoch: [{}][{}/{}]\tTime {}\tLoss {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
+            print('Epoch: [{}][{}/{}] Time: {} Loss: {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
             batch_number += 1
             i += 1
             train_time += duration

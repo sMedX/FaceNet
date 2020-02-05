@@ -50,6 +50,13 @@ class Placeholders:
     learning_rate = None
 
 
+def restore_checkpoint(saver, session, path):
+    if path is not None:
+        path = pathlib.Path(path)
+        print('Restoring pre-trained model: {}'.format(path))
+        saver.restore(session, str(path))
+
+
 def triplet_loss(anchor, positive, negative, alpha):
     """Calculate the triplet loss according to the FaceNet paper
     
