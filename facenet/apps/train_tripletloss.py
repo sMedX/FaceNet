@@ -111,10 +111,10 @@ def main(**args_):
                     image = tf.random_crop(image, [args.image.size, args.image.size, 3])
                 else:
                     image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
+
                 if args.image.random_flip:
                     image = tf.image.random_flip_left_right(image)
 
-                # image.set_shape((args.image.size, args.image.size, 3))
                 if args.image.standardization:
                     image = (tf.cast(image, tf.float32) - 127.5) / 128.0
                 else:
