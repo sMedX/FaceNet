@@ -123,14 +123,15 @@ def main(**args_):
                 images.append(image)
             images_and_labels.append([images, label])
 
-        image_batch, labels_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size_placeholder,
-                                                        shapes=[(args.image.size, args.image.size, 3), ()], enqueue_many=True,
-                                                        capacity=4 * nrof_preprocess_threads * args.batch_size,
-                                                        allow_smaller_final_batch=True)
+        image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size_placeholder,
+                                                       shapes=[(args.image.size, args.image.size, 3), ()],
+                                                       enqueue_many=True,
+                                                       capacity=4 * nrof_preprocess_threads * args.batch_size,
+                                                       allow_smaller_final_batch=True)
 
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
-        labels_batch = tf.identity(labels_batch, 'label_batch')
+        label_batch = tf.identity(label_batch, 'label_batch')
 
         # Build the inference graph
         prelogits, _ = network.inference(image_batch, phase_train=phase_train_placeholder)
@@ -180,7 +181,7 @@ def main(**args_):
                 step = sess.run(global_step, feed_dict=None)
                 epoch = step // args.epoch.size
                 # Train for one epoch
-                cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+                cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
                              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                              input_queue, global_step,
                              embeddings, total_loss, train_op, summary_op, summary_writer,
