@@ -176,21 +176,23 @@ def _add_loss_summaries(total_loss):
   
     return loss_averages_op
 
+
 def train(total_loss, global_step, optimizer, learning_rate, moving_average_decay, update_gradient_vars, log_histograms=True):
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
+    optimizer = optimizer.upper()
 
     # Compute gradients.
     with tf.control_dependencies([loss_averages_op]):
-        if optimizer=='ADAGRAD':
+        if optimizer is 'ADAGRAD':
             opt = tf.train.AdagradOptimizer(learning_rate)
-        elif optimizer=='ADADELTA':
+        elif optimizer is 'ADADELTA':
             opt = tf.train.AdadeltaOptimizer(learning_rate, rho=0.9, epsilon=1e-6)
-        elif optimizer=='ADAM':
+        elif optimizer is 'ADAM':
             opt = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1)
-        elif optimizer=='RMSPROP':
+        elif optimizer is 'RMSPROP':
             opt = tf.train.RMSPropOptimizer(learning_rate, decay=0.9, momentum=0.9, epsilon=1.0)
-        elif optimizer=='MOM':
+        elif optimizer is 'MOM':
             opt = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True)
         else:
             raise ValueError('Invalid optimization algorithm')
@@ -220,6 +222,7 @@ def train(total_loss, global_step, optimizer, learning_rate, moving_average_deca
         train_op = tf.no_op(name='train')
   
     return train_op
+
 
 def prewhiten(x):
     mean = np.mean(x)
