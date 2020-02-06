@@ -108,7 +108,7 @@ def main(**args_):
                 image = tf.image.decode_image(file_contents, channels=3)
 
                 if args.image.random_crop:
-                    image = tf.random_crop(image, [args.image.size, args.image.size, 3])
+                    image = tf.image.random_crop(image, [args.image.size, args.image.size, 3])
                 else:
                     image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
 
