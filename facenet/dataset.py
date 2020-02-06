@@ -12,7 +12,9 @@ class ImageClass:
     def __init__(self, name, files, count=None):
         self.name = name
         self.count = count
+
         self.files = [str(f) for f in files]
+        self.files_as_posix = [pathlib.Path(f) for f in files]
 
     def __str__(self):
         return self.name + ', ' + str(self.nrof_images) + ' images'
@@ -25,13 +27,9 @@ class ImageClass:
     def nrof_pairs(self):
         return self.nrof_images * (self.nrof_images - 1) // 2
 
-    @property
-    def files_as_posix(self):
-        return [pathlib.Path(x) for x in self.files]
-
 
 class DBase:
-    def __init__(self, config, extension='', seed=0):
+    def __init__(self, config, extension='', seed=None):
         np.random.seed(seed)
 
         self.config = config
