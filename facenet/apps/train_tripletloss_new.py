@@ -150,8 +150,8 @@ def main(**args_):
         total_loss = tf.add_n([triplet_loss] + regularization_losses, name='total_loss')
 
         # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train(total_loss, global_step, args.optimizer,
-                                 learning_rate, args.moving_average_decay, tf.global_variables())
+        train_op = facenet.train_op(total_loss, global_step, args.optimizer,
+                                    learning_rate, args.moving_average_decay, tf.global_variables())
 
         # Create a saver
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
