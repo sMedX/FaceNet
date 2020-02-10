@@ -235,7 +235,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         # Sample people randomly from the data set
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
-        print('Running forward pass on sampled images: ', end='')
+        # print('Running forward pass on sampled images: ', end='')
         start_time = time.time()
 
         nrof_examples = args.people_per_batch * args.images_per_person
@@ -253,14 +253,14 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
                                                                        phase_train_placeholder: True})
             emb_array[lab, :] = emb
 
-        print('{:.3f}'.format(time.time() - start_time))
+        # print('{:.3f}'.format(time.time() - start_time))
 
         # Select triplets based on the embeddings
-        print('Selecting suitable triplets for training')
+        # print('Selecting suitable triplets for training')
         triplets, nrof_random_negs, nrof_triplets = select_triplets(emb_array, num_per_class,
                                                                     image_paths, args.people_per_batch, args.alpha)
         selection_time = time.time() - start_time
-        print('(nrof_random_negs, nrof_triplets) = ({}, {}): time={:.3f}'.format(nrof_random_negs, nrof_triplets, selection_time))
+        # print('(nrof_random_negs, nrof_triplets) = ({}, {}): time={:.3f}'.format(nrof_random_negs, nrof_triplets, selection_time))
 
         # Perform training on the selected triplets
         triplet_paths = list(itertools.chain(*triplets))
@@ -285,14 +285,13 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             # emb_array[lab, :] = emb
             loss_array[i] = loss_
 
-        print('Epoch: [{}][{}/{}] Time: {:.3f} Loss: {:.5f}'.format(epoch,
-                                                                    batch_number,
-                                                                    args.epoch.size,
-                                                                    time.time() - start_time,
-                                                                    np.mean(loss_array)))
+        print('Epoch: [{}][{}/{}]\t'.format(epoch, batch_number, args.epoch.size) +
+              'Time: {:.3f}\t'.format(time.time() - start_time) +
+              'nrof_random_negs, nrof_triplets [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
+              'Loss: {:.5f}'.format(np.mean(loss_array)))
 
-            # train_time += duration
-            # summary.value.add(tag='loss', simple_value=err)
+        # train_time += duration
+        # summary.value.add(tag='loss', simple_value=err)
 
         summary = tf.Summary()
         summary.value.add(tag='time/selection', simple_value=selection_time)
