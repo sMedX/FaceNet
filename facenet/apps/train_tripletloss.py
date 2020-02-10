@@ -243,6 +243,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
         image_paths_array = np.reshape(np.expand_dims(np.array(image_paths), 1), (-1, 3))
         sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
+
         emb_array = np.zeros((nrof_examples, embedding_size))
         nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
 
@@ -262,16 +263,17 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         print('(nrof_random_negs, nrof_triplets) = ({}, {}): time={:.3f}'.format(nrof_random_negs, nrof_triplets, selection_time))
 
         # Perform training on the selected triplets
-        nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
         triplet_paths = list(itertools.chain(*triplets))
         labels_array = np.reshape(np.arange(len(triplet_paths)), (-1, 3))
         triplet_paths_array = np.reshape(np.expand_dims(np.array(triplet_paths), 1), (-1, 3))
         sess.run(enqueue_op, {image_paths_placeholder: triplet_paths_array, labels_placeholder: labels_array})
+
+        nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
         nrof_examples = len(triplet_paths)
         # train_time = 0
 
-        emb_array = np.zeros((nrof_examples, embedding_size))
-        loss_array = np.zeros((nrof_triplets,))
+        # emb_array = np.zeros((nrof_examples, embedding_size))
+        # loss_array = np.zeros((nrof_triplets,))
         summary = tf.Summary()
         # step = 0
 
@@ -283,8 +285,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
                          phase_train_placeholder: True}
             err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
 
-            emb_array[lab, :] = emb
-            loss_array[i] = err
+            # emb_array[lab, :] = emb
+            # loss_array[i] = err
             duration = time.time() - start_time
             print('Epoch: [{}][{}/{}] Time: {} Loss: {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
             # batch_number += 1
