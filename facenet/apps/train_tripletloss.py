@@ -231,10 +231,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
     if lr is None:
         return False
 
-    batch_number = 0
-
-    while batch_number < args.epoch.size:
-        # Sample people randomly from the dataset
+    for batch_number in range(args.epoch.size):
+        # Sample people randomly from the data set
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
         print('Running forward pass on sampled images: ', end='')
@@ -254,6 +252,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
                                                                        learning_rate_placeholder: lr,
                                                                        phase_train_placeholder: True})
             emb_array[lab, :] = emb
+
         print('{:.3f}'.format(time.time() - start_time))
 
         # Select triplets based on the embeddings
@@ -273,33 +272,31 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 
         nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
         nrof_examples = len(triplet_paths)
-        # train_time = 0
 
-        # emb_array = np.zeros((nrof_examples, embedding_size))
-        # loss_array = np.zeros((nrof_triplets,))
-        summary = tf.Summary()
-        # step = 0
+        loss_array = np.zeros(nrof_batches)
 
         for i in range(nrof_batches):
-            start_time = time.time()
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size,
                          learning_rate_placeholder: lr,
                          phase_train_placeholder: True}
-            err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
+            loss_, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
 
             # emb_array[lab, :] = emb
-            # loss_array[i] = err
-            duration = time.time() - start_time
-            batch_number += 1
+            loss_array[i] = loss_
 
-            print('Epoch: [{}][{}/{}] Time: {:.3f} Loss: {:.5f}'.format(epoch, batch_number, args.epoch.size, duration, err))
-            # batch_number += 1
+        print('Epoch: [{}][{}/{}] Time: {:.3f} Loss: {:.5f}'.format(epoch,
+                                                                    batch_number,
+                                                                    args.epoch.size,
+                                                                    time.time() - start_time,
+                                                                    np.mean(loss_array)))
 
             # train_time += duration
-            summary.value.add(tag='loss', simple_value=err)
+            # summary.value.add(tag='loss', simple_value=err)
 
+        summary = tf.Summary()
         summary.value.add(tag='time/selection', simple_value=selection_time)
+        summary.value.add(tag='Loss', simple_value=np.mean(loss_array))
         summary_writer.add_summary(summary, step)
     return True
 
