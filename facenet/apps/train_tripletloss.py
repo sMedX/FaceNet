@@ -176,8 +176,7 @@ def main(**args_):
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             # Training and validation loop
-            epoch = 0
-            while epoch < args.epoch.max_nrof_epochs:
+            for epoch in range(args.epoch.max_nrof_epochs):
                 # Train for one epoch
                 cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
                              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
@@ -258,8 +257,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         triplets, nrof_random_negs, nrof_triplets = select_triplets(emb_array, num_per_class,
                                                                     image_paths, args.people_per_batch, args.alpha)
         selection_time = time.time() - start_time
-        print('(nrof_random_negs, nrof_triplets) = (%d, %d): time=%.3f seconds' %
-              (nrof_random_negs, nrof_triplets, selection_time))
+        print('(nrof_random_negs, nrof_triplets) = ({}, {}): time={:.3f}'.format(nrof_random_negs, nrof_triplets, selection_time))
 
         # Perform training on the selected triplets
         nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
@@ -277,7 +275,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         while i < nrof_batches:
             start_time = time.time()
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
-            feed_dict = {batch_size_placeholder: batch_size, learning_rate_placeholder: lr,
+            feed_dict = {batch_size_placeholder: batch_size,
+                         learning_rate_placeholder: lr,
                          phase_train_placeholder: True}
             err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch],
                                               feed_dict=feed_dict)
