@@ -274,7 +274,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         step = 0
 
         for i in range(nrof_batches):
-            # start_time = time.time()
+            start_time = time.time()
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size,
                          learning_rate_placeholder: lr,
@@ -283,7 +283,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 
             emb_array[lab, :] = emb
             loss_array[i] = err
-            # duration = time.time() - start_time
+            duration = time.time() - start_time
             print('Epoch: [{}][{}/{}] Time: {} Loss: {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
             batch_number += 1
 
