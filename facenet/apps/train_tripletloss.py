@@ -290,7 +290,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             # emb_array[lab, :] = emb
             # loss_array[i] = err
             duration = time.time() - start_time
-            print('Epoch: [{}][{}/{}] Time: {} Loss: {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
+            print('Epoch: [{}][{}/{}] Time: {:.3f} Loss: {:.5f}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
             # batch_number += 1
 
             # train_time += duration
