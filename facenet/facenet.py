@@ -751,6 +751,13 @@ def learning_rate_value(epoch, config):
             return lr_
 
 
+def max_nrof_epochs(config):
+    if config.value is not None:
+        return config.max_nrof_epochs
+    else:
+        return config.schedule[-1][0]
+
+
 class Embeddings:
     def __init__(self, dbase, config, model=None, nrof_preprocess_threads=4):
         self.config = config

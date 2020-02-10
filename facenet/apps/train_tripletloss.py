@@ -176,6 +176,8 @@ def main(**args_):
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             # Training and validation loop
+            args.epoch.max_nrof_epochs = facenet.max_nrof_epochs(args.learning_rate)
+
             for epoch in range(args.epoch.max_nrof_epochs):
                 # Train for one epoch
                 cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
