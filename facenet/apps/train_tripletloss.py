@@ -225,14 +225,15 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
           embeddings, loss, train_op, summary_op, summary_writer,
           anchor, positive, negative, triplet_loss):
 
-    batch_number = 0
     embedding_size = int(embeddings.get_shape()[1])
 
     lr = facenet.learning_rate_value(epoch, args.learning_rate)
     if lr is None:
         return False
 
-    for batch_number in range(args.epoch.size):
+    batch_number = 0
+
+    while batch_number < args.epoch.size:
         # Sample people randomly from the dataset
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
@@ -290,7 +291,9 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             # emb_array[lab, :] = emb
             # loss_array[i] = err
             duration = time.time() - start_time
-            print('Epoch: [{}][{}/{}] Time: {:.3f} Loss: {:.5f}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
+            batch_number += 1
+
+            print('Epoch: [{}][{}/{}] Time: {:.3f} Loss: {:.5f}'.format(epoch, batch_number, args.epoch.size, duration, err))
             # batch_number += 1
 
             # train_time += duration
