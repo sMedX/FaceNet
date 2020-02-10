@@ -285,7 +285,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             # emb_array[lab, :] = emb
             loss_array[i] = loss_
 
-        print('Epoch: [{}][{}/{}]\t'.format(epoch, batch_number, args.epoch.size) +
+        print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number+1, args.epoch.size) +
               'Time: {:.3f}\t'.format(time.time() - start_time) +
               'nrof_random_negs, nrof_triplets [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
               'Loss: {:.5f}'.format(np.mean(loss_array)))
