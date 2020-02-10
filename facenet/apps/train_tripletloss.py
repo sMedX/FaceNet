@@ -266,7 +266,9 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         triplet_paths = list(itertools.chain(*triplets))
         labels_array = np.reshape(np.arange(len(triplet_paths)), (-1, 3))
         triplet_paths_array = np.reshape(np.expand_dims(np.array(triplet_paths), 1), (-1, 3))
-        sess.run(enqueue_op, {image_paths_placeholder: triplet_paths_array, labels_placeholder: labels_array})
+
+        sess.run(enqueue_op, feed_dict={image_paths_placeholder: triplet_paths_array,
+                                        labels_placeholder: labels_array})
 
         nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
         nrof_examples = len(triplet_paths)
