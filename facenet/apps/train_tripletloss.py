@@ -232,25 +232,27 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
     if lr is None:
         return False
 
-    while batch_number < args.epoch.size:
+    for batch_number in range(args.epoch.size):
         # Sample people randomly from the dataset
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
         print('Running forward pass on sampled images: ', end='')
         start_time = time.time()
+
         nrof_examples = args.people_per_batch * args.images_per_person
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
         image_paths_array = np.reshape(np.expand_dims(np.array(image_paths), 1), (-1, 3))
         sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
         emb_array = np.zeros((nrof_examples, embedding_size))
         nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
+
         for i in range(nrof_batches):
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
                                                                        learning_rate_placeholder: lr,
                                                                        phase_train_placeholder: True})
             emb_array[lab, :] = emb
-        print('%.3f' % (time.time() - start_time))
+        print('{:.3f}'.format(time.time() - start_time))
 
         # Select triplets based on the embeddings
         print('Selecting suitable triplets for training')
@@ -271,7 +273,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         emb_array = np.zeros((nrof_examples, embedding_size))
         loss_array = np.zeros((nrof_triplets,))
         summary = tf.Summary()
-        step = 0
+        # step = 0
 
         for i in range(nrof_batches):
             start_time = time.time()
@@ -285,7 +287,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             loss_array[i] = err
             duration = time.time() - start_time
             print('Epoch: [{}][{}/{}] Time: {} Loss: {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
-            batch_number += 1
+            # batch_number += 1
 
             # train_time += duration
             summary.value.add(tag='loss', simple_value=err)
