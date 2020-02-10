@@ -227,8 +227,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 
     embedding_size = int(embeddings.get_shape()[1])
 
-    lr = facenet.learning_rate_value(epoch, args.learning_rate)
-    if lr is None:
+    learning_rate = facenet.learning_rate_value(epoch, args.learning_rate)
+    if learning_rate is None:
         return False
 
     for batch_number in range(args.epoch.size):
@@ -249,7 +249,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         for i in range(nrof_batches):
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
-                                                                       learning_rate_placeholder: lr,
+                                                                       learning_rate_placeholder: learning_rate,
                                                                        phase_train_placeholder: True})
             emb_array[lab, :] = emb
 
@@ -278,7 +278,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         for i in range(nrof_batches):
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size,
-                         learning_rate_placeholder: lr,
+                         learning_rate_placeholder: learning_rate,
                          phase_train_placeholder: True}
             loss_, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
 
