@@ -266,27 +266,28 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         triplet_paths_array = np.reshape(np.expand_dims(np.array(triplet_paths), 1), (-1, 3))
         sess.run(enqueue_op, {image_paths_placeholder: triplet_paths_array, labels_placeholder: labels_array})
         nrof_examples = len(triplet_paths)
-        train_time = 0
-        i = 0
+        # train_time = 0
+
         emb_array = np.zeros((nrof_examples, embedding_size))
         loss_array = np.zeros((nrof_triplets,))
         summary = tf.Summary()
         step = 0
-        while i < nrof_batches:
-            start_time = time.time()
+
+        for i in range(nrof_batches):
+            # start_time = time.time()
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size,
                          learning_rate_placeholder: lr,
                          phase_train_placeholder: True}
-            err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch],
-                                              feed_dict=feed_dict)
+            err, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
+
             emb_array[lab, :] = emb
             loss_array[i] = err
-            duration = time.time() - start_time
+            # duration = time.time() - start_time
             print('Epoch: [{}][{}/{}] Time: {} Loss: {}'.format(epoch, batch_number + 1, args.epoch.size, duration, err))
             batch_number += 1
-            i += 1
-            train_time += duration
+
+            # train_time += duration
             summary.value.add(tag='loss', simple_value=err)
 
         summary.value.add(tag='time/selection', simple_value=selection_time)
