@@ -135,8 +135,8 @@ def main(**args_):
 
         # Build the inference graph
         prelogits, _ = network.inference(image_batch, phase_train=phase_train_placeholder)
-
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
+
         # Split embeddings into anchor, positive and negative and calculate triplet loss
         anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size]), 3, 1)
         triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
@@ -178,8 +178,6 @@ def main(**args_):
             # Training and validation loop
             epoch = 0
             while epoch < args.epoch.max_nrof_epochs:
-                step = sess.run(global_step, feed_dict=None)
-                epoch = step // args.epoch.size
                 # Train for one epoch
                 cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
                              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
@@ -191,7 +189,7 @@ def main(**args_):
                     break
 
                 # Save variables and the metagraph if it doesn't exist already
-                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, step)
+                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, epoch)
 
                 # Evaluate on LFW
                 # if args.lfw_dir:
