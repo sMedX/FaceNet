@@ -689,7 +689,7 @@ def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_n
     checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
     saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
     save_time_variables = time.time() - start_time
-    print('saving checkpoint: ', checkpoint_path)
+    print('saving checkpoint: {}-{}'.format(checkpoint_path, step))
 
     metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
 
