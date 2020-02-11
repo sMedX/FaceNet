@@ -92,6 +92,8 @@ class TrainOptions(YAMLConfig):
 
         if subdir is not None:
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
+        else:
+            self.model.path = Path(self.model.path).expanduser()
         self.model.logs = self.model.path.joinpath('logs')
 
         if self.model.config is None:
