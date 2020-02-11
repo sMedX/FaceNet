@@ -86,7 +86,7 @@ class YAMLConfig:
         return "<config object>"
 
 
-class TripletLossOptions(YAMLConfig):
+class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])
 

@@ -43,7 +43,7 @@ subdir = config.subdir()
 @click.option('--learning_rate', default=None, type=float,
               help='Learning rate value')
 def main(**args_):
-    args = config.TripletLossOptions(args_, subdir=subdir)
+    args = config.TrainOptions(args_, subdir=subdir)
 
     # import network
     print('import model \'{}\''.format(args.model.module))

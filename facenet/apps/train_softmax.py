@@ -38,7 +38,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import dataset, lfw, ioutils, statistics, config, facenet
+from facenet import dataset, lfw, statistics, config, facenet
 
 subdir = config.subdir()
 
@@ -49,27 +49,13 @@ subdir = config.subdir()
 @click.option('--learning_rate', default=None, type=float,
               help='Learning rate value')
 def main(**args_):
-    args = config.YAMLConfig(args_['config'])
+    args = config.TrainOptions(args_, subdir=subdir)
 
     # import network
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
-    if args.model.config is None:
-        args.model.update_from_file(network.config_file)
 
-    if args_['learning_rate'] is not None:
-        args.learning_rate.value = args_['learning_rate']
-
-    args.model.path = Path(args.model.path).expanduser().joinpath(subdir)
-    args.model.log_dir = args.model.path.joinpath('logs')
-
-    stat_file_name = args.model.log_dir.joinpath('stat.h5')
-
-    # Write arguments to a text file
-    ioutils.write_arguments(args, args.model.log_dir.joinpath('arguments.yaml'))
-
-    # store some git revision info in a text file in the log directory
-    ioutils.store_revision_info(args.model.log_dir, sys.argv)
+    stat_file_name = args.model.logs.joinpath('stat.h5')
 
     np.random.seed(seed=args.seed)
     random.seed(args.seed)
@@ -180,7 +166,7 @@ def main(**args_):
         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        summary_writer = tf.summary.FileWriter(args.model.log_dir, sess.graph)
+        summary_writer = tf.summary.FileWriter(args.model.logs, sess.graph)
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
