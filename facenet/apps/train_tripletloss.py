@@ -23,7 +23,6 @@ FaceNet: A Unified Embedding for Face Recognition and Clustering: http://arxiv.o
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 import click
 from pathlib import Path
 import time
@@ -33,7 +32,7 @@ import itertools
 import tensorflow as tf
 from tensorflow.python.ops import data_flow_ops
 
-from facenet import dataset, lfw, ioutils, statistics, config, facenet
+from facenet import dataset, lfw, statistics, config, facenet
 
 subdir = config.subdir()
 
@@ -44,39 +43,16 @@ subdir = config.subdir()
 @click.option('--learning_rate', default=None, type=float,
               help='Learning rate value')
 def main(**args_):
-    args = config.YAMLConfig(args_['config'])
+    args = config.TripletLossOptions(args_, subdir=subdir)
 
     # import network
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
-    if args.model.config is None:
-        args.model.update_from_file(network.config_file)
-
-    args.model.path = Path(args.model.path).expanduser().joinpath(subdir)
-    args.model.log_dir = args.model.path.joinpath('logs')
-
-    # write arguments to a text file
-    ioutils.write_arguments(args, args.model.log_dir.joinpath('arguments.yaml'))
-
-    # store some git revision info in a text file in the log directory
-    ioutils.store_revision_info(args.model.log_dir, sys.argv)
 
     np.random.seed(seed=args.seed)
 
     train_set = dataset.DBase(args.dataset)
     print(train_set)
-
-    # print('Model directory: %s' % model_dir)
-    # print('Log directory: %s' % log_dir)
-    # if args_.pretrained_model:
-    #     print('Pre-trained model: %s' % os.path.expanduser(args_.pretrained_model))
-
-    # if args.lfw_dir:
-    #     print('LFW directory: %s' % args.lfw_dir)
-    #     # Read the file containing the pairs used for testing
-    #     pairs = lfw.read_pairs(os.path.expanduser(args.lfw_pairs))
-    #     # Get the paths for the corresponding images
-    #     lfw_paths, actual_issame = lfw.get_paths(os.path.expanduser(args.lfw_dir), pairs)
 
     with tf.Graph().as_default():
         tf.set_random_seed(args.seed)
@@ -176,8 +152,6 @@ def main(**args_):
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             # Training and validation loop
-            args.epoch.max_nrof_epochs = facenet.max_nrof_epochs(args.learning_rate)
-
             for epoch in range(args.epoch.max_nrof_epochs):
                 # Train for one epoch
                 cont = train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
@@ -191,13 +165,6 @@ def main(**args_):
 
                 # Save variables and the metagraph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, epoch)
-
-                # Evaluate on LFW
-                # if args.lfw_dir:
-                #     evaluate(sess, lfw_paths, embeddings, labels_batch, image_paths_placeholder, labels_placeholder,
-                #              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
-                #              actual_issame, args.batch_size,
-                #              args.lfw_nrof_folds, log_dir, step, summary_writer, args.embedding_size)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
 
@@ -233,12 +200,12 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
     if learning_rate is None:
         return False
 
-    for batch_number in range(args.epoch.size):
+    batch_number = 0
+    while batch_number < args.epoch.size:
+        start_time_0 = time.time()
+
         # Sample people randomly from the data set
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
-
-        # print('Running forward pass on sampled images: ', end='')
-        start_time = time.time()
 
         nrof_examples = args.people_per_batch * args.images_per_person
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
@@ -255,14 +222,10 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
                                                                        phase_train_placeholder: True})
             emb_array[lab, :] = emb
 
-        # print('{:.3f}'.format(time.time() - start_time))
-
         # Select triplets based on the embeddings
-        # print('Selecting suitable triplets for training')
         triplets, nrof_random_negs, nrof_triplets = select_triplets(emb_array, num_per_class,
                                                                     image_paths, args.people_per_batch, args.alpha)
-        selection_time = time.time() - start_time
-        # print('(nrof_random_negs, nrof_triplets) = ({}, {}): time={:.3f}'.format(nrof_random_negs, nrof_triplets, selection_time))
+        selection_time = time.time() - start_time_0
 
         # Perform training on the selected triplets
         triplet_paths = list(itertools.chain(*triplets))
@@ -278,22 +241,25 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         loss_array = np.zeros(nrof_batches)
 
         for i in range(nrof_batches):
+            start_time_1 = time.time()
+
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size,
                          learning_rate_placeholder: learning_rate,
                          phase_train_placeholder: True}
             loss_, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
 
-            # emb_array[lab, :] = emb
+            batch_number += 1
             loss_array[i] = loss_
 
-        print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number+1, args.epoch.size) +
-              'Time: {:.3f}\t'.format(time.time() - start_time) +
-              '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
-              'Loss: {:.5f}'.format(np.mean(loss_array)))
+            print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
+                  'Time: {:.3f}\t'.format(time.time() - start_time_1) +
+                  '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
+                  'Loss: {:.5f}'.format(loss_))
 
-        # train_time += duration
-        # summary.value.add(tag='loss', simple_value=err)
+        print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
+              'Time: {:.3f}\t'.format(time.time() - start_time_0) +
+              'Loss: {:.5f}'.format(np.mean(loss_array)))
 
         summary = tf.Summary()
         summary.value.add(tag='time/selection', simple_value=selection_time)

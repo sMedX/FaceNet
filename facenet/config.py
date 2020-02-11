@@ -1,11 +1,14 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
+import sys
 import oyaml as yaml
-import pathlib
+from pathlib import Path
 from datetime import datetime
+import importlib
+from facenet import ioutils, facenet
 
-src_dir = pathlib.Path(__file__).parents[1]
+src_dir = Path(__file__).parents[1]
 file_extension = '.png'
 
 
@@ -14,8 +17,8 @@ def subdir():
 
 
 def default_app_config(apps_file_name):
-    config_dir = pathlib.Path(pathlib.Path(apps_file_name).parent).joinpath('configs')
-    config_name = pathlib.Path(apps_file_name).stem
+    config_dir = Path(Path(apps_file_name).parent).joinpath('configs')
+    config_name = Path(apps_file_name).stem
     return config_dir.joinpath(config_name + '.yaml')
 
 
@@ -54,11 +57,11 @@ class YAMLConfig:
 
     def __init__(self, item):
         if isinstance(item, dict):
-            self.update(item)
+            self.update_from_dict(item)
         else:
             self.update_from_file(item)
 
-    def update(self, dct):
+    def update_from_dict(self, dct):
         """Update config from dict
 
         :param dct: dict
@@ -74,13 +77,35 @@ class YAMLConfig:
         """
         if path is not None:
             with open(str(path), 'r') as custom_config:
-                self.update(yaml.safe_load(custom_config.read()))
+                self.update_from_dict(yaml.safe_load(custom_config.read()))
 
     def items(self):
         return self.__dict__.items()
 
     def __repr__(self):
         return "<config object>"
+
+
+class TripletLossOptions(YAMLConfig):
+    def __init__(self, args_, subdir=None):
+        YAMLConfig.__init__(self, args_['config'])
+
+        if subdir is not None:
+            self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
+        self.model.logs = self.model.path.joinpath('logs')
+
+        if self.model.config is None:
+            network = importlib.import_module(self.model.module)
+            self.model.update_from_file(network.config_file)
+
+        # learning rate options
+        if args_['learning_rate'] is not None:
+            self.learning_rate.value = args_['learning_rate']
+        self.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.learning_rate)
+
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.model.logs.joinpath('arguments.yaml'))
+        ioutils.store_revision_info(self.model.logs, sys.argv)
 
 
 class DefaultConfig:
