@@ -90,10 +90,10 @@ class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])
 
-        if subdir is not None:
-            self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
-        else:
+        if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
+        else:
+            self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
         self.model.logs = self.model.path.joinpath('logs')
 
         if self.model.config is None:
