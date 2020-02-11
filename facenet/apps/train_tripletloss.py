@@ -255,8 +255,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
                   'Time: {:.3f}\t'.format(time.time() - start_time_1) +
                   '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
-                  'Loss: {:.5f}'.format(loss_) +
-                  'Lr {:2.5f}\t'.format(lr_))
+                  'Loss: {:.5f}\t'.format(loss_) +
+                  'Lr {:2.5f}'.format(lr_))
 
         print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
               'Time: {:.3f}\t'.format(time.time() - start_time_0) +
