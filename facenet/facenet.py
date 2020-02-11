@@ -22,6 +22,7 @@
 
 import os
 import sys
+import time
 from subprocess import Popen, PIPE
 import tensorflow as tf
 import numpy as np
@@ -33,10 +34,20 @@ from tensorflow.compat.v1 import graph_util
 import random
 import re
 from tensorflow.python.platform import gfile
+from tensorflow.python.ops import data_flow_ops
 import math
-import pathlib
+from pathlib import Path
 
 from facenet import utils
+
+
+class Placeholders:
+    batch_size = None
+    phase_train = None
+    image_paths = None
+    labels = None
+    control = None
+    learning_rate = None
 
 
 def triplet_loss(anchor, positive, negative, alpha):
@@ -58,7 +69,7 @@ def triplet_loss(anchor, positive, negative, alpha):
         loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
       
     return loss
-  
+
 def center_loss(features, label, alfa, nrof_classes):
     """Center loss based on the paper "A Discriminative Feature Learning Approach for Deep Face Recognition"
        (http://ydwen.github.io/papers/WenECCV16.pdf)
@@ -165,21 +176,23 @@ def _add_loss_summaries(total_loss):
   
     return loss_averages_op
 
-def train(total_loss, global_step, optimizer, learning_rate, moving_average_decay, update_gradient_vars, log_histograms=True):
+
+def train_op(total_loss, global_step, optimizer, learning_rate, moving_average_decay, update_gradient_vars, log_histograms=True):
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
+    optimizer = optimizer.lower()
 
     # Compute gradients.
     with tf.control_dependencies([loss_averages_op]):
-        if optimizer=='ADAGRAD':
+        if optimizer == 'adagrad':
             opt = tf.train.AdagradOptimizer(learning_rate)
-        elif optimizer=='ADADELTA':
+        elif optimizer == 'adadelta':
             opt = tf.train.AdadeltaOptimizer(learning_rate, rho=0.9, epsilon=1e-6)
-        elif optimizer=='ADAM':
+        elif optimizer == 'adam':
             opt = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1)
-        elif optimizer=='RMSPROP':
+        elif optimizer == 'rmsprop':
             opt = tf.train.RMSPropOptimizer(learning_rate, decay=0.9, momentum=0.9, epsilon=1.0)
-        elif optimizer=='MOM':
+        elif optimizer == 'mom':
             opt = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True)
         else:
             raise ValueError('Invalid optimization algorithm')
@@ -209,6 +222,7 @@ def train(total_loss, global_step, optimizer, learning_rate, moving_average_deca
         train_op = tf.no_op(name='train')
   
     return train_op
+
 
 def prewhiten(x):
     mean = np.mean(x)
@@ -294,95 +308,19 @@ def get_triplet_batch(triplets, batch_index, batch_size):
     return batch
 
 
-def get_learning_rate_from_file(filename, epoch, default_learning_rate=-1.0):
-    learning_rate = default_learning_rate
-
-    with open(filename, 'r') as f:
-        for line in f.readlines():
-            line = line.split('#', 1)[0]
-            if line:
-                par = line.strip().split(':')
-                try:
-                    e = int(par[0])
-                except ValueError:
-                    continue
-
-                if e <= epoch:
-                    try:
-                        learning_rate = float(par[1])
-                    except ValueError:
-                        learning_rate = default_learning_rate
-
-    return learning_rate
-
-
-# class ImageClass:
-#     "Stores the paths to images for a given class"
-#     def __init__(self, name, image_paths):
-#         self.name = name
-#         self.image_paths = image_paths
-#
-#     def __str__(self):
-#         return self.name + ', ' + str(len(self.image_paths)) + ' images'
-#
-#     def __len__(self):
-#         return len(self.image_paths)
-  
-
-# def get_dataset(path, has_class_directories=True):
-#     dataset = []
-#     path_exp = os.path.expanduser(path)
-#     classes = [path for path in os.listdir(path_exp) if os.path.isdir(os.path.join(path_exp, path))]
-#     classes.sort()
-#     nrof_classes = len(classes)
-#     for i in range(nrof_classes):
-#         class_name = classes[i]
-#         facedir = os.path.join(path_exp, class_name)
-#         image_paths = get_image_paths(facedir)
-#         dataset.append(ImageClass(class_name, image_paths))
-#
-#     return dataset
-
-
-# def get_image_paths(facedir):
-#     image_paths = []
-#     if os.path.isdir(facedir):
-#         images = os.listdir(facedir)
-#         image_paths = [os.path.join(facedir,img) for img in images]
-#     return image_paths
-
-
-# def split_dataset(dataset, split_ratio, min_nrof_images_per_class, mode):
-#     if mode=='SPLIT_CLASSES':
-#         nrof_classes = len(dataset)
-#         class_indices = np.arange(nrof_classes)
-#         np.random.shuffle(class_indices)
-#         split = int(round(nrof_classes*(1-split_ratio)))
-#         train_set = [dataset[i] for i in class_indices[0:split]]
-#         test_set = [dataset[i] for i in class_indices[split:-1]]
-#     elif mode=='SPLIT_IMAGES':
-#         train_set = []
-#         test_set = []
-#         for cls in dataset:
-#             paths = cls.files
-#             np.random.shuffle(paths)
-#             nrof_images_in_class = len(paths)
-#             split = int(math.floor(nrof_images_in_class*(1-split_ratio)))
-#             if split==nrof_images_in_class:
-#                 split = nrof_images_in_class-1
-#             if split>=min_nrof_images_per_class and nrof_images_in_class-split>=1:
-#                 train_set.append(ImageClass(cls.name, paths[:split]))
-#                 test_set.append(ImageClass(cls.name, paths[split:]))
-#     else:
-#         raise ValueError('Invalid train/test split mode "%s"' % mode)
-#     return train_set, test_set
+def restore_checkpoint(saver, session, path):
+    if path is not None:
+        path = Path(path)
+        print('Restoring pre-trained model: {}'.format(path))
+        saver.restore(session, str(path))
 
 
 def load_model(model, input_map=None):
     # Check if the model is a model directory (containing a metagraph and a checkpoint file) or
     # if it is a protobuf file with a frozen graph
 
-    model_exp = pathlib.Path(model).expanduser()
+    model_exp = Path(model).expanduser()
+    print('load model: {}'.format(model))
 
     if model_exp.is_file():
         print('Model filename: {}'.format(model_exp))
@@ -745,6 +683,30 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
+def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
+    # save the model checkpoint
+    start_time = time.time()
+    checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
+    saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
+    save_time_variables = time.time() - start_time
+    print('saving checkpoint: {}-{}'.format(checkpoint_path, step))
+
+    metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
+
+    if not metagraph_filename.exists():
+        start_time = time.time()
+        saver.export_meta_graph(str(metagraph_filename))
+        save_time_metagraph = time.time() - start_time
+        print('saving meta graph: ', metagraph_filename)
+    else:
+        save_time_metagraph = 0
+
+    summary = tf.Summary()
+    summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
+    summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
+    summary_writer.add_summary(summary, step)
+
+
 def save_freeze_graph(model_dir, output_file=None):
     if output_file is None:
         output_file = model_dir.joinpath(model_dir.name + '.pb')
@@ -775,3 +737,137 @@ def save_freeze_graph(model_dir, output_file=None):
         with tf.gfile.GFile(str(output_file), 'wb') as f:
             f.write(output_graph_def.SerializeToString())
         print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
+
+
+def learning_rate_value(epoch, config):
+    if config.value is not None:
+        return config.value
+
+    if epoch >= config.schedule[-1][0]:
+        return None
+
+    for (epoch_, lr_) in config.schedule:
+        if epoch < epoch_:
+            return lr_
+
+
+def max_nrof_epochs(config):
+    if config.value is not None:
+        return config.max_nrof_epochs
+    else:
+        return config.schedule[-1][0]
+
+
+class Embeddings:
+    def __init__(self, dbase, config, model=None, nrof_preprocess_threads=4):
+        self.config = config
+        self.dbase = dbase
+        self.embeddings = None
+        self.elapsed_time = None
+
+        if model is not None:
+            self.config.model = model
+
+        image_size = (config.image.size, config.image.size)
+
+        with tf.Graph().as_default():
+            self.sess = tf.Session()
+
+            self.image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
+            self.labels_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
+            self.batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
+            self.control_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='control')
+            self.phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
+
+            eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
+                                                       dtypes=[tf.string, tf.int32, tf.int32],
+                                                       shapes=[(1,), (1,), (1,)],
+                                                       shared_name=None, name=None)
+
+            self.enqueue_op = eval_input_queue.enqueue_many([self.image_paths_placeholder,
+                                                             self.labels_placeholder,
+                                                             self.control_placeholder], name='eval_enqueue_op')
+
+            self.image_batch, self.label_batch = create_input_pipeline(eval_input_queue, image_size,
+                                                                       nrof_preprocess_threads,
+                                                                       self.batch_size_placeholder)
+
+            # load the model to validate
+            input_map = {'image_batch': self.image_batch,
+                         'label_batch': self.label_batch,
+                         'phase_train': self.phase_train_placeholder}
+
+            load_model(config.model, input_map=input_map)
+
+            self.tensor_embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
+
+            tf.train.start_queue_runners(coord=tf.train.Coordinator(), sess=self.sess)
+
+    def evaluate(self):
+        # Run forward pass to calculate embeddings
+        print('Running forward pass on images')
+
+        nrof_flips = 2 if self.config.image.use_flipped_images else 1
+        nrof_images = self.dbase.nrof_images * nrof_flips
+
+        labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
+        image_paths_array = np.expand_dims(np.repeat(np.array(self.dbase.files), nrof_flips), 1)
+        control_array = np.zeros_like(labels_array, np.int32)
+
+        if self.config.image.standardization:
+            control_array += np.ones_like(labels_array) * FIXED_STANDARDIZATION
+
+        # Flip every second image
+        if self.config.image.use_flipped_images:
+            control_array += (labels_array % 2) * FLIP
+
+        self.sess.run(self.enqueue_op, {self.image_paths_placeholder: image_paths_array,
+                                        self.labels_placeholder: labels_array,
+                                        self.control_placeholder: control_array})
+
+        embedding_size = int(self.tensor_embeddings.get_shape()[1])
+
+        batch_size = self.config.batch_size
+        nrof_batches = math.ceil(nrof_images / self.config.batch_size)
+
+        emb_array = np.zeros((nrof_images, embedding_size))
+        lab_array = np.zeros((nrof_images,))
+        self.elapsed_time = 0
+
+        for i in range(nrof_batches):
+            print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end='')
+
+            if (i + 1) == nrof_batches:
+                batch_size = nrof_images % self.config.batch_size
+                if batch_size == 0:
+                    batch_size = self.config.batch_size
+
+            feed_dict = {self.phase_train_placeholder: False, self.batch_size_placeholder: batch_size}
+
+            start = time.monotonic()
+            emb, lab = self.sess.run([self.tensor_embeddings, self.label_batch], feed_dict=feed_dict)
+            self.elapsed_time += time.monotonic() - start
+            lab_array[lab] = lab
+            emb_array[lab, :] = emb
+
+        print('')
+
+        self.embeddings = np.zeros((self.dbase.nrof_images, embedding_size * nrof_flips))
+
+        if self.config.image.use_flipped_images:
+            # Concatenate embeddings for flipped and non flipped version of the images
+            self.embeddings[:, :embedding_size] = emb_array[0::2, :]
+            self.embeddings[:, embedding_size:] = emb_array[1::2, :]
+        else:
+            self.embeddings = emb_array
+
+        assert np.array_equal(lab_array, np.arange(nrof_images)), \
+            'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
+
+    def __repr__(self):
+        info = 'class {}\n'.format(self.__class__.__name__) + \
+               'model: {}\n'.format(self.config.model) + \
+               'embedding size: {}\n'.format(self.embeddings.shape) + \
+               'elapsed time  : {}\n'.format(self.elapsed_time) + \
+               'time per image: {}\n'.format(self.elapsed_time / self.embeddings.shape[0])
+        return info

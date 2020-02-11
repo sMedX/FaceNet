@@ -94,6 +94,8 @@ class ConfidenceMatrix:
         for i in range(distances.nrof_classes):
             for k in range(i+1):
                 weight, dist = distances.compute(i, k)
+                if dist.size < 1:
+                    continue
 
                 for n, threshold in enumerate(self.threshold):
                     count = np.count_nonzero(dist < threshold)
@@ -198,82 +200,82 @@ class Report:
 
 
 class Validation:
-    def __init__(self, thresholds, embeddings, labels,
-                 far_target=1e-3, nrof_folds=10,
-                 metric=0):
+    def __init__(self, embeddings, labels, config):
         """
-
-        :param thresholds:
         :param embeddings:
         :param labels:
-        :param far_target: target false alarm rate (face pairs that was incorrectly classified as the same)
-        :param nrof_folds:
-        :param metric:
         """
-
-        self.metric = metric
-
+        self.report_file = None
         self.embeddings = embeddings
+        self.labels = labels
         assert (embeddings.shape[0] == len(labels))
 
-        k_fold = KFold(n_splits=nrof_folds, shuffle=False)
-        indices = np.arange(len(labels))
+        self.report = None
+        self.config = config
+
+        self.thresholds = np.arange(0, 4, 0.01)
+
+    def evaluate(self):
+        k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=False)
+        indices = np.arange(len(self.labels))
 
         criterion = ('Maximum accuracy criterion',
-                     'False alarm rate target criterion (FAR = {})'.format(far_target))
+                     'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
         self.report = Report(criterion=criterion)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            print('\rvalidation {}/{}'.format(fold_idx, nrof_folds), end=utils.end(fold_idx, nrof_folds))
+            print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = DistanceCalculator(embeddings[train_set], labels[train_set], metric=metric)
+            distances = DistanceCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
 
-            conf_matrix = ConfidenceMatrix(distances, thresholds)
+            conf_matrix = ConfidenceMatrix(distances, self.thresholds)
             self.report.append_fold('train', conf_matrix)
 
             # find the threshold that gives maximal accuracy
-            accuracy_threshold = thresholds[np.argmax(conf_matrix.accuracy)]
+            accuracy_threshold = self.thresholds[np.argmax(conf_matrix.accuracy)]
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
             far_threshold = 0.0
-            if np.max(conf_matrix.fp_rates) >= far_target:
-                f = interpolate.interp1d(conf_matrix.fp_rates, thresholds, kind='slinear')
-                far_threshold = f(far_target)
+            if np.max(conf_matrix.fp_rates) >= self.config.far_target:
+                f = interpolate.interp1d(conf_matrix.fp_rates, self.thresholds, kind='slinear')
+                far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            distances = DistanceCalculator(embeddings[test_set], labels[test_set], metric=metric)
+            distances = DistanceCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
 
             conf_matrix = ConfidenceMatrix(distances, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
 
-        print(self.report)
-
-    def write_report(self, elapsed_time, args, file=None, dbase_info=None):
-        if file is None:
-            dir_name = pathlib.Path(args.model).expanduser()
+    def write_report(self, path=None, dbase_info=None, emb_info=None):
+        if self.config.file is None:
+            dir_name = pathlib.Path(path).expanduser()
             if dir_name.is_file():
                 dir_name = dir_name.parent
-            file = dir_name.joinpath('report.txt')
+            self.report_file = dir_name.joinpath('report.txt')
         else:
-            file = pathlib.Path(file).expanduser()
+            self.report_file = pathlib.Path(self.config.file).expanduser()
 
-        with file.open('at') as f:
+        with self.report_file.open('at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n'.format(utils.git_diff()))
+            f.write('\n')
             f.write('{}'.format(dbase_info))
             f.write('\n')
-            f.write('model: {}\n'.format(args.model))
-            f.write('embedding size: {}\n'. format(self.embeddings.shape[1]))
-            f.write('elapsed time: {}\n'.format(elapsed_time))
-            f.write('time per image: {}\n'.format(elapsed_time/self.embeddings.shape[0]))
-            f.write('distance metric: {}\n'.format(self.metric))
+            f.write('{}'.format(emb_info))
+            f.write('\n')
+            f.write('distance metric: {}\n'.format(self.config.metric))
             f.write('\n')
             f.write(self.report.__repr__())
             f.write('\n')
 
-        print('Report has been printed to the file: {}'.format(file))
+    def __repr__(self):
+        """Representation of the database"""
+        info = 'class {}'.format(self.__class__.__name__) + '\n' + \
+               self.report.__repr__() + \
+               'Report has been written to the file: {}'.format(self.report_file)
+        return info
 
 
 class FalseExamples:

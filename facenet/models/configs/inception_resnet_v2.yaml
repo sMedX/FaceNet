@@ -1,8 +1,8 @@
 ---
 # inception resnet v1 config
-model_def: facenet.models.inception_resnet_v2
+module: facenet.models.inception_resnet_v2
 
-model_config:
+config:
   mixed_5a:
     branch: [[96], [48, 64], [64, 96, 96], [64]]
 

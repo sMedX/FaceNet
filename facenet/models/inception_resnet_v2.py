@@ -31,7 +31,7 @@ model_dir = pathlib.Path(__file__).parent
 model_name = pathlib.Path(__file__).stem
 config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
 
-default_model_config = YAMLConfig(config_file).model_config
+default_model_config = YAMLConfig(config_file).config
 
 
 # Inception-Resnet-A

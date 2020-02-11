@@ -1,6 +1,7 @@
 # coding:utf-8
 
 dataset:
+  # Directory with aligned face patches.
   path: none
   # Path to h5 file with information about valid images.
   h5file: none
@@ -18,7 +19,16 @@ model:
   # Load a pretrained checkpoint before training starts.
   checkpoint: none
   # Directory where to write trained models and checkpoints
-  path: ~/models/facenet/softmax
+  path: ~/models/facenet/tripletloss
+
+# Positive to negative triplet distance margin
+alpha: 0.2
+
+# Number of people per batch
+people_per_batch: 45
+
+# Number of images per person
+images_per_person: 40
 
 # Random seed
 seed: 0
@@ -35,7 +45,7 @@ batch_size: 100
 # Number of batches per epoch.
 epoch:
   # Number of batches per epoch.
-  size: 2
+  size: 1000
   # Maximal number of epochs to run
   max_nrof_epochs: 1000
 
@@ -101,7 +111,7 @@ validation:
     # Number of classes to download from data set
     nrof_classes: none
     # Maximal number of images to download from class
-    nrof_images: none
+    nrof_images: 100
 
   validation:
     # Number of folds to use for cross validation. Mainly used for testing
