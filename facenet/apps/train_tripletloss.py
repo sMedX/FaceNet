@@ -158,7 +158,7 @@ def main(**args_):
                              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                              input_queue, global_step,
                              embeddings, total_loss, train_op, summary_op, summary_writer,
-                             anchor, positive, negative, triplet_loss)
+                             anchor, positive, negative, triplet_loss, learning_rate)
 
                 if not cont:
                     break
@@ -192,12 +192,12 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
           batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, input_queue,
           global_step,
           embeddings, loss, train_op, summary_op, summary_writer,
-          anchor, positive, negative, triplet_loss):
+          anchor, positive, negative, triplet_loss, learning_rate):
 
     embedding_size = int(embeddings.get_shape()[1])
 
-    learning_rate = facenet.learning_rate_value(epoch, args.learning_rate)
-    if learning_rate is None:
+    lr = facenet.learning_rate_value(epoch, args.learning_rate)
+    if lr is None:
         return False
 
     batch_number = 0
@@ -218,7 +218,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         for i in range(nrof_batches):
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
-                                                                       learning_rate_placeholder: learning_rate,
+                                                                       learning_rate_placeholder: lr,
                                                                        phase_train_placeholder: True})
             emb_array[lab, :] = emb
 
@@ -245,9 +245,9 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             feed_dict = {batch_size_placeholder: batch_size,
-                         learning_rate_placeholder: learning_rate,
+                         learning_rate_placeholder: lr,
                          phase_train_placeholder: True}
-            loss_, _, step, emb, lab = sess.run([loss, train_op, global_step, embeddings, labels_batch], feed_dict=feed_dict)
+            loss_, _, step, lr_ = sess.run([loss, train_op, global_step, learning_rate], feed_dict=feed_dict)
 
             batch_number += 1
             loss_array[i] = loss_
@@ -255,7 +255,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
                   'Time: {:.3f}\t'.format(time.time() - start_time_1) +
                   '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
-                  'Loss: {:.5f}'.format(loss_))
+                  'Loss: {:.5f}'.format(loss_) +
+                  'Lr {:2.5f}\t'.format(lr_))
 
         print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
               'Time: {:.3f}\t'.format(time.time() - start_time_0) +
