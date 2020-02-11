@@ -74,30 +74,29 @@ def main(**args_):
                                               shared_name=None, name=None)
         enqueue_op = input_queue.enqueue_many([image_paths_placeholder, labels_placeholder])
 
-        nrof_preprocess_threads = 4
         images_and_labels = []
-        for _ in range(nrof_preprocess_threads):
-            filenames, label = input_queue.dequeue()
-            images = []
-            for filename in tf.unstack(filenames):
-                file_contents = tf.read_file(filename)
-                image = tf.image.decode_image(file_contents, channels=3)
+        files, labels = input_queue.dequeue()
+        images = []
 
-                if args.image.random_crop:
-                    image = tf.image.random_crop(image, [args.image.size, args.image.size, 3])
-                else:
-                    image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
+        for filename in tf.unstack(files):
+            file_contents = tf.read_file(filename)
+            image = tf.image.decode_image(file_contents, channels=3)
 
-                if args.image.random_flip:
-                    image = tf.image.random_flip_left_right(image)
+            if args.image.random_crop:
+                image = tf.image.random_crop(image, [args.image.size, args.image.size, 3])
+            else:
+                image = tf.image.resize_image_with_crop_or_pad(image, args.image.size, args.image.size)
 
-                if args.image.standardization:
-                    image = (tf.cast(image, tf.float32) - 127.5) / 128.0
-                else:
-                    image = tf.image.per_image_standardization(image)
+            if args.image.random_flip:
+                image = tf.image.random_flip_left_right(image)
 
-                images.append(image)
-            images_and_labels.append([images, label])
+            if args.image.standardization:
+                image = (tf.cast(image, tf.float32) - 127.5) / 128.0
+            else:
+                image = tf.image.per_image_standardization(image)
+
+            images.append(image)
+        images_and_labels.append([images, labels])
 
         image_batch, label_batch = tf.train.batch_join(images_and_labels, batch_size=batch_size_placeholder,
                                                        shapes=[(args.image.size, args.image.size, 3), ()],
