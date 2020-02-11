@@ -144,7 +144,7 @@ def main(**args_):
         sess.run(tf.global_variables_initializer(), feed_dict={phase_train_placeholder: True})
         sess.run(tf.local_variables_initializer(), feed_dict={phase_train_placeholder: True})
 
-        summary_writer = tf.summary.FileWriter(args.model.log_dir, sess.graph)
+        summary_writer = tf.summary.FileWriter(args.model.logs, sess.graph)
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
