@@ -154,10 +154,10 @@ def main(**args_):
             # Training and validation loop
             for epoch in range(args.epoch.max_nrof_epochs):
                 # Train for one epoch
-                if train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
-                         batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
-                         input_queue, global_step, embeddings, total_loss, train_op, summary_op, summary_writer,
-                         anchor, positive, negative, triplet_loss, learning_rate):
+                if not train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
+                             batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
+                             input_queue, global_step, embeddings, total_loss, train_op, summary_op, summary_writer,
+                             anchor, positive, negative, triplet_loss, learning_rate):
                     break
 
                 # Save variables and the metagraph if it doesn't exist already
