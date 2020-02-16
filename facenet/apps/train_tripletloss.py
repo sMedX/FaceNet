@@ -114,7 +114,8 @@ def main(**args_):
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
         # Split embeddings into anchor, positive and negative and calculate triplet loss
-        anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size]), 3, 1)
+        embeddings = tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size], name='reshaped_embeddings')
+        anchor, positive, negative = tf.unstack(embeddings, 3, 1)
         triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
