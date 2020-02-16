@@ -114,8 +114,7 @@ def main(**args_):
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
         # Split embeddings into anchor, positive and negative and calculate triplet loss
-        embeddings = tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size], name='reshaped_embeddings')
-        anchor, positive, negative = tf.unstack(embeddings, 3, 1)
+        anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size]), 3, 1)
         triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
@@ -208,7 +207,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         nrof_examples = args.people_per_batch * args.images_per_person
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
         image_paths_array = np.reshape(np.expand_dims(np.array(image_paths), 1), (-1, 3))
-        sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
+
+        sess.run(enqueue_op, feed_dict={image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
 
         emb_array = np.zeros((nrof_examples, embedding_size))
         nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
