@@ -192,7 +192,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
           embeddings, loss, train_op, summary_op, summary_writer,
           anchor, positive, negative, triplet_loss, learning_rate):
 
-    embedding_size = int(embeddings.get_shape()[1])
+    embedding_size = args.model.config.embedding_size
 
     lr_value = facenet.learning_rate_value(epoch, args.learning_rate)
     if lr_value is None:
@@ -217,7 +217,6 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
                                                                        phase_train_placeholder: True})
-            print(emb_array.shape, emb.shape, len(lab.shape))
             emb_array[lab, :] = emb
 
         # Select triplets based on the embeddings
