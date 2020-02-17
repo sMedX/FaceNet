@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 import numpy as np
 import math
 from facenet import utils, h5utils
@@ -9,12 +9,23 @@ class ImageClass:
     Stores the paths to images for a given class
     """
 
-    def __init__(self, name, files, count=None):
-        self.name = name
-        self.count = count
+    def __init__(self, x, h5file=None, nrof_images=None, files=None, ext=''):
+        if files is None:
+            path = Path(x).expanduser()
+            x = path.stem
+            files = list(path.glob('*' + ext))
 
-        self.files = [str(f) for f in files]
-        self.files_as_posix = [pathlib.Path(f) for f in files]
+            if h5file is not None:
+                h5file = Path(ext).expanduser()
+                files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
+
+            if nrof_images is not None:
+                if len(files) > nrof_images:
+                    files = np.random.choice(files, size=nrof_images, replace=False)
+
+        files.sort()
+        self.files = files
+        self.name = x
 
     def __str__(self):
         return self.name + ', ' + str(self.nrof_images) + ' images'
@@ -27,27 +38,25 @@ class ImageClass:
     def nrof_pairs(self):
         return self.nrof_images * (self.nrof_images - 1) // 2
 
-    def random_choice(self, max_nrof_images_per_class):
+    def random_choice(self, nrof_images_per_class):
         files = self.files
-        if max_nrof_images_per_class < self.nrof_images:
-            files = np.random.choice(files, size=max_nrof_images_per_class, replace=False)
-        return ImageClass(self.name, files, count=self.count)
+        if self.nrof_images > nrof_images_per_class:
+            files = np.random.choice(files, size=nrof_images_per_class, replace=False)
+        return ImageClass(self.name, files=files)
 
 
 class DBase:
     def __init__(self, config, classes=None, extension=''):
         if classes is None:
-            self.download(config, extension=extension)
+            self.download(config, ext=extension)
         else:
             self.path = config.path
             self.h5file = config.h5file
             self.classes = classes
 
-    def download(self, config, extension=''):
-        self.path = pathlib.Path(config.path).expanduser()
+    def download(self, config, ext=''):
+        self.path = Path(config.path).expanduser()
         self.h5file = config.h5file
-        if self.h5file is not None:
-            self.h5file = pathlib.Path(self.h5file).expanduser()
 
         classes = [path for path in self.path.glob('*') if path.is_dir()]
         classes.sort()
@@ -58,21 +67,9 @@ class DBase:
         self.classes = []
 
         for count, path in enumerate(classes):
-            files = list(path.glob('*' + extension))
-            files.sort()
-
-            if self.h5file is not None:
-                files = [f for f in files if
-                         h5utils.read(self.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
-
-            if config.nrof_images is not None:
-                if len(files) > config.nrof_images:
-                    files = np.random.choice(files, size=config.nrof_images, replace=False)
-
-            if len(files) > 0:
-                self.classes.append(ImageClass(path.stem, files, count=count))
-                print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
-                      end=utils.end(count, len(classes)))
+            self.classes.append(ImageClass(path, h5file=config.h5file, nrof_images=config.nrof_images, ext=ext))
+            print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
+                  end=utils.end(count, len(classes)))
 
     @property
     def labels(self):
@@ -138,17 +135,17 @@ class DBase:
             f += cls.files_as_posix
         return f
 
-    def random_choice(self, max_nrof_images_per_class, nrof_classes=None):
-
-        class_indices = np.arange(self.nrof_classes)
-        if nrof_classes is not None:
-            class_indices = np.random.choice(class_indices, size=nrof_classes, replace=False)
-
-        classes = []
-        for i in class_indices:
-            classes.append(self.classes[i].random_choice(max_nrof_images_per_class))
-
-        return DBase(self, classes=classes)
+    # def random_choice(self, max_nrof_images_per_class, nrof_classes=None):
+    #
+    #     class_indices = np.arange(self.nrof_classes)
+    #     if nrof_classes is not None:
+    #         class_indices = np.random.choice(class_indices, size=nrof_classes, replace=False)
+    #
+    #     classes = []
+    #     for i in class_indices:
+    #         classes.append(self.classes[i].random_choice(max_nrof_images_per_class))
+    #
+    #     return DBase(self, classes=classes)
 
     def extract_data(self, folder_idx, embeddings=None):
         indices = np.where(self.labels == folder_idx)[0]
