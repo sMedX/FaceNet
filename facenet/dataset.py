@@ -27,19 +27,33 @@ class ImageClass:
     def nrof_pairs(self):
         return self.nrof_images * (self.nrof_images - 1) // 2
 
+    def random_choice(self, max_nrof_images_per_class):
+        files = self.files
+        if max_nrof_images_per_class < self.nrof_images:
+            files = np.random.choice(files, size=max_nrof_images_per_class, replace=False)
+        return ImageClass(self.name, files, count=self.count)
+
 
 class DBase:
-    def __init__(self, config, extension='', seed=None):
-        np.random.seed(seed)
+    def __init__(self, config, classes=None, extension=''):
+        if classes is None:
+            self.download(config, extension=extension)
+        else:
+            self.path = config.path
+            self.h5file = config.h5file
+            self.classes = classes
 
-        self.config = config
-        self.config.path = pathlib.Path(config.path).expanduser()
+    def download(self, config, extension=''):
+        self.path = pathlib.Path(config.path).expanduser()
+        self.h5file = config.h5file
+        if self.h5file is not None:
+            self.h5file = pathlib.Path(self.h5file).expanduser()
 
-        classes = [path for path in self.config.path.glob('*') if path.is_dir()]
+        classes = [path for path in self.path.glob('*') if path.is_dir()]
         classes.sort()
 
-        if self.config.nrof_classes is not None:
-            classes = classes[:self.config.nrof_classes]
+        if config.nrof_classes is not None:
+            classes = classes[:config.nrof_classes]
 
         self.classes = []
 
@@ -47,14 +61,13 @@ class DBase:
             files = list(path.glob('*' + extension))
             files.sort()
 
-            if self.config.h5file is not None:
-                self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
+            if self.h5file is not None:
                 files = [f for f in files if
-                         h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
+                         h5utils.read(self.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if self.config.nrof_images is not None:
-                if len(files) > self.config.nrof_images:
-                    files = np.random.choice(files, size=self.config.nrof_images, replace=False)
+            if config.nrof_images is not None:
+                if len(files) > config.nrof_images:
+                    files = np.random.choice(files, size=config.nrof_images, replace=False)
 
             if len(files) > 0:
                 self.classes.append(ImageClass(path.stem, files, count=count))
@@ -71,8 +84,8 @@ class DBase:
     def __repr__(self):
         """Representation of the database"""
         info = 'class {}\n'.format(self.__class__.__name__) + \
-               'Directory to load images {}\n'.format(self.config.path) + \
-               'h5 file to filter images {}\n'.format(self.config.h5file) + \
+               'Directory to load images {}\n'.format(self.path) + \
+               'h5 file to filter images {}\n'.format(self.h5file) + \
                'Number of classes {} \n'.format(self.nrof_classes) + \
                'Number of images {}\n'.format(self.nrof_images) + \
                'Number of pairs {}\n'.format(self.nrof_pairs) + \
@@ -124,6 +137,18 @@ class DBase:
         for cls in self.classes:
             f += cls.files_as_posix
         return f
+
+    def random_choice(self, max_nrof_images_per_class, nrof_classes=None):
+
+        class_indices = np.arange(self.nrof_classes)
+        if nrof_classes is not None:
+            class_indices = np.random.choice(class_indices, size=nrof_classes, replace=False)
+
+        classes = []
+        for i in class_indices:
+            classes.append(self.classes[i].random_choice(max_nrof_images_per_class))
+
+        return DBase(self, classes=classes)
 
     def extract_data(self, folder_idx, embeddings=None):
         indices = np.where(self.labels == folder_idx)[0]
