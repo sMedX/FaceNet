@@ -27,7 +27,7 @@ class ImageClass:
         self.files = files
         self.name = x
 
-    def __str__(self):
+    def __repr__(self):
         return self.name + ', ' + str(self.nrof_images) + ' images'
 
     @property
@@ -68,8 +68,7 @@ class DBase:
 
         for count, path in enumerate(classes):
             self.classes.append(ImageClass(path, h5file=config.h5file, nrof_images=config.nrof_images, ext=ext))
-            print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
-                  end=utils.end(count, len(classes)))
+            print('\r({}/{}): {}'.format(count, len(classes), self.classes[-1].__repr__()), end=utils.end(count, len(classes)))
 
     @property
     def labels(self):
