@@ -9,23 +9,23 @@ class ImageClass:
     Stores the paths to images for a given class
     """
 
-    def __init__(self, x, h5file=None, nrof_images=None, files=None, ext=''):
-        if files is None:
-            path = Path(x).expanduser()
-            x = path.stem
-            files = list(path.glob('*' + ext))
+    def __init__(self, config, files=None, ext=''):
+        self.path = Path(config.path).expanduser()
+        self.name = self.path.stem
 
-            if h5file is not None:
-                h5file = Path(ext).expanduser()
+        if files is None:
+            files = list(self.path.glob('*' + ext))
+
+            if config.h5file is not None:
+                h5file = Path(config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if nrof_images is not None:
-                if len(files) > nrof_images:
-                    files = np.random.choice(files, size=nrof_images, replace=False)
+            if config.nrof_images is not None:
+                if len(files) > config.nrof_images:
+                    files = np.random.choice(files, size=config.nrof_images, replace=False)
 
         files.sort()
         self.files = files
-        self.name = x
 
     def __repr__(self):
         return self.name + ', ' + str(self.nrof_images) + ' images'
@@ -42,17 +42,18 @@ class ImageClass:
         files = self.files
         if self.nrof_images > nrof_images_per_class:
             files = np.random.choice(files, size=nrof_images_per_class, replace=False)
-        return ImageClass(self.name, files=files)
+        return ImageClass(self, files=files)
 
 
 class DBase:
     def __init__(self, config, classes=None, ext=''):
-        if classes is None:
-            config.path = Path(config.path).expanduser()
-            if config.h5file is not None:
-                config.h5file = Path(config.h5file).expanduser()
+        self.path = Path(config.path).expanduser()
+        self.h5file = config.h5file
+        if self.h5file is not None:
+            self.h5file = Path(self.h5file).expanduser()
 
-            dirs = [p for p in config.path.glob('*') if p.is_dir()]
+        if classes is None:
+            dirs = [p for p in self.path.glob('*') if p.is_dir()]
             if config.nrof_classes is not None:
                 dirs = np.random.choice(dirs, size=config.nrof_classes, replace=False)
             dirs.sort()
@@ -60,12 +61,11 @@ class DBase:
             classes = []
 
             for idx, path in enumerate(dirs):
-                classes.append(ImageClass(path, h5file=config.h5file, nrof_images=config.nrof_images, ext=ext))
+                config.path = path
+                classes.append(ImageClass(config, ext=ext))
                 print('\r({}/{}): {}'.format(idx, len(classes), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
 
         self.classes = classes
-        self.path = config.path
-        self.h5file = config.h5file
 
     @property
     def labels(self):
