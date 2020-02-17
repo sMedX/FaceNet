@@ -207,11 +207,12 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         # Sample people randomly from the data set
         image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
 
-        nrof_examples = args.people_per_batch * args.images_per_person
+        nrof_examples = len(image_paths)
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
         image_paths_array = np.reshape(np.expand_dims(np.array(image_paths), 1), (-1, 3))
 
-        sess.run(enqueue_op, feed_dict={image_paths_placeholder: image_paths_array, labels_placeholder: labels_array})
+        sess.run(enqueue_op, feed_dict={image_paths_placeholder: image_paths_array,
+                                        labels_placeholder: labels_array})
 
         emb_array = np.zeros((nrof_examples, embedding_size))
         nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
