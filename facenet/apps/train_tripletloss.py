@@ -26,6 +26,7 @@ FaceNet: A Unified Embedding for Face Recognition and Clustering: http://arxiv.o
 import click
 from pathlib import Path
 import time
+import random
 import numpy as np
 import importlib
 import itertools
@@ -50,6 +51,7 @@ def main(**args_):
     network = importlib.import_module(args.model.module)
 
     np.random.seed(seed=args.seed)
+    random.seed(seed=args.seed)
 
     train_set = dataset.DBase(args.dataset)
     print(train_set)
@@ -332,9 +334,9 @@ def sample_people(dataset, people_per_batch, images_per_person):
 
         image_paths_for_class = dataset.classes[class_index].files
         if nrof_images_in_class > nrof_images_from_class:
-            image_paths_for_class = np.random.choice(image_paths_for_class, size=nrof_images_from_class, replace=False)
+            image_paths_for_class = random.choices(image_paths_for_class, size=nrof_images_from_class, replace=False)
 
-        image_paths += list(image_paths_for_class)
+        image_paths += image_paths_for_class
         num_per_class.append(nrof_images_from_class)
         i += 1
 
