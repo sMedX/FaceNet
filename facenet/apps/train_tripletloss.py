@@ -310,6 +310,9 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
 
 
 def sample_people(dataset, people_per_batch, images_per_person):
+    if people_per_batch is None:
+        people_per_batch = dataset.nrof_classes
+
     nrof_images = people_per_batch * images_per_person
 
     # Sample classes from the dataset
@@ -321,6 +324,7 @@ def sample_people(dataset, people_per_batch, images_per_person):
     image_paths = []
     num_per_class = []
     sampled_class_indices = []
+
     # Sample images from these classes until we have enough
     while len(image_paths) < nrof_images:
         class_index = class_indices[i]
