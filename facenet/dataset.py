@@ -14,7 +14,7 @@ class ImageClass:
         self.name = self.path.stem
 
         if files is None:
-            files = list(self.path.glob('*' + ext))
+            files = [str(f) for f in self.path.glob('*' + ext)]
 
             if config.h5file is not None:
                 h5file = Path(config.h5file).expanduser()
