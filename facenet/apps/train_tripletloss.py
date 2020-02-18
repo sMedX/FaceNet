@@ -287,6 +287,7 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
             for p in range(a+1, nrof_images):
                 p_idx = p + start_idx
                 pos_dist = np.sum(np.square(embeddings[p_idx] - embeddings[a_idx]))
+
                 # FaceNet selection
                 all_neg = np.where(np.logical_and(neg_dist > pos_dist, neg_dist < pos_dist + alpha))[0]
 
