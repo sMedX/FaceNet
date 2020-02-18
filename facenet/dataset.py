@@ -24,8 +24,8 @@ class ImageClass:
                 if len(files) > config.nrof_images:
                     files = np.random.choice(files, size=config.nrof_images, replace=False)
 
-        files.sort()
         self.files = files
+        self.files.sort()
 
     def __repr__(self):
         return self.name + ', ' + str(self.nrof_images) + ' images'
