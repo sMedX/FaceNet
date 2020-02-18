@@ -273,12 +273,11 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_batch, alpha):
     """ Select the triplets for training
     """
-    num_trips = 0
+    num_pairs = 0
     triplets = []
 
-    for i in range(people_per_batch):
+    for i, nrof_images in enumerate(nrof_images_per_class):
         start_idx = sum(nrof_images_per_class[:i])
-        nrof_images = nrof_images_per_class[i]
 
         for a in range(nrof_images):
             a_idx = a + start_idx
@@ -288,15 +287,19 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
             for p in range(a+1, nrof_images):
                 p_idx = p + start_idx
                 pos_dist = np.sum(np.square(embeddings[p_idx] - embeddings[a_idx]))
+                # FaceNet selection
+                # all_neg = np.where(np.logical_and(neg_dist - pos_dist < alpha, pos_dist < neg_dist))[0]
+
+                # VGG Face selection
                 all_neg = np.where(neg_dist - pos_dist < alpha)[0]
 
                 if len(all_neg) > 0:
                     n_idx = np.random.choice(all_neg, size=1, replace=False)[0]
                     triplets.append((image_paths[a_idx], image_paths[p_idx], image_paths[n_idx]))
 
-                num_trips += 1
+                num_pairs += 1
 
-    return triplets, num_trips
+    return triplets, num_pairs
 
     # VGG Face: Choosing good triplets is crucial and should strike a balance between
     #  selecting informative (i.e. challenging) examples and swamping training with examples that
