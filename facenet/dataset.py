@@ -28,7 +28,7 @@ class ImageClass:
         self.files.sort()
 
     def __repr__(self):
-        return self.name + ', ' + str(self.nrof_images) + ' images'
+        return 'name: {} , images: {}'.format(self.name, self.nrof_images)
 
     @property
     def nrof_images(self):
@@ -63,7 +63,7 @@ class DBase:
             for idx, path in enumerate(dirs):
                 config.path = path
                 classes.append(ImageClass(config, ext=ext))
-                print('\r({}/{}): {}'.format(idx, len(classes), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
+                print('\r({}/{}): {}'.format(idx, len(dirs), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
 
         self.classes = classes
 
