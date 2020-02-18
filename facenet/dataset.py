@@ -137,6 +137,7 @@ class DBase:
         if nrof_classes is not None:
             if self.nrof_classes > nrof_classes:
                 class_indices = np.random.choice(class_indices, size=nrof_classes, replace=False)
+                class_indices.sort()
 
         classes = []
         for i in class_indices:
