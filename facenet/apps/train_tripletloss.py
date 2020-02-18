@@ -224,8 +224,8 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             emb_array[lab, :] = emb
 
         # Select triplets based on the embeddings
-        triplets, nrof_random_negs, nrof_triplets = select_triplets(emb_array, num_per_class,
-                                                                    image_paths, args.people_per_batch, args.alpha)
+        triplets, nrof_random_negs = select_triplets(emb_array, num_per_class,
+                                                     image_paths, args.people_per_batch, args.alpha)
         selection_time = time.time() - start_time_0
 
         # Perform training on the selected triplets
@@ -236,7 +236,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         sess.run(enqueue_op, feed_dict={image_paths_placeholder: triplet_paths_array,
                                         labels_placeholder: labels_array})
 
-        nrof_batches = int(np.ceil(nrof_triplets * 3 / args.batch_size))
+        nrof_batches = int(np.ceil(len(triplets) * 3 / args.batch_size))
         nrof_examples = len(triplet_paths)
 
         loss_array = np.zeros(nrof_batches)
@@ -255,7 +255,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 
             print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
                   'Time: {:.3f}\t'.format(time.time() - start_time_1) +
-                  '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, nrof_triplets) +
+                  '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, len(triplets)) +
                   'Loss: {:.5f}\t'.format(loss_) +
                   'Lr {:2.5f}'.format(lr_))
 
@@ -273,10 +273,30 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_batch, alpha):
     """ Select the triplets for training
     """
-    trip_idx = 0
-    emb_start_idx = 0
     num_trips = 0
     triplets = []
+
+    for i in range(people_per_batch):
+        start_idx = sum(nrof_images_per_class[:i])
+        nrof_images = nrof_images_per_class[i]
+
+        for a in range(nrof_images):
+            a_idx = a + start_idx
+            neg_dist = np.sum(np.square(embeddings - embeddings[a_idx]), 1)
+            neg_dist[start_idx:start_idx + nrof_images] = np.Inf
+
+            for p in range(a+1, nrof_images):
+                p_idx = p + start_idx
+                pos_dist = np.sum(np.square(embeddings[p_idx] - embeddings[a_idx]))
+                all_neg = np.where(neg_dist - pos_dist < alpha)[0]
+
+                if len(all_neg) > 0:
+                    n_idx = np.random.choice(all_neg, size=1, replace=False)[0]
+                    triplets.append((image_paths[a_idx], image_paths[p_idx], image_paths[n_idx]))
+
+                num_trips += 1
+
+    return triplets, num_trips
 
     # VGG Face: Choosing good triplets is crucial and should strike a balance between
     #  selecting informative (i.e. challenging) examples and swamping training with examples that
@@ -285,29 +305,34 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
     #  latter is a form of hard-negative mining, but it is not as aggressive (and much cheaper) than
     #  choosing the maximally violating example, as often done in structured output learning.
 
-    for i in range(people_per_batch):
-        nrof_images = int(nrof_images_per_class[i])
-        for j in range(1, nrof_images):
-            a_idx = emb_start_idx + j - 1
-            neg_dists_sqr = np.sum(np.square(embeddings[a_idx] - embeddings), 1)
-            for pair in range(j, nrof_images):  # For every possible positive pair.
-                p_idx = emb_start_idx + pair
-                pos_dist_sqr = np.sum(np.square(embeddings[a_idx] - embeddings[p_idx]))
-                neg_dists_sqr[emb_start_idx:emb_start_idx + nrof_images] = np.NaN
-                # all_neg = np.where(np.logical_and(neg_dists_sqr-pos_dist_sqr<alpha, pos_dist_sqr<neg_dists_sqr))[0]  # FaceNet selection
-                all_neg = np.where(neg_dists_sqr - pos_dist_sqr < alpha)[0]  # VGG Face selecction
-                nrof_random_negs = all_neg.shape[0]
-                if nrof_random_negs > 0:
-                    rnd_idx = np.random.randint(nrof_random_negs)
-                    n_idx = all_neg[rnd_idx]
-                    triplets.append((image_paths[a_idx], image_paths[p_idx], image_paths[n_idx]))
-                    # print('Triplet %d: (%d, %d, %d), pos_dist=%2.6f, neg_dist=%2.6f (%d, %d, %d, %d, %d)' %
-                    #    (trip_idx, a_idx, p_idx, n_idx, pos_dist_sqr, neg_dists_sqr[n_idx], nrof_random_negs, rnd_idx, i, j, emb_start_idx))
-                    trip_idx += 1
+    # trip_idx = 0
+    # emb_start_idx = 0
+    # num_trips = 0
+    # triplets = []
 
-                num_trips += 1
-
-        emb_start_idx += nrof_images
+    # for i in range(people_per_batch):
+    #     nrof_images = int(nrof_images_per_class[i])
+    #     for j in range(1, nrof_images):
+    #         a_idx = emb_start_idx + j - 1
+    #         neg_dists_sqr = np.sum(np.square(embeddings[a_idx] - embeddings), 1)
+    #         for pair in range(j, nrof_images):  # For every possible positive pair.
+    #             p_idx = emb_start_idx + pair
+    #             pos_dist_sqr = np.sum(np.square(embeddings[a_idx] - embeddings[p_idx]))
+    #             neg_dists_sqr[emb_start_idx:emb_start_idx + nrof_images] = np.NaN
+    #             # all_neg = np.where(np.logical_and(neg_dists_sqr-pos_dist_sqr<alpha, pos_dist_sqr<neg_dists_sqr))[0]  # FaceNet selection
+    #             all_neg = np.where(neg_dists_sqr - pos_dist_sqr < alpha)[0]  # VGG Face selecction
+    #             nrof_random_negs = all_neg.shape[0]
+    #             if nrof_random_negs > 0:
+    #                 rnd_idx = np.random.randint(nrof_random_negs)
+    #                 n_idx = all_neg[rnd_idx]
+    #                 triplets.append((image_paths[a_idx], image_paths[p_idx], image_paths[n_idx]))
+    #                 # print('Triplet %d: (%d, %d, %d), pos_dist=%2.6f, neg_dist=%2.6f (%d, %d, %d, %d, %d)' %
+    #                 #    (trip_idx, a_idx, p_idx, n_idx, pos_dist_sqr, neg_dists_sqr[n_idx], nrof_random_negs, rnd_idx, i, j, emb_start_idx))
+    #                 trip_idx += 1
+    #
+    #             num_trips += 1
+    #
+    #     emb_start_idx += nrof_images
 
     np.random.shuffle(triplets)
     return triplets, num_trips, len(triplets)
