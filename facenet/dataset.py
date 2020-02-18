@@ -28,7 +28,7 @@ class ImageClass:
         self.files.sort()
 
     def __repr__(self):
-        return 'name: {} , images: {}'.format(self.name, self.nrof_images)
+        return 'name: {}, images: {}'.format(self.name, self.nrof_images)
 
     @property
     def nrof_images(self):
