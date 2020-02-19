@@ -1,6 +1,9 @@
-from pathlib import Path
+
+import itertools
 import numpy as np
 import math
+from pathlib import Path
+
 from facenet import utils, h5utils
 
 
@@ -117,10 +120,7 @@ class DBase:
 
     @property
     def files(self):
-        f = []
-        for cls in self.classes:
-            f += cls.files
-        return f
+        return list(itertools.chain.from_iterable(cls.files for cls in self.classes))
 
     def random_choice(self, nrof_images_per_class, nrof_classes=None):
 
