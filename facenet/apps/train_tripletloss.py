@@ -49,13 +49,8 @@ def main(**args_):
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
 
-    np.random.seed(seed=args.seed)
-
-    train_set = dataset.DBase(args.dataset)
-    if args.people_per_batch is None:
-        args.people_per_batch = train_set.nrof_classes
-
-    print(train_set)
+    dbase = dataset.DBase(args.dataset)
+    print(dbase)
 
     with tf.Graph().as_default():
         tf.set_random_seed(args.seed)
@@ -71,7 +66,7 @@ def main(**args_):
         image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 3), name='image_paths')
         labels_placeholder = tf.placeholder(tf.int64, shape=(None, 3), name='labels')
 
-        input_queue = data_flow_ops.FIFOQueue(capacity=train_set.nrof_images,
+        input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                               dtypes=[tf.string, tf.int64],
                                               shapes=[(3,), (3,)],
                                               shared_name=None, name=None)
@@ -157,7 +152,7 @@ def main(**args_):
             # Training and validation loop
             for epoch in range(args.epoch.max_nrof_epochs):
                 # Train for one epoch
-                if not train(args, sess, train_set, epoch, image_paths_placeholder, labels_placeholder, label_batch,
+                if not train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder, label_batch,
                              batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op,
                              input_queue, global_step, embeddings, total_loss, train_op, summary_op, summary_writer,
                              anchor, positive, negative, triplet_loss, learning_rate):
@@ -188,7 +183,7 @@ def main(**args_):
     return args.model.path
 
 
-def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
+def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder, labels_batch,
           batch_size_placeholder, learning_rate_placeholder, phase_train_placeholder, enqueue_op, input_queue,
           global_step,
           embeddings, loss, train_op, summary_op, summary_writer,
@@ -205,7 +200,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
         start_time_0 = time.time()
 
         # Sample people randomly from the data set
-        image_paths, num_per_class = sample_people(dataset, args.people_per_batch, args.images_per_person)
+        image_paths, num_per_class = sample_people(dbase, args.people_per_batch, args.images_per_person)
 
         nrof_examples = len(image_paths)
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
@@ -224,8 +219,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
             emb_array[lab, :] = emb
 
         # Select triplets based on the embeddings
-        triplets, nrof_random_negs = select_triplets(emb_array, num_per_class,
-                                                     image_paths, args.people_per_batch, args.alpha)
+        triplets = select_triplets(emb_array, num_per_class, image_paths, args.alpha)
         selection_time = time.time() - start_time_0
 
         # Perform training on the selected triplets
@@ -255,7 +249,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
 
             print('Epoch: [{}/{}][{}/{}]\t'.format(epoch+1, args.epoch.max_nrof_epochs, batch_number, args.epoch.size) +
                   'Time: {:.3f}\t'.format(time.time() - start_time_1) +
-                  '(nrof_random_negs, nrof_triplets): [{}/{}]\t'.format(nrof_random_negs, len(triplets)) +
+                  'Triplets: {}\t'.format(len(triplets)) +
                   'Loss: {:.5f}\t'.format(loss_) +
                   'Lr {:2.5f}'.format(lr_))
 
@@ -270,7 +264,7 @@ def train(args, sess, dataset, epoch, image_paths_placeholder, labels_placeholde
     return True
 
 
-def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_batch, alpha):
+def select_triplets(embeddings, nrof_images_per_class, image_paths, alpha):
     """ Select the triplets for training
     """
     num_pairs = 0
@@ -300,7 +294,7 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
 
                 num_pairs += 1
 
-    return triplets, num_pairs
+    return triplets
 
     # VGG Face: Choosing good triplets is crucial and should strike a balance between
     #  selecting informative (i.e. challenging) examples and swamping training with examples that

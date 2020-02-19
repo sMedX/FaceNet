@@ -69,27 +69,25 @@ class DBase:
 
         self.classes = classes
 
+    def __repr__(self):
+        """Representation of the database"""
+        return ('class {}\n'.format(self.__class__.__name__) +
+                'Directory to load images {}\n'.format(self.path) +
+                'h5 file to filter images {}\n'.format(self.h5file) +
+                'Number of classes {} \n'.format(self.nrof_classes) +
+                'Number of images {}\n'.format(self.nrof_images) +
+                'Number of pairs {}\n'.format(self.nrof_pairs) +
+                'Number of positive pairs {} ({:.6f} %)\n'.format(self.nrof_positive_pairs, 100 * self.nrof_positive_pairs / self.nrof_pairs) +
+                'Number of negative pairs {} ({:.6f} %)\n'.format(self.nrof_negative_pairs, 100 * self.nrof_negative_pairs / self.nrof_pairs) +
+                'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
+                'Maximal number of images in class {}\n'.format(self.max_nrof_images))
+
     @property
     def labels(self):
         labels = []
         for idx, cls in enumerate(self.classes):
             labels += [idx] * cls.nrof_images
         return np.array(labels)
-
-    def __repr__(self):
-        """Representation of the database"""
-        info = 'class {}\n'.format(self.__class__.__name__) + \
-               'Directory to load images {}\n'.format(self.path) + \
-               'h5 file to filter images {}\n'.format(self.h5file) + \
-               'Number of classes {} \n'.format(self.nrof_classes) + \
-               'Number of images {}\n'.format(self.nrof_images) + \
-               'Number of pairs {}\n'.format(self.nrof_pairs) + \
-               'Number of positive pairs {} ({:.6f} %)\n'.format(self.nrof_positive_pairs, 100 * self.nrof_positive_pairs / self.nrof_pairs) + \
-               'Number of negative pairs {} ({:.6f} %)\n'.format(self.nrof_negative_pairs, 100 * self.nrof_negative_pairs / self.nrof_pairs) + \
-               'Minimal number of images in class {}\n'.format(self.min_nrof_images) + \
-               'Maximal number of images in class {}\n'.format(self.max_nrof_images)
-
-        return info
 
     @property
     def min_nrof_images(self):
@@ -124,13 +122,6 @@ class DBase:
         f = []
         for cls in self.classes:
             f += cls.files
-        return f
-
-    @property
-    def files_as_posix(self):
-        f = []
-        for cls in self.classes:
-            f += cls.files_as_posix
         return f
 
     def random_choice(self, nrof_images_per_class, nrof_classes=None):

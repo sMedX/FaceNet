@@ -3,6 +3,7 @@ __author__ = 'Ruslan N. Kosarev'
 
 import sys
 import oyaml as yaml
+import numpy as np
 from pathlib import Path
 from datetime import datetime
 import importlib
@@ -108,6 +109,8 @@ class TrainOptions(YAMLConfig):
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.model.logs.joinpath('arguments.yaml'))
         ioutils.store_revision_info(self.model.logs, sys.argv)
+
+        np.random.seed(seed=self.seed)
 
 
 class DefaultConfig:
