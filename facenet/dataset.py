@@ -14,7 +14,7 @@ class ImageClass:
         self.name = self.path.stem
 
         if files is None:
-            files = [str(f) for f in self.path.glob('*' + ext)]
+            files = list(self.path.glob('*' + ext))
 
             if config.h5file is not None:
                 h5file = Path(config.h5file).expanduser()
@@ -24,7 +24,7 @@ class ImageClass:
                 if len(files) > config.nrof_images:
                     files = np.random.choice(files, size=config.nrof_images, replace=False)
 
-        self.files = files
+        self.files = [str(f) for f in files]
         self.files.sort()
 
     def __repr__(self):
@@ -62,10 +62,8 @@ class DBase:
 
             for idx, path in enumerate(dirs):
                 config.path = path
-                image_class = ImageClass(config, ext=ext)
-                if image_class.nrof_images > 0:
-                    classes.append(ImageClass(config, ext=ext))
-                    print('\r({}/{}) {}'.format(idx, len(dirs), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
+                classes.append(ImageClass(config, ext=ext))
+                print('\r({}/{}) {}'.format(idx, len(dirs), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
 
         self.classes = classes
 
@@ -121,6 +119,7 @@ class DBase:
     def files(self):
         f = []
         for cls in self.classes:
+            print(type(cls.files))
             f += cls.files
         return f
 
