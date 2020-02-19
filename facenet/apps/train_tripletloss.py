@@ -337,9 +337,9 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, people_per_b
     #             num_trips += 1
     #
     #     emb_start_idx += nrof_images
-
-    np.random.shuffle(triplets)
-    return triplets, num_trips, len(triplets)
+    #
+    # np.random.shuffle(triplets)
+    # return triplets, num_trips, len(triplets)
 
 
 def sample_people(dataset, people_per_batch, images_per_person):

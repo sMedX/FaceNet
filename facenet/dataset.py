@@ -62,8 +62,10 @@ class DBase:
 
             for idx, path in enumerate(dirs):
                 config.path = path
-                classes.append(ImageClass(config, ext=ext))
-                print('\r({}/{}) {}'.format(idx, len(dirs), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
+                image_class = ImageClass(config, ext=ext)
+                if image_class.nrof_images > 0:
+                    classes.append(ImageClass(config, ext=ext))
+                    print('\r({}/{}) {}'.format(idx, len(dirs), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
 
         self.classes = classes
 
