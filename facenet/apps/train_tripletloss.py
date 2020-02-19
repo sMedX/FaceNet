@@ -97,10 +97,10 @@ def main(**args_):
         images_and_labels.append([images, labels])
 
         image_batch, label_batch = tf.train.batch_join(images_and_labels,
+                                                       capacity=dbase.nrof_images,
                                                        batch_size=batch_size_placeholder,
                                                        shapes=[(args.image.size, args.image.size, 3), ()],
                                                        enqueue_many=True,
-                                                       capacity=args.batch_size,
                                                        allow_smaller_final_batch=True)
 
         image_batch = tf.identity(image_batch, 'image_batch')
