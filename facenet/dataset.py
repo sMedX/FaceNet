@@ -119,7 +119,6 @@ class DBase:
     def files(self):
         f = []
         for cls in self.classes:
-            print(type(cls.files))
             f += cls.files
         return f
 
