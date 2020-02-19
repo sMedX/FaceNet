@@ -204,7 +204,7 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
 
         random_dbase = dbase.random_choice(args.images_per_person, nrof_classes=args.people_per_batch)
         image_paths = random_dbase.files
-        num_per_class = [x for x in random_dbase.nrof_images]
+        num_per_class = random_dbase.nrof_images_per_class
 
         nrof_examples = len(image_paths)
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))

@@ -122,6 +122,10 @@ class DBase:
     def files(self):
         return list(itertools.chain.from_iterable(cls.files for cls in self.classes))
 
+    @property
+    def nrof_images_per_class(self):
+        return [cls.nrof_images for cls in self.classes]
+
     def random_choice(self, nrof_images_per_class, nrof_classes=None):
 
         class_indices = np.arange(self.nrof_classes)
