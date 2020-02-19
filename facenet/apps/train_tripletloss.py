@@ -217,7 +217,7 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
         nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
 
         for i in range(nrof_batches):
-            print('\revaluate embeddings {}/{}'.format(i, nrof_batches),  end=facenet.utils.end(i, nrof_batches))
+            print('\revaluate embeddings {}/{}'.format(i+1, nrof_batches),  end=facenet.utils.end(i, nrof_batches))
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
                                                                        phase_train_placeholder: True})
@@ -276,6 +276,8 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, alpha):
     triplets = []
 
     for i, nrof_images in enumerate(nrof_images_per_class):
+        print('\rselect triplets {}/{}'.format(i+1, len(nrof_images_per_class)), end=facenet.utils.end(i, len(nrof_images_per_class)))
+
         start_idx = sum(nrof_images_per_class[:i])
 
         for a in range(nrof_images):
