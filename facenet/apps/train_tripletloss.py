@@ -217,6 +217,7 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
         nrof_batches = int(np.ceil(nrof_examples / args.batch_size))
 
         for i in range(nrof_batches):
+            print('\revaluate embeddings {}/{}'.format(i, nrof_batches),  end=facenet.utils.end(i, nrof_batches))
             batch_size = min(nrof_examples - i * args.batch_size, args.batch_size)
             emb, lab = sess.run([embeddings, labels_batch], feed_dict={batch_size_placeholder: batch_size,
                                                                        phase_train_placeholder: True})
