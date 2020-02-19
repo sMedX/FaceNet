@@ -200,7 +200,11 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
         start_time_0 = time.time()
 
         # Sample people randomly from the data set
-        image_paths, num_per_class = sample_people(dbase, args.people_per_batch, args.images_per_person)
+        # image_paths, num_per_class = sample_people(dbase, args.people_per_batch, args.images_per_person)
+
+        random_dbase = dbase.random_choice(args.images_per_person, nrof_classes=args.people_per_batch)
+        image_paths = random_dbase.files
+        num_per_class = [x for x in random_dbase.nrof_images]
 
         nrof_examples = len(image_paths)
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
@@ -283,10 +287,10 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, alpha):
                 pos_dist = np.sum(np.square(embeddings[p_idx] - embeddings[a_idx]))
 
                 # FaceNet selection
-                all_neg = np.where(np.logical_and(neg_dist > pos_dist, neg_dist < pos_dist + alpha))[0]
+                # all_neg = np.where(np.logical_and(neg_dist > pos_dist, neg_dist < pos_dist + alpha))[0]
 
                 # VGG Face selection
-                # all_neg = np.where(neg_dist < pos_dist + alpha)[0]
+                all_neg = np.where(neg_dist < pos_dist + alpha)[0]
 
                 if len(all_neg) > 0:
                     n_idx = np.random.choice(all_neg, size=1, replace=False)[0]
