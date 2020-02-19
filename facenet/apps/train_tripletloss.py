@@ -45,6 +45,11 @@ subdir = config.subdir()
 def main(**args_):
     args = config.TrainOptions(args_, subdir=subdir)
 
+    dbase = dataset.DBase(args.validation.dataset)
+    print(dbase)
+    print(len(dbase.files))
+    exit(0)
+
     # import network
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
