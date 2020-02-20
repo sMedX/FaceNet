@@ -21,14 +21,13 @@ model:
   # Directory where to write trained models and checkpoints
   path: ~/models/facenet/tripletloss
 
-# Positive to negative triplet distance margin
-alpha: 0.2
-
-# Number of people per batch
-people_per_batch: 45
-
-# Number of images per person
-images_per_person: 40
+triplets:
+  # Positive to negative triplet distance margin
+  alpha: 0.2
+  # Number of classes per batch, if None all classes will be used
+  nrof_classes: 60
+  # Number of images per class
+  nrof_images: 30
 
 # Random seed
 seed: 0

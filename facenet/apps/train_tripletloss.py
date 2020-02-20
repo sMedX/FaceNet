@@ -200,11 +200,9 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
         start_time_0 = time.time()
 
         # Sample people randomly from the data set
-        # image_paths, num_per_class = sample_people(dbase, args.people_per_batch, args.images_per_person)
-
-        random_dbase = dbase.random_choice(args.images_per_person, nrof_classes=args.people_per_batch)
-        image_paths = random_dbase.files
-        num_per_class = random_dbase.nrof_images_per_class
+        dbase_ = dbase.random_choice(args.trplets.nrof_images, nrof_classes=args.triplets.nrof_classes)
+        image_paths = dbase_.files
+        nrof_images_per_class = dbase_.nrof_images_per_class
 
         nrof_examples = len(image_paths)
         labels_array = np.reshape(np.arange(nrof_examples), (-1, 3))
@@ -224,7 +222,7 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
             emb_array[lab, :] = emb
 
         # Select triplets based on the embeddings
-        triplets = select_triplets(emb_array, num_per_class, image_paths, args.alpha)
+        triplets = select_triplets(emb_array, nrof_images_per_class, image_paths, args.alpha)
         selection_time = time.time() - start_time_0
 
         # Perform training on the selected triplets
@@ -303,73 +301,34 @@ def select_triplets(embeddings, nrof_images_per_class, image_paths, alpha):
 
     return triplets
 
-    # VGG Face: Choosing good triplets is crucial and should strike a balance between
-    #  selecting informative (i.e. challenging) examples and swamping training with examples that
-    #  are too hard. This is achieve by extending each pair (a, p) to a triplet (a, p, n) by sampling
-    #  the image n at random, but only between the ones that violate the triplet loss margin. The
-    #  latter is a form of hard-negative mining, but it is not as aggressive (and much cheaper) than
-    #  choosing the maximally violating example, as often done in structured output learning.
 
-    # trip_idx = 0
-    # emb_start_idx = 0
-    # num_trips = 0
-    # triplets = []
-
-    # for i in range(people_per_batch):
-    #     nrof_images = int(nrof_images_per_class[i])
-    #     for j in range(1, nrof_images):
-    #         a_idx = emb_start_idx + j - 1
-    #         neg_dists_sqr = np.sum(np.square(embeddings[a_idx] - embeddings), 1)
-    #         for pair in range(j, nrof_images):  # For every possible positive pair.
-    #             p_idx = emb_start_idx + pair
-    #             pos_dist_sqr = np.sum(np.square(embeddings[a_idx] - embeddings[p_idx]))
-    #             neg_dists_sqr[emb_start_idx:emb_start_idx + nrof_images] = np.NaN
-    #             # all_neg = np.where(np.logical_and(neg_dists_sqr-pos_dist_sqr<alpha, pos_dist_sqr<neg_dists_sqr))[0]  # FaceNet selection
-    #             all_neg = np.where(neg_dists_sqr - pos_dist_sqr < alpha)[0]  # VGG Face selecction
-    #             nrof_random_negs = all_neg.shape[0]
-    #             if nrof_random_negs > 0:
-    #                 rnd_idx = np.random.randint(nrof_random_negs)
-    #                 n_idx = all_neg[rnd_idx]
-    #                 triplets.append((image_paths[a_idx], image_paths[p_idx], image_paths[n_idx]))
-    #                 # print('Triplet %d: (%d, %d, %d), pos_dist=%2.6f, neg_dist=%2.6f (%d, %d, %d, %d, %d)' %
-    #                 #    (trip_idx, a_idx, p_idx, n_idx, pos_dist_sqr, neg_dists_sqr[n_idx], nrof_random_negs, rnd_idx, i, j, emb_start_idx))
-    #                 trip_idx += 1
-    #
-    #             num_trips += 1
-    #
-    #     emb_start_idx += nrof_images
-    #
-    # np.random.shuffle(triplets)
-    # return triplets, num_trips, len(triplets)
-
-
-def sample_people(dataset, people_per_batch, images_per_person):
-    nrof_images = people_per_batch * images_per_person
-
-    # Sample classes from the dataset
-    nrof_classes = dataset.nrof_classes
-    class_indices = np.arange(nrof_classes)
-    np.random.shuffle(class_indices)
-
-    i = 0
-    image_paths = []
-    num_per_class = []
-
-    # Sample images from these classes until we have enough
-    while len(image_paths) < nrof_images:
-        class_index = class_indices[i]
-        nrof_images_in_class = dataset.classes[class_index].nrof_images
-        nrof_images_from_class = min(nrof_images_in_class, images_per_person, nrof_images - len(image_paths))
-
-        image_paths_for_class = dataset.classes[class_index].files
-        if nrof_images_in_class > nrof_images_from_class:
-            image_paths_for_class = np.random.choice(image_paths_for_class, size=nrof_images_from_class, replace=False)
-
-        image_paths += list(image_paths_for_class)
-        num_per_class.append(nrof_images_from_class)
-        i += 1
-
-    return image_paths, num_per_class
+# def sample_people(dataset, config):
+#     nrof_images = people_per_batch * images_per_person
+#
+#     # Sample classes from the dataset
+#     nrof_classes = dataset.nrof_classes
+#     class_indices = np.arange(nrof_classes)
+#     np.random.shuffle(class_indices)
+#
+#     i = 0
+#     image_paths = []
+#     num_per_class = []
+#
+#     # Sample images from these classes until we have enough
+#     while len(image_paths) < nrof_images:
+#         class_index = class_indices[i]
+#         nrof_images_in_class = dataset.classes[class_index].nrof_images
+#         nrof_images_from_class = min(nrof_images_in_class, images_per_person, nrof_images - len(image_paths))
+#
+#         image_paths_for_class = dataset.classes[class_index].files
+#         if nrof_images_in_class > nrof_images_from_class:
+#             image_paths_for_class = np.random.choice(image_paths_for_class, size=nrof_images_from_class, replace=False)
+#
+#         image_paths += list(image_paths_for_class)
+#         num_per_class.append(nrof_images_from_class)
+#         i += 1
+#
+#     return image_paths, num_per_class
 
 
 def evaluate(sess, image_paths, embeddings, labels_batch, image_paths_placeholder, labels_placeholder,
