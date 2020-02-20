@@ -27,7 +27,7 @@ triplets:
   # Number of classes per batch, if None all classes will be used
   nrof_classes: 60
   # Number of images per class
-  nrof_images: 30
+  nrof_images_per_class: 30
 
 # Random seed
 seed: 0

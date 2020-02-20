@@ -200,7 +200,7 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
         start_time_0 = time.time()
 
         # Sample people randomly from the data set
-        dbase_ = dbase.random_choice(args.trplets.nrof_images, nrof_classes=args.triplets.nrof_classes)
+        dbase_ = dbase.random_choice(args.trplets.nrof_images_per_class, nrof_classes=args.triplets.nrof_classes)
         image_paths = dbase_.files
         nrof_images_per_class = dbase_.nrof_images_per_class
 
