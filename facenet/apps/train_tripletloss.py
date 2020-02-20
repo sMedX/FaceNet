@@ -222,7 +222,7 @@ def train(args, sess, dbase, epoch, image_paths_placeholder, labels_placeholder,
             emb_array[lab, :] = emb
 
         # Select triplets based on the embeddings
-        triplets = select_triplets(emb_array, nrof_images_per_class, image_paths, args.alpha)
+        triplets = select_triplets(emb_array, nrof_images_per_class, image_paths, args.triplets.alpha)
         selection_time = time.time() - start_time_0
 
         # Perform training on the selected triplets
