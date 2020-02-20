@@ -113,7 +113,7 @@ def main(**args_):
 
         # Split embeddings into anchor, positive and negative and calculate triplet loss
         anchor, positive, negative = tf.unstack(tf.reshape(embeddings, [-1, 3, args.model.config.embedding_size]), 3, 1)
-        triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.alpha)
+        triplet_loss = facenet.triplet_loss(anchor, positive, negative, args.triplets.alpha)
 
         learning_rate = tf.train.exponential_decay(learning_rate_placeholder, global_step,
                                                    args.learning_rate.decay_epochs * args.epoch.size,
