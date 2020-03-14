@@ -1,42 +1,50 @@
 """Performs face alignment and stores face thumbnails in the output directory."""
 # MIT License
-# 
-# Copyright (c) 2016 Ruslan N. Kosarev
+# Copyright (c) 2020 Ruslan N. Kosarev
 
 import sys
-import argparse
-import pathlib as plib
+import click
+from pathlib import Path
 import numpy as np
 
 from facenet import dataset, ioutils, h5utils
 from facenet.detectors.face_detector import image_processing, FaceDetector
-from facenet import facenet
+from facenet import facenet, config
 
 
-def main(args):
-    args.output_dir = plib.Path(args.output_dir).expanduser()
+@click.command()
+@click.option('--config', default=config.default_app_config(__file__), type=Path,
+              help='Path to yaml config file with used options of the application.')
+def main(**args_):
+    args = config.YAMLConfig(args_['config'])
+
+    if args.outdir is None:
+        args.outdir = '{}_{}extracted_{}'.format(args.dataset.path, args.detector, args.image_size)
+    args.output_dir = Path(args.outdir).expanduser()
     ioutils.makedirs(args.output_dir)
 
     if args.h5file is None:
-        args.h5file = str(args.output_dir) + '.h5'
-    args.h5file = plib.Path(args.h5file).expanduser()
+        args.h5file = args.output_dir.joinpath('statistics.h5')
+    args.h5file = Path(args.h5file).expanduser()
 
     # store some git revision info in a text file in the log directory
-    facenet.store_revision_info(plib.Path(__file__).parent, args.output_dir, ' '.join(sys.argv))
-    dbase = dataset.DBase(args.input_dir)
+    facenet.store_revision_info(Path(__file__).parent, args.output_dir, ' '.join(sys.argv))
+
+    # write arguments and store some git revision info in a text files in the log directory
+    ioutils.write_arguments(args, args.output_dir.joinpath('arguments.yaml'))
+    ioutils.store_revision_info(args.output_dir, sys.argv)
+
+    dbase = dataset.DBase(args.dataset)
     print(dbase)
     print('output directory', args.output_dir)
     print('output h5 file  ', args.h5file)
 
     print('Creating networks and loading parameters')
-    detector = FaceDetector(detector=args.detector, gpu_memory_fraction=args.gpu_memory_fraction)
+    detector = FaceDetector(detector=args.detector)
     print(detector)
 
-    # bounding_boxes_filename = os.path.join(output_dir, 'bounding_boxes.txt')
-    
-    # with open(bounding_boxes_filename, 'w') as text_file:
     nrof_images_total = 0
-    nrof_successfully_aligned = 0
+    nrof_extracted_faces = 0
 
     for cls in dbase.classes:
         # define output class directory if exists skip this class
@@ -47,11 +55,11 @@ def main(args):
             print(image_path)
 
             nrof_images_total += 1
-            out_filename = output_class_dir.joinpath(image_path.stem + '.png')
+            out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
 
             try:
                 # this function returns PIL.Image object
-                img = ioutils.read_image(image_path, mode='RGB')
+                img = ioutils.read_image(image_path)
             except (IOError, ValueError, IndexError) as e:
                 print(e)
             else:
@@ -63,14 +71,13 @@ def main(args):
                 elif nrof_faces > 1 and not args.detect_multiple_faces:
                     print('The number of detected faces more than one "{}"'.format(image_path))
                 else:
-                    nrof_successfully_aligned += 1
+                    nrof_extracted_faces += 1
 
                     for i, box in enumerate(bounding_boxes):
                         output = image_processing(img, box, args.image_size, margin=args.margin)
 
-                        if i == 0:
-                            out_filename_i = out_filename
-                        else:
+                        out_filename_i = out_filename
+                        if i > 0:
                             out_filename_i = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, i, out_filename.suffix))
 
                         ioutils.write_image(output, out_filename_i)
@@ -78,31 +85,8 @@ def main(args):
                         h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), size)
 
     print('Total number of images: {}'.format(nrof_images_total))
-    print('Number of successfully aligned images: {}'.format(nrof_successfully_aligned))
-            
-
-def parse_arguments(argv):
-    parser = argparse.ArgumentParser()
-    
-    parser.add_argument('input_dir', type=str,
-                        help='Directory with unaligned images.')
-    parser.add_argument('output_dir', type=str,
-                        help='Directory with aligned face thumbnails.')
-    parser.add_argument('--detector', type=str,
-                        help='Detector to extract faces, pypimtcnn or frcnnv3.', default='frcnnv3')
-    parser.add_argument('--image_size', type=int,
-                        help='Image size (height, width) in pixels.', default=160)
-    parser.add_argument('--margin', type=int,
-                        help='Margin for the crop around the bounding box (height, width) in pixels.', default=32)
-    parser.add_argument('--gpu_memory_fraction', type=float,
-                        help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
-    parser.add_argument('--detect_multiple_faces', type=bool,
-                        help='Detect and align multiple faces per image.', default=False)
-    parser.add_argument('--h5file', type=str,
-                        help='Path to h5 file to write information about extracted faces.', default=None)
-
-    return parser.parse_args(argv[1:])
+    print('Number of successfully extracted faces: {}'.format(nrof_extracted_faces))
 
 
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv))
+    main()

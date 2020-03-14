@@ -8,16 +8,13 @@ from facenet import ioutils
 
 def image_processing(image, box, size, margin=0):
     if not isinstance(image, Image.Image):
-        raise ValueError('Input must be type PIL.Image')
+        raise ValueError('Input must be PIL.Image')
 
     if isinstance(size, int):
-        size = [size, size]
+        size = (size, size)
 
-    height_margin = round(box.height*margin/size[0])
-    width_margin = round(box.width*margin/size[1])
-
-    size[0] = size[0] + 2*margin
-    size[1] = size[1] + 2*margin
+    height_margin = round(box.height*margin)
+    width_margin = round(box.width*margin)
 
     cropped = image.crop((box.left - width_margin, box.top - height_margin,
                           box.right + width_margin, box.bottom + height_margin))
