@@ -52,8 +52,8 @@ def main(**args_):
         output_class_dir = args.output_dir.joinpath(cls.name)
         ioutils.makedirs(output_class_dir)
 
-        for image_path in cls.files:
-            print('{}/{} {}'.format(i, dbase.nrof_classes, image_path))
+        for k, image_path in enumerate(cls.files):
+            print('{}/{} {}/{} {}'.format(i, dbase.nrof_classes, k, cls.nrof_images, image_path))
             out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
 
             try:

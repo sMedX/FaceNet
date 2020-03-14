@@ -17,7 +17,7 @@ outdir: none
 detector: frcnnv3
 
 # Image size (height, width) in pixels, default=160
-image_size: 224
+image_size: 256
 
 # Margin for the crop around the bounding box (height, width) in pixels.', default=0.20
 margin: 0.20
@@ -27,4 +27,3 @@ detect_multiple_faces: false
 
 # Path to h5 file to write information about extracted faces, default=None
 h5file: none
-
