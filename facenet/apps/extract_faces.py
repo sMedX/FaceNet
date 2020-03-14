@@ -47,14 +47,13 @@ def main(**args_):
     nrof_unread_files = 0
 
     for i, cls in enumerate(dbase.classes):
-        print('{}/{} {}'.format(i, dbase.nrof_classes, cls.name))
 
         # define output class directory
         output_class_dir = args.output_dir.joinpath(cls.name)
         ioutils.makedirs(output_class_dir)
 
         for image_path in cls.files:
-            print(image_path)
+            print('{}/{} {}'.format(i, dbase.nrof_classes, image_path))
             out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
 
             try:
