@@ -54,6 +54,7 @@ def main(**args_):
         ioutils.makedirs(output_class_dir)
 
         for image_path in cls.files:
+            print(image_path)
             out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
 
             try:
