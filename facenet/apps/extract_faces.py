@@ -76,16 +76,16 @@ def main(**args_):
 
                 nrof_extracted_faces += 1
 
-                for i, box in enumerate(boxes):
+                for n, box in enumerate(boxes):
                     output = image_processing(img, box, args.image_size, margin=args.margin)
 
-                    out_filename_i = out_filename
-                    if i > 0:
-                        out_filename_i = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, i, out_filename.suffix))
+                    out_filename_n = out_filename
+                    if n > 0:
+                        out_filename_n = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, n, out_filename.suffix))
 
-                    ioutils.write_image(output, out_filename_i)
+                    ioutils.write_image(output, out_filename_n)
                     size = np.uint32((box.height, box.width))
-                    h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), size)
+                    h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
 
     print(dbase)
     print('Number of successfully extracted faces: {}'.format(nrof_extracted_faces))
