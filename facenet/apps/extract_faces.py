@@ -19,7 +19,7 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
     if args.outdir is None:
-        args.outdir = '{}_{}extracted_{}'.format(args.dataset.path, args.detector, args.image_size)
+        args.outdir = '{}_{}_extracted_{}'.format(args.dataset.path, args.detector, args.image_size)
     args.output_dir = Path(args.outdir).expanduser()
     ioutils.makedirs(args.output_dir)
 
