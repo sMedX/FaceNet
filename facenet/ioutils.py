@@ -4,7 +4,8 @@ __author__ = 'Ruslan N. Kosarev'
 import os
 import time
 import numpy as np
-import pathlib as plib
+from functools import partial
+from pathlib import Path
 import datetime
 import tensorflow as tf
 from PIL import Image
@@ -13,12 +14,15 @@ import facenet
 from facenet.config import src_dir
 
 
+makedirs = partial(Path.mkdir, parents=True, exist_ok=True)
+
+
 def end(start, stop):
     return '\n' if (start+1) == stop else ''
 
 
 def store_revision_info(output_filename, arg_string, mode='w'):
-    output_filename = plib.Path(output_filename)
+    output_filename = Path(output_filename)
 
     if output_filename.is_dir():
         output_filename = output_filename.joinpath(output_filename, 'revision_info.txt')
@@ -70,16 +74,10 @@ def write_arguments(arguments, filename):
         write_to_file(arguments)
 
 
-def makedirs(dir_name):
-    dir_name = plib.Path(dir_name).expanduser()
-    if not dir_name.exists():
-        dir_name.mkdir(parents=True)
-
-
 def write_image(image, filename, prefix=None, mode='RGB'):
     if prefix is not None:
-        filename = plib.Path(prefix).joinpath(filename)
-    filename = plib.Path(filename).expanduser()
+        filename = Path(prefix).joinpath(filename)
+    filename = Path(filename).expanduser()
 
     if isinstance(image, np.ndarray):
         image = array2pil(image, mode=mode)
@@ -91,14 +89,14 @@ def write_image(image, filename, prefix=None, mode='RGB'):
         raise IOError('while writing the file {}'.format(filename))
 
 
-def read_image(filename, prefix=None, mode=None):
+def read_image(file, prefix=None):
+    file = Path(file)
     if prefix is not None:
-        image = Image.open(os.path.join(str(prefix), str(filename)))
-    else:
-        image = Image.open(str(filename))
+        file = Path(prefix).joinpath(file)
 
-    if mode is not None:
-        image = image.convert(mode)
+    image = Image.open(file)
+    if image is None:
+        raise IOError('while reading the file {}'.format(file))
 
     return image
 
