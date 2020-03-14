@@ -8,6 +8,7 @@ from PIL import ImageFont
 from PIL import ImageDraw
 import sys
 
+import time
 import datetime
 import numpy as np
 from skimage import io
@@ -269,7 +270,7 @@ class Validation:
             conf_matrix = ConfidenceMatrix(similarities, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
 
-    def write_report(self, path=None, dbase_info=None, emb_info=None):
+    def write_report(self, path=None, dbase_info=None, emb_info=None, start_time=0):
         if self.config.file is None:
             dir_name = Path(path).expanduser()
             if dir_name.is_file():
@@ -279,6 +280,8 @@ class Validation:
             self.report_file = Path(self.config.file).expanduser()
 
         with self.report_file.open('at') as f:
+            f.write('class {}\n'.format(self.__class__.__name__))
+            f.write('elapsed time: {}\n'.format(time.monotonic() - start_time))
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n'.format(utils.git_diff()))
