@@ -88,17 +88,24 @@ def main(**args_):
                     size = np.uint32((box.height, box.width))
                     h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
 
-    print(dbase)
-    print('Number of files that cannot be read', nrof_unread_files)
-    print('Number of extracted faces', nrof_extracted_faces)
+    inp_dir = dbase.__repr__()
+
+    out_config = args.dataset
+    out_config.path = args.outdir
+    out_dir = dataset.DBase(out_config).__repr__()
 
     report_file = args.outdir.joinpath('report.txt')
     with Path(report_file).open('w') as f:
         f.write('{}\n'.format(datetime.now()))
-        f.write('{}\n'.format(dbase.__repr__()))
+        f.write('{}\n'.format(inp_dir))
+        f.write('{}\n'.format(out_dir))
         f.write('\n')
         f.write('Number of files that cannot be read {}\n'.format(nrof_unread_files))
         f.write('Number of extracted faces {}\n'.format(nrof_extracted_faces))
+
+    print('\n')
+    print('Number of extracted faces', nrof_extracted_faces)
+    print('Report has been written to the file', report_file)
 
 
 if __name__ == '__main__':
