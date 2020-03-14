@@ -43,49 +43,53 @@ def main(**args_):
     detector = FaceDetector(detector=args.detector)
     print(detector)
 
-    nrof_images_total = 0
     nrof_extracted_faces = 0
+    nrof_unread_files = 0
 
-    for cls in dbase.classes:
-        # define output class directory if exists skip this class
+    for i, cls in enumerate(dbase.classes):
+        print('{}/{} {}'.format(i, dbase.nrof_classes, cls.name))
+
+        # define output class directory
         output_class_dir = args.output_dir.joinpath(cls.name)
         ioutils.makedirs(output_class_dir)
 
         for image_path in cls.files:
-            print(image_path)
-
-            nrof_images_total += 1
             out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
 
             try:
                 # this function returns PIL.Image object
                 img = ioutils.read_image(image_path)
             except (IOError, ValueError, IndexError) as e:
+                nrof_unread_files += 1
                 print(e)
             else:
-                bounding_boxes = detector.detect(img)
-                nrof_faces = len(bounding_boxes)
+                boxes = detector.detect(img)
+                nrof_faces = len(boxes)
 
                 if nrof_faces == 0:
                     print('Unable to find face "{}"'.format(image_path))
-                elif nrof_faces > 1 and not args.detect_multiple_faces:
+                    continue
+
+                if nrof_faces > 1 and args.detect_multiple_faces is False:
                     print('The number of detected faces more than one "{}"'.format(image_path))
-                else:
-                    nrof_extracted_faces += 1
+                    continue
 
-                    for i, box in enumerate(bounding_boxes):
-                        output = image_processing(img, box, args.image_size, margin=args.margin)
+                nrof_extracted_faces += 1
 
-                        out_filename_i = out_filename
-                        if i > 0:
-                            out_filename_i = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, i, out_filename.suffix))
+                for i, box in enumerate(boxes):
+                    output = image_processing(img, box, args.image_size, margin=args.margin)
 
-                        ioutils.write_image(output, out_filename_i)
-                        size = np.uint32((box.height, box.width))
-                        h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), size)
+                    out_filename_i = out_filename
+                    if i > 0:
+                        out_filename_i = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, i, out_filename.suffix))
 
-    print('Total number of images: {}'.format(nrof_images_total))
+                    ioutils.write_image(output, out_filename_i)
+                    size = np.uint32((box.height, box.width))
+                    h5utils.write(args.h5file, h5utils.filename2key(out_filename_i, 'size'), size)
+
+    print(dbase)
     print('Number of successfully extracted faces: {}'.format(nrof_extracted_faces))
+    print('The number of files that cannot be read', nrof_unread_files)
 
 
 if __name__ == '__main__':
