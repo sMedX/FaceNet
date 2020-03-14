@@ -27,3 +27,4 @@ detect_multiple_faces: false
 
 # Path to h5 file to write information about extracted faces, default=None
 h5file: none
+
