@@ -92,10 +92,8 @@ def main(**args_):
     print('Number of files that cannot be read', nrof_unread_files)
     print('Number of extracted faces', nrof_extracted_faces)
 
-    if args.report is None:
-        args.report = args.outdir.joinpath('report.txt')
-
-    with Path(args.report).open('w') as f:
+    report_file = args.outdir.joinpath('report.txt')
+    with Path(report_file).open('w') as f:
         f.write('{}\n'.format(datetime.now()))
         f.write('{}\n'.format(dbase.__repr__()))
         f.write('\n')
