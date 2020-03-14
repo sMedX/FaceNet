@@ -9,6 +9,7 @@ in the same directory, and the metagraph should have the extension '.meta'.
 
 import click
 import pathlib
+import numpy as np
 from facenet import dataset, config, statistics, facenet
 
 DefaultConfig = config.DefaultConfig()
@@ -21,6 +22,8 @@ DefaultConfig = config.DefaultConfig()
               help='Could be either a directory containing the meta and ckpt files or a model protobuf (.pb) file')
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
+    np.random.seed(args.seed)
+
     if args_['model'] is not None:
         args.model = args_['model']
 

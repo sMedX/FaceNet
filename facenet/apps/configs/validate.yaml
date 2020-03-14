@@ -6,6 +6,8 @@ model: none
 # Number of images to process in a batch
 batch_size: 100
 
+seed: 0
+
 dataset:
   # Path to the data directory containing aligned face patches
   path: none
