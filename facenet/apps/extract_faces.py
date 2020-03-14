@@ -61,7 +61,7 @@ def main(**args_):
                 img = ioutils.read_image(image_path)
             except (IOError, ValueError, IndexError) as e:
                 nrof_unread_files += 1
-                print(e)
+                # print(e)
             else:
                 boxes = detector.detect(img)
                 nrof_faces = len(boxes)
