@@ -239,7 +239,7 @@ class Validation:
         self.thresholds = np.arange(0, 4, 0.01)
 
     def evaluate(self):
-        k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=False)
+        k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
         indices = np.arange(len(self.labels))
 
         criterion = ('Maximum accuracy criterion',
