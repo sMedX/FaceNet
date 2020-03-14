@@ -243,7 +243,7 @@ class Validation:
         else:
             raise ValueError('Undefined similarity metric {}'.format(self.config.metric))
 
-        self.thresholds = np.linspace(0, upper_threshold, 500)
+        self.thresholds = np.linspace(0, upper_threshold, 100)
 
     def evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
