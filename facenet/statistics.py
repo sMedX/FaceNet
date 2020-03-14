@@ -1,10 +1,13 @@
+"""Performs processing images."""
+# MIT License
+#
+# Copyright (c) 2019 Ruslan N. Kosarev
 
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import sys
 
-import os
 import datetime
 import numpy as np
 from skimage import io
@@ -12,30 +15,49 @@ import sklearn
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
 from scipy.optimize import brentq
-import math
-import pathlib
+from pathlib import Path
 
-from facenet import utils
+from facenet import utils, ioutils
 
 
-def pairwise_distances(xa, xb=None, metric=0):
-    if metric == 0:
-        # squared Euclidian distance
-        if xb is None:
-            dist = spatial.distance.pdist(xa, metric='sqeuclidean')
-        else:
-            dist = spatial.distance.cdist(xa, xb, metric='sqeuclidean')
-    elif metric == 1:
-        # distance based on cosine similarity
-        if xb is None:
-            dist = spatial.distance.pdist(xa, metric='cosine')
-        else:
-            dist = spatial.distance.cdist(xa, xb, metric='cosine')
-        dist = np.arccos(1 - dist) / math.pi
+def pairwise_similarities(xa, xb=None, metric=0):
+
+    if xb is None:
+        sims = xa @ xa.transpose()
+        sims = sims[np.triu_indices(sims.shape[0], k=1)]
     else:
-        raise 'Undefined distance metric %d' % metric
+        sims = xa @ xb.transpose()
 
-    return dist
+    if metric == 0:
+        # squared Euclidean distance
+        sims = 2 * (1 - sims)
+    elif metric == 1:
+        # cosine
+        sims = np.arccos(sims)
+    else:
+        raise ValueError('Undefined similarity metric {}'.format(metric))
+
+    return sims
+
+
+# def pairwise_distances(xa, xb=None, metric=0):
+#     if metric == 0:
+#         # squared Euclidean distance
+#         if xb is None:
+#             dist = spatial.distance.pdist(xa, metric='sqeuclidean')
+#         else:
+#             dist = spatial.distance.cdist(xa, xb, metric='sqeuclidean')
+#     elif metric == 1:
+#         # distance based on cosine similarity
+#         if xb is None:
+#             dist = spatial.distance.pdist(xa, metric='cosine')
+#         else:
+#             dist = spatial.distance.cdist(xa, xb, metric='cosine')
+#         dist = np.arccos(1 - dist) / math.pi
+#     else:
+#         raise 'Undefined distance metric %d' % metric
+#
+#     return dist
 
 
 def mean(x):
@@ -54,7 +76,7 @@ def split_embeddings(embeddings, labels):
     return emb_list
 
 
-class DistanceCalculator:
+class SimilarityCalculator:
     def __init__(self, embeddings, labels, metric=0):
         self.metric = metric
         self.embeddings = split_embeddings(embeddings, labels)
@@ -68,21 +90,21 @@ class DistanceCalculator:
             nrof_class_pairs = self.nrof_classes
             nrof_image_pairs = self.nrof_images(i) * (self.nrof_images(i) - 1)/2
 
-            distances = pairwise_distances(self.embeddings[i], metric=self.metric)
+            similarities = pairwise_similarities(self.embeddings[i], metric=self.metric)
         else:
             nrof_class_pairs = self.nrof_classes * (self.nrof_classes - 1)/2
             nrof_image_pairs = self.nrof_images(i) * self.nrof_images(k)
 
-            distances = pairwise_distances(self.embeddings[i], self.embeddings[k], metric=self.metric)
+            similarities = pairwise_similarities(self.embeddings[i], self.embeddings[k], metric=self.metric)
 
-        return nrof_class_pairs*nrof_image_pairs/factor, distances
+        return nrof_class_pairs*nrof_image_pairs/factor, similarities
 
     def nrof_images(self, i):
         return self.embeddings[i].shape[0]
 
 
 class ConfidenceMatrix:
-    def __init__(self, distances, threshold):
+    def __init__(self, similarities, threshold):
 
         self.threshold = np.array(threshold, ndmin=1)
 
@@ -91,9 +113,9 @@ class ConfidenceMatrix:
         self.fp = np.zeros(self.threshold.size)
         self.fn = np.zeros(self.threshold.size)
 
-        for i in range(distances.nrof_classes):
+        for i in range(similarities.nrof_classes):
             for k in range(i+1):
-                weight, dist = distances.compute(i, k)
+                weight, dist = similarities.compute(i, k)
                 if dist.size < 1:
                     continue
 
@@ -227,9 +249,9 @@ class Validation:
             print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            distances = DistanceCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
+            similarities = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
 
-            conf_matrix = ConfidenceMatrix(distances, self.thresholds)
+            conf_matrix = ConfidenceMatrix(similarities, self.thresholds)
             self.report.append_fold('train', conf_matrix)
 
             # find the threshold that gives maximal accuracy
@@ -242,19 +264,19 @@ class Validation:
                 far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            distances = DistanceCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
+            similarities = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
 
-            conf_matrix = ConfidenceMatrix(distances, [accuracy_threshold, far_threshold])
+            conf_matrix = ConfidenceMatrix(similarities, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
 
     def write_report(self, path=None, dbase_info=None, emb_info=None):
         if self.config.file is None:
-            dir_name = pathlib.Path(path).expanduser()
+            dir_name = Path(path).expanduser()
             if dir_name.is_file():
                 dir_name = dir_name.parent
             self.report_file = dir_name.joinpath('report.txt')
         else:
-            self.report_file = pathlib.Path(self.config.file).expanduser()
+            self.report_file = Path(self.config.file).expanduser()
 
         with self.report_file.open('at') as f:
             f.write('{}\n'.format(datetime.datetime.now()))
@@ -265,7 +287,7 @@ class Validation:
             f.write('\n')
             f.write('{}'.format(emb_info))
             f.write('\n')
-            f.write('distance metric: {}\n'.format(self.config.metric))
+            f.write('similarity metric: {}\n'.format(self.config.metric))
             f.write('\n')
             f.write(self.report.__repr__())
             f.write('\n')
@@ -287,12 +309,8 @@ class FalseExamples:
         self.subtract_mean = subtract_mean
 
     def write_false_pairs(self, fpos_dir, fneg_dir, nrof_fpos_images=10, nrof_fneg_images=2):
-
-        if not os.path.isdir(fpos_dir):
-            os.makedirs(fpos_dir)
-
-        if not os.path.isdir(fneg_dir):
-            os.makedirs(fneg_dir)
+        ioutils.makedirs(fpos_dir)
+        ioutils.makedirs(fneg_dir)
 
         if self.subtract_mean:
             mean = np.mean(self.embeddings, axis=0)
@@ -306,17 +324,17 @@ class FalseExamples:
             files1, embeddings1 = self.dbase.extract_data(folder1, self.embeddings)
 
             # search false negative pairs
-            distances = pairwise_distances(embeddings1 - mean, metric=self.metric)
-            distances = spatial.distance.squareform(distances)
+            similarities = pairwise_similarities(embeddings1 - mean, metric=self.metric)
+            similarities = spatial.distance.squareform(similarities)
 
             for n in range(nrof_fpos_images):
                 # find maximal distances
-                i, k = np.unravel_index(np.argmax(distances), distances.shape)
+                i, k = np.unravel_index(np.argmax(similarities), similarities.shape)
 
-                if distances[i, k] > self.threshold:
-                    self.write_image(distances[i, k], files1[i], files1[k], fneg_dir)
-                    distances[[i, k], :] = -1
-                    distances[:, [i, k]] = -1
+                if similarities[i, k] > self.threshold:
+                    self.write_image(similarities[i, k], files1[i], files1[k], fneg_dir)
+                    similarities[[i, k], :] = -1
+                    similarities[:, [i, k]] = -1
                 else:
                     break
 
@@ -324,16 +342,16 @@ class FalseExamples:
             for folder2 in range(folder1+1, self.dbase.nrof_folders):
                 files2, embeddings2 = self.dbase.extract_data(folder2, self.embeddings)
 
-                distances = pairwise_distances(embeddings1-mean, embeddings2-mean, metric=self.metric)
+                similarities = pairwise_similarities(embeddings1 - mean, embeddings2 - mean, metric=self.metric)
 
                 for n in range(nrof_fneg_images):
                     # find minimal distances
-                    i, k = np.unravel_index(np.argmin(distances), distances.shape)
+                    i, k = np.unravel_index(np.argmin(similarities), similarities.shape)
 
-                    if distances[i, k] < self.threshold:
-                        self.write_image(distances[i, k], files1[i], files2[k], fpos_dir)
-                        distances[i, :] = np.Inf
-                        distances[:, k] = np.Inf
+                    if similarities[i, k] < self.threshold:
+                        self.write_image(similarities[i, k], files1[i], files2[k], fpos_dir)
+                        similarities[i, :] = np.Inf
+                        similarities[:, k] = np.Inf
                     else:
                         break
 
