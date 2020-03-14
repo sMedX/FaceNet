@@ -29,9 +29,7 @@ class ImageClass:
 
 
 class DBase:
-    def __init__(self, config, extension='', seed=None):
-        np.random.seed(seed)
-
+    def __init__(self, config, extension=''):
         self.config = config
         self.config.path = pathlib.Path(config.path).expanduser()
 
