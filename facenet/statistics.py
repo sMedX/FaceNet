@@ -294,14 +294,13 @@ class Validation:
             self.report_file = Path(self.config.file).expanduser()
 
         with self.report_file.open('at') as f:
-            f.write('class {}\n'.format(self.__class__.__name__))
+            f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
             f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
-            f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n\n'.format(utils.git_diff()))
             f.write('{}\n'.format(dbase_info))
             f.write('{}\n'.format(emb_info))
-            f.write('similarity metric: {}\n\n'.format(self.config.metric))
+            f.write('metric: {}\n\n'.format(self.config.metric))
             f.write(self.report.__repr__())
 
     def __repr__(self):
