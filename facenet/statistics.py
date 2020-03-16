@@ -21,18 +21,13 @@ from pathlib import Path
 from facenet import utils, ioutils
 
 
-def pairwise_similarities(session, xa, xb=None, metric=0):
-
-    xa = tf.constant(xa, dtype=tf.float32)
+def pairwise_similarities(xa, xb=None, metric=0):
 
     if xb is None:
-        sims = tf.matmul(xa, tf.transpose(xa))
-        sims = session.run(sims)
+        sims = xa @ xa.transpose()
         sims = sims[np.triu_indices(sims.shape[0], k=1)]
     else:
-        xb = tf.constant(xb, dtype=tf.float32)
-        sims = tf.matmul(xa, tf.transpose(xb))
-        sims = session.run(sims)
+        sims = xa @ xb.transpose()
 
     if metric == 0:
         # squared Euclidean distance
@@ -88,7 +83,6 @@ class SimilarityCalculator:
         self.embeddings = embeddings
         self.labels = labels
         self._embeddings = None
-        self.session = tf.Session()
 
     def set_indices(self, indices):
         self._embeddings = split_embeddings(self.embeddings[indices], self.labels[indices])
@@ -98,10 +92,10 @@ class SimilarityCalculator:
         nrof_negative_class_pairs = self.nrof_classes * (self.nrof_classes - 1) / 2
 
         if i == k:
-            sims = pairwise_similarities(self.session, self._embeddings[i], metric=self.metric)
+            sims = pairwise_similarities(self._embeddings[i], metric=self.metric)
             weight = sims.size * nrof_positive_class_pairs
         else:
-            sims = pairwise_similarities(self.session, self._embeddings[i], self._embeddings[k], metric=self.metric)
+            sims = pairwise_similarities(self._embeddings[i], self._embeddings[k], metric=self.metric)
             weight = sims.size * nrof_negative_class_pairs
 
         return sims, weight
