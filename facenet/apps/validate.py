@@ -20,16 +20,11 @@ DefaultConfig = config.DefaultConfig()
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options for the application.')
-@click.option('--model', default=None, type=Path,
-              help='Could be either a directory containing the meta and ckpt files or a model protobuf (.pb) file')
 def main(**args_):
-    args = config.YAMLConfig(args_['config'])
-    np.random.seed(args.seed)
-
     start = time.monotonic()
 
-    if args_['model'] is not None:
-        args.model = args_['model']
+    args = config.YAMLConfig(args_['config'])
+    np.random.seed(args.seed)
 
     if args.model is None:
         args.model = DefaultConfig.model
