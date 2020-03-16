@@ -7,6 +7,7 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import sys
+import tensorflow as tf
 
 import time
 import datetime
@@ -22,11 +23,18 @@ from facenet import utils, ioutils
 
 def pairwise_similarities(xa, xb=None, metric=0):
 
+    xa = tf.constant(xa, dtype=tf.float32)
+
     if xb is None:
-        sims = xa @ xa.transpose()
+        sims = tf.matmul(xa, tf.transpose(xa))
+        sess = tf.Session()
+        sims = sess.run(sims)
         sims = sims[np.triu_indices(sims.shape[0], k=1)]
     else:
-        sims = xa @ xb.transpose()
+        xb = tf.constant(xb, dtype=tf.float32)
+        sims = tf.matmul(xa, tf.transpose(xb))
+        sess = tf.Session()
+        sims = sess.run(sims)
 
     if metric == 0:
         # squared Euclidean distance
@@ -297,7 +305,7 @@ class Validation:
             self.report_file = Path(self.config.file).expanduser()
 
         with self.report_file.open('at') as f:
-            f.write(''.join(['-'] * 64))
+            f.write(''.join(['-'] * 64) + '\n')
             f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
             f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
             f.write('git hash: {}\n'.format(utils.git_hash()))
