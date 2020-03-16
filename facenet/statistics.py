@@ -7,7 +7,6 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import sys
-import tensorflow as tf
 
 import time
 import datetime
@@ -41,26 +40,6 @@ def pairwise_similarities(xa, xb=None, metric=0):
     return sims
 
 
-# def pairwise_distances(xa, xb=None, metric=0):
-#     if metric == 0:
-#         # squared Euclidean distance
-#         if xb is None:
-#             dist = spatial.distance.pdist(xa, metric='sqeuclidean')
-#         else:
-#             dist = spatial.distance.cdist(xa, xb, metric='sqeuclidean')
-#     elif metric == 1:
-#         # distance based on cosine similarity
-#         if xb is None:
-#             dist = spatial.distance.pdist(xa, metric='cosine')
-#         else:
-#             dist = spatial.distance.cdist(xa, xb, metric='cosine')
-#         dist = np.arccos(1 - dist) / math.pi
-#     else:
-#         raise 'Undefined distance metric %d' % metric
-#
-#     return dist
-
-
 def mean(x):
     return np.mean(np.array(x))
 
@@ -72,7 +51,7 @@ def std(x):
 def split_embeddings(embeddings, labels):
     emb_list = []
     for label in np.unique(labels):
-        emb_array = embeddings[labels == label]
+        emb_array = embeddings[label == labels]
         emb_list.append(emb_array)
     return emb_list
 
@@ -80,32 +59,27 @@ def split_embeddings(embeddings, labels):
 class SimilarityCalculator:
     def __init__(self, embeddings, labels, metric=0):
         self.metric = metric
-        self.embeddings = embeddings
-        self.labels = labels
-        self._embeddings = None
-
-    def set_indices(self, indices):
-        self._embeddings = split_embeddings(self.embeddings[indices], self.labels[indices])
+        self.embeddings = split_embeddings(embeddings, labels)
 
     def evaluate(self, i, k):
         nrof_positive_class_pairs = self.nrof_classes
         nrof_negative_class_pairs = self.nrof_classes * (self.nrof_classes - 1) / 2
 
         if i == k:
-            sims = pairwise_similarities(self._embeddings[i], metric=self.metric)
+            sims = pairwise_similarities(self.embeddings[i], metric=self.metric)
             weight = sims.size * nrof_positive_class_pairs
         else:
-            sims = pairwise_similarities(self._embeddings[i], self._embeddings[k], metric=self.metric)
+            sims = pairwise_similarities(self.embeddings[i], self.embeddings[k], metric=self.metric)
             weight = sims.size * nrof_negative_class_pairs
 
         return sims, weight
 
     @property
     def nrof_classes(self):
-        return len(self._embeddings)
+        return len(self.embeddings)
 
     def nrof_images(self, i):
-        return self._embeddings[i].shape[0]
+        return self.embeddings[i].shape[0]
 
 
 class ConfidenceMatrix:
@@ -260,13 +234,11 @@ class Validation:
                      'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
         self.report = Report(criterion=criterion)
 
-        calculator = SimilarityCalculator(self.embeddings, self.labels, metric=self.config.metric)
-
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            calculator.set_indices(train_set)
+            calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
 
             matrix = ConfidenceMatrix(calculator, self.thresholds)
             self.report.append_fold('train', matrix)
@@ -275,13 +247,13 @@ class Validation:
             accuracy_threshold = self.thresholds[np.argmax(matrix.accuracy)]
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
-            far_threshold = 0.0
+            far_threshold = 0
             if np.max(matrix.fp_rates) >= self.config.far_target:
                 f = interpolate.interp1d(matrix.fp_rates, self.thresholds, kind='slinear')
                 far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            calculator.set_indices(test_set)
+            calculator = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
 
             matrix = ConfidenceMatrix(calculator, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', matrix)
