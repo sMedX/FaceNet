@@ -11,7 +11,6 @@ import sys
 import time
 import datetime
 import numpy as np
-from skimage import io
 import sklearn
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
