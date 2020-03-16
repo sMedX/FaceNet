@@ -80,28 +80,32 @@ def split_embeddings(embeddings, labels):
 class SimilarityCalculator:
     def __init__(self, embeddings, labels, metric=0):
         self.metric = metric
-        self.embeddings = split_embeddings(embeddings, labels)
-        self.nrof_classes = len(self.embeddings)
+        self.embeddings = embeddings
+        self.labels = labels
+        self._embeddings = None
 
-    def compute(self, i, k):
-        # number of positive pairs classes plus negative pairs classes
-        factor = self.nrof_classes * (self.nrof_classes + 1)/2
+    def set_indices(self, indices):
+        self._embeddings = split_embeddings(self.embeddings[indices], self.labels[indices])
+
+    def evaluate(self, i, k):
+        nrof_positive_class_pairs = self.nrof_classes
+        nrof_negative_class_pairs = self.nrof_classes * (self.nrof_classes - 1) / 2
 
         if i == k:
-            nrof_class_pairs = self.nrof_classes
-            nrof_image_pairs = self.nrof_images(i) * (self.nrof_images(i) - 1)/2
-
-            similarities = pairwise_similarities(self.embeddings[i], metric=self.metric)
+            sims = pairwise_similarities(self._embeddings[i], metric=self.metric)
+            weight = sims.size * nrof_positive_class_pairs
         else:
-            nrof_class_pairs = self.nrof_classes * (self.nrof_classes - 1)/2
-            nrof_image_pairs = self.nrof_images(i) * self.nrof_images(k)
+            sims = pairwise_similarities(self._embeddings[i], self._embeddings[k], metric=self.metric)
+            weight = sims.size * nrof_negative_class_pairs
 
-            similarities = pairwise_similarities(self.embeddings[i], self.embeddings[k], metric=self.metric)
+        return sims, weight
 
-        return nrof_class_pairs*nrof_image_pairs/factor, similarities
+    @property
+    def nrof_classes(self):
+        return len(self._embeddings)
 
     def nrof_images(self, i):
-        return self.embeddings[i].shape[0]
+        return self._embeddings[i].shape[0]
 
 
 class ConfidenceMatrix:
@@ -116,19 +120,19 @@ class ConfidenceMatrix:
 
         for i in range(similarities.nrof_classes):
             for k in range(i+1):
-                weight, dist = similarities.compute(i, k)
-                if dist.size < 1:
+                sims, weight = similarities.evaluate(i, k)
+                if sims.size < 1:
                     continue
 
                 for n, threshold in enumerate(self.threshold):
-                    count = np.count_nonzero(dist < threshold)
+                    count = np.count_nonzero(sims < threshold)
 
                     if i == k:
                         self.tp[n] += count/weight
-                        self.fn[n] += (dist.size - count)/weight
+                        self.fn[n] += (sims.size - count)/weight
                     else:
                         self.fp[n] += count/weight
-                        self.tn[n] += (dist.size - count)/weight
+                        self.tn[n] += (sims.size - count)/weight
 
     @property
     def accuracy(self):
@@ -258,11 +262,13 @@ class Validation:
                      'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
         self.report = Report(criterion=criterion)
 
+        similarities = SimilarityCalculator(self.embeddings, self.labels, metric=self.config.metric)
+
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            similarities = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
+            similarities.set_indices(train_set)
 
             conf_matrix = ConfidenceMatrix(similarities, self.thresholds)
             self.report.append_fold('train', conf_matrix)
@@ -277,7 +283,7 @@ class Validation:
                 far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            similarities = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
+            similarities.set_indices(test_set)
 
             conf_matrix = ConfidenceMatrix(similarities, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
