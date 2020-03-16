@@ -298,16 +298,11 @@ class Validation:
             f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
-            f.write('git diff: {}\n'.format(utils.git_diff()))
-            f.write('\n')
-            f.write('{}'.format(dbase_info))
-            f.write('\n')
-            f.write('{}'.format(emb_info))
-            f.write('\n')
-            f.write('similarity metric: {}\n'.format(self.config.metric))
-            f.write('\n')
+            f.write('git diff: {}\n\n'.format(utils.git_diff()))
+            f.write('{}\n'.format(dbase_info))
+            f.write('{}\n'.format(emb_info))
+            f.write('similarity metric: {}\n\n'.format(self.config.metric))
             f.write(self.report.__repr__())
-            f.write('\n')
 
     def __repr__(self):
         """Representation of the database"""
