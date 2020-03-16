@@ -108,7 +108,7 @@ class SimilarityCalculator:
 
 
 class ConfidenceMatrix:
-    def __init__(self, similarities, threshold):
+    def __init__(self, calculator, threshold):
 
         self.threshold = np.array(threshold, ndmin=1)
 
@@ -117,9 +117,9 @@ class ConfidenceMatrix:
         self.fp = np.zeros(self.threshold.size)
         self.fn = np.zeros(self.threshold.size)
 
-        for i in range(similarities.nrof_classes):
+        for i in range(calculator.nrof_classes):
             for k in range(i+1):
-                sims, weight = similarities.evaluate(i, k)
+                sims, weight = calculator.evaluate(i, k)
                 if sims.size < 1:
                     continue
 
@@ -184,8 +184,6 @@ class Report:
             self.conf_matrix_test.append(conf_matrix)
 
     def __repr__(self):
-        auc = -1
-        eer = -1
 
         tp_rates = [m.tp_rates for m in self.conf_matrix_train]
         tn_rates = [m.tn_rates for m in self.conf_matrix_train]
@@ -195,13 +193,13 @@ class Report:
 
         try:
             auc = sklearn.metrics.auc(1 - tn_rates, tp_rates)
-        except Exception:
-            pass
+        except:
+            auc = -1
 
         try:
             eer = brentq(lambda x: 1. - x - interpolate.interp1d(1 - tn_rates, tp_rates)(x), 0., 1.)
-        except Exception:
-            pass
+        except:
+            eer = -1
 
         info = 'Area under curve (AUC): {:1.5f}\n'.format(auc) + \
                'Equal error rate (EER): {:1.5f}\n'.format(eer) + '\n'
@@ -261,15 +259,15 @@ class Validation:
                      'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
         self.report = Report(criterion=criterion)
 
-        similarities = SimilarityCalculator(self.embeddings, self.labels, metric=self.config.metric)
+        calculator = SimilarityCalculator(self.embeddings, self.labels, metric=self.config.metric)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
-            similarities.set_indices(train_set)
+            calculator.set_indices(train_set)
 
-            conf_matrix = ConfidenceMatrix(similarities, self.thresholds)
+            conf_matrix = ConfidenceMatrix(calculator, self.thresholds)
             self.report.append_fold('train', conf_matrix)
 
             # find the threshold that gives maximal accuracy
@@ -282,9 +280,9 @@ class Validation:
                 far_threshold = f(self.config.far_target)
 
             # evaluations with test set
-            similarities.set_indices(test_set)
+            calculator.set_indices(test_set)
 
-            conf_matrix = ConfidenceMatrix(similarities, [accuracy_threshold, far_threshold])
+            conf_matrix = ConfidenceMatrix(calculator, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
 
         self.elapsed_time = time.monotonic() - self.start_time
