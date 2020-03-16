@@ -263,7 +263,7 @@ class Validation:
         calculator = SimilarityCalculator(self.embeddings, self.labels, metric=self.config.metric)
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            print('\rvalidation {}/{}'.format(fold_idx, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
+            print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
             calculator.set_indices(train_set)
