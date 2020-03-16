@@ -297,6 +297,7 @@ class Validation:
             self.report_file = Path(self.config.file).expanduser()
 
         with self.report_file.open('at') as f:
+            f.write(''.join(['-'] * 64))
             f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
             f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
             f.write('git hash: {}\n'.format(utils.git_hash()))
