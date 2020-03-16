@@ -44,9 +44,9 @@ def main(**args_):
     emb = facenet.Embeddings(dbase, args)
     emb.evaluate()
 
-    stats = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
+    stats = statistics.Validation(emb.embeddings, dbase.labels, args.validation, start_time=start)
     stats.evaluate()
-    stats.write_report(path=args.model, dbase_info=dbase.__repr__(), emb_info=emb.__repr__(), start_time=start)
+    stats.write_report(path=args.model, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
     print(stats)
 
 

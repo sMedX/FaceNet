@@ -223,7 +223,7 @@ class Report:
 
 
 class Validation:
-    def __init__(self, embeddings, labels, config):
+    def __init__(self, embeddings, labels, config, start_time=None):
         """
         :param embeddings:
         :param labels:
@@ -244,6 +244,11 @@ class Validation:
             raise ValueError('Undefined similarity metric {}'.format(self.config.metric))
 
         self.thresholds = np.linspace(0, upper_threshold, 100)
+
+        self.elapsed_time = None
+        self.start_time = start_time
+        if self.start_time is None:
+            self.start_time = time.monotonic()
 
     def evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
@@ -277,7 +282,9 @@ class Validation:
             conf_matrix = ConfidenceMatrix(similarities, [accuracy_threshold, far_threshold])
             self.report.append_fold('test', conf_matrix)
 
-    def write_report(self, path=None, dbase_info=None, emb_info=None, start_time=0):
+        self.elapsed_time = time.monotonic() - self.start_time
+
+    def write_report(self, path=None, dbase_info=None, emb_info=None):
         if self.config.file is None:
             dir_name = Path(path).expanduser()
             if dir_name.is_file():
@@ -288,7 +295,7 @@ class Validation:
 
         with self.report_file.open('at') as f:
             f.write('class {}\n'.format(self.__class__.__name__))
-            f.write('elapsed time: {}\n'.format(time.monotonic() - start_time))
+            f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
             f.write('{}\n'.format(datetime.datetime.now()))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n'.format(utils.git_diff()))
@@ -304,9 +311,10 @@ class Validation:
 
     def __repr__(self):
         """Representation of the database"""
-        info = 'class {}'.format(self.__class__.__name__) + '\n' + \
-               self.report.__repr__() + \
-               'Report has been written to the file: {}'.format(self.report_file)
+        info = ('class {}\n'.format(self.__class__.__name__) +
+                self.report.__repr__() +
+                'Report has been written to the file: {}\n'.format(self.report_file) +
+                'Elapsed time: {:.3f} sec'.format(self.elapsed_time))
         return info
 
 
