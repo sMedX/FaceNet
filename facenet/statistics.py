@@ -268,23 +268,23 @@ class Validation:
             # evaluations with train set and define the best threshold for the fold
             calculator.set_indices(train_set)
 
-            conf_matrix = ConfidenceMatrix(calculator, self.thresholds)
-            self.report.append_fold('train', conf_matrix)
+            matrix = ConfidenceMatrix(calculator, self.thresholds)
+            self.report.append_fold('train', matrix)
 
             # find the threshold that gives maximal accuracy
-            accuracy_threshold = self.thresholds[np.argmax(conf_matrix.accuracy)]
+            accuracy_threshold = self.thresholds[np.argmax(matrix.accuracy)]
 
             # find the threshold that gives FAR (FPR, 1-TNR) = far_target
             far_threshold = 0.0
-            if np.max(conf_matrix.fp_rates) >= self.config.far_target:
-                f = interpolate.interp1d(conf_matrix.fp_rates, self.thresholds, kind='slinear')
+            if np.max(matrix.fp_rates) >= self.config.far_target:
+                f = interpolate.interp1d(matrix.fp_rates, self.thresholds, kind='slinear')
                 far_threshold = f(self.config.far_target)
 
             # evaluations with test set
             calculator.set_indices(test_set)
 
-            conf_matrix = ConfidenceMatrix(calculator, [accuracy_threshold, far_threshold])
-            self.report.append_fold('test', conf_matrix)
+            matrix = ConfidenceMatrix(calculator, [accuracy_threshold, far_threshold])
+            self.report.append_fold('test', matrix)
 
         self.elapsed_time = time.monotonic() - self.start_time
 
