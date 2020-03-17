@@ -28,26 +28,24 @@ def pairwise_similarities(xa, xb=None, metric=0, atol=1.e-5):
     else:
         sims = xa @ xb.transpose()
 
-    if sims.size < 1:
-        return np.array([])
+    if sims.size >= 1:
+        # embeddings in xa, xb must be normalized to 1, and therefore sims must be in range (-1, +1)
+        lim = 1 + atol
+        if sims.min() < -lim or sims.max() > lim:
+            raise ValueError('\nembeddings must be normalized to 1, range {} {}'.format(sims.min(), sims.max()))
 
-    # embeddings in xa, xb must be normalized to 1, and therefore sims must be in range (-1, +1)
-    lim = 1 + atol
-    if sims.min() < -lim or sims.max() > lim:
-        raise ValueError('\nembeddings must be normalized to 1, range {} {}'.format(sims.min(), sims.max()))
+        # to avoid warnings in np.arccos()
+        sims[sims < -1] = -1
+        sims[sims > +1] = +1
 
-    # to avoid warnings in np.arccos()
-    sims[sims < -1] = -1
-    sims[sims > +1] = +1
-
-    if metric == 0:
-        # squared Euclidean distance
-        sims = 2 * (1 - sims)
-    elif metric == 1:
-        # cosine
-        sims = np.arccos(sims)
-    else:
-        raise ValueError('Undefined similarity metric {}'.format(metric))
+        if metric == 0:
+            # squared Euclidean distance
+            sims = 2 * (1 - sims)
+        elif metric == 1:
+            # cosine
+            sims = np.arccos(sims)
+        else:
+            raise ValueError('Undefined similarity metric {}'.format(metric))
 
     return sims
 
