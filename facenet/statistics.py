@@ -28,15 +28,15 @@ def pairwise_similarities(xa, xb=None, metric=0):
     else:
         sims = xa @ xb.transpose()
 
+    # embeddings in xa, xb must be normalized to 1, and therefore sims in range (-1, +1) to avoid warnings in arccos
+    sims[sims < -1] = -1
+    sims[sims > +1] = +1
+
     if metric == 0:
         # squared Euclidean distance
         sims = 2 * (1 - sims)
     elif metric == 1:
         # cosine
-        if np.max(sims) > 1 or np.min(sims) < -1:
-            print('\n', np.min(sims), np.max(sims))
-            raise ValueError("---------")
-
         sims = np.arccos(sims)
     else:
         raise ValueError('Undefined similarity metric {}'.format(metric))
