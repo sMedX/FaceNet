@@ -33,7 +33,7 @@ def pairwise_similarities(xa, xb=None, metric=0):
         sims = 2 * (1 - sims)
     elif metric == 1:
         # cosine
-        if np.max(sims) > 1 or np.max(sims) < -1:
+        if np.max(sims) > 1 or np.min(sims) < -1:
             print(np.max(sims), np.max(sims))
             raise ValueError("---------")
 
