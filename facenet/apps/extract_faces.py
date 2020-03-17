@@ -60,7 +60,7 @@ def main(**args_):
             try:
                 # this function returns PIL.Image object
                 img = ioutils.read_image(image_path)
-            except (IOError, ValueError, IndexError) as e:
+            except Exception as e:
                 nrof_unread_files += 1
                 print(e)
             else:
