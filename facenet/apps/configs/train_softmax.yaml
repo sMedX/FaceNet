@@ -35,7 +35,7 @@ batch_size: 100
 # Number of batches per epoch.
 epoch:
   # Number of batches per epoch.
-  size: 2
+  size: 1000
   # Maximal number of epochs to run
   max_nrof_epochs: 1000
 

@@ -60,7 +60,7 @@ def main(**args_):
     np.random.seed(seed=args.seed)
     random.seed(args.seed)
 
-    dbase = dataset.DBase(args.dataset, seed=args.seed)
+    dbase = dataset.DBase(args.dataset)
     print(dbase)
 
     train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
