@@ -219,7 +219,7 @@ class Validation:
         else:
             raise ValueError('Undefined similarity metric {}'.format(self.config.metric))
 
-        self.thresholds = np.linspace(0, upper_threshold, 1000)
+        self.thresholds = np.linspace(0, upper_threshold, 100)
 
         self.elapsed_time = None
         self.start_time = start_time
