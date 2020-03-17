@@ -34,7 +34,7 @@ def pairwise_similarities(xa, xb=None, metric=0):
     elif metric == 1:
         # cosine
         if np.max(sims) > 1 or np.min(sims) < -1:
-            print(np.max(sims), np.max(sims))
+            print('\n', np.min(sims), np.max(sims))
             raise ValueError("---------")
 
         sims = np.arccos(sims)
