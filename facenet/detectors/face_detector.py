@@ -3,7 +3,6 @@ __author__ = 'Ruslan N. Kosarev'
 
 import numpy as np
 from PIL import Image
-from facenet import ioutils
 
 
 def image_processing(image, box, size, margin=0):
@@ -62,10 +61,10 @@ class MTCNN:
     def __init__(self):
         from mtcnn.mtcnn import MTCNN
         self.__detector = MTCNN().detect_faces
-        self.__mode = 'BGR'
+        self.mode = 'RGB'
 
     def detector(self, image):
-        faces = self.__detector(ioutils.pil2array(image, self.__mode))
+        faces = self.__detector(image)
         bboxes = []
 
         for face in faces:
@@ -80,11 +79,11 @@ class FasterRCNNv3:
     def __init__(self, gpu_memory_fraction=1.0):
         from .frcnnv3 import detector
         self.__detector = detector.FaceDetector(gpu_memory_fraction=gpu_memory_fraction).get_faces
-        self.__mode = 'RGB'
+        self.mode = 'RGB'
 
     def detector(self, image):
 
-        boxes, scores = self.__detector(ioutils.pil2array(image, self.__mode))
+        boxes, scores = self.__detector(image)
         bboxes = []
 
         for (y1, x1, y2, x2), score in zip(boxes, scores):
@@ -99,10 +98,14 @@ class FaceDetector:
         self.detector = detector
 
         if self.detector == 'pypimtcnn':
-            self.__detector = MTCNN().detector
+            obj = MTCNN()
+            self.mode = obj.mode
+            self.__detector = obj.detector
 
         elif self.detector == 'frcnnv3':
-            self.__detector = FasterRCNNv3(gpu_memory_fraction=gpu_memory_fraction).detector
+            obj = FasterRCNNv3(gpu_memory_fraction=gpu_memory_fraction)
+            self.mode = obj.mode
+            self.__detector = obj.detector
 
         else:
             raise 'Undefined face detector type {}'.format(self.detector)

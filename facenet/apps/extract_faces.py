@@ -60,11 +60,12 @@ def main(**args_):
             try:
                 # this function returns PIL.Image object
                 img = ioutils.read_image(image_path)
+                img_array = ioutils.pil2array(img, mode=detector.mode)
             except Exception as e:
                 nrof_unread_files += 1
                 print(e)
             else:
-                boxes = detector.detect(img)
+                boxes = detector.detect(img_array)
                 nrof_faces = len(boxes)
 
                 if nrof_faces == 0:
