@@ -28,7 +28,7 @@ def pairwise_similarities(xa, xb=None, metric=0, atol=1.e-5):
     else:
         sims = xa @ xb.transpose()
 
-    if sims.size >= 1:
+    if sims.size > 0:
         # embeddings in xa, xb must be normalized to 1, and therefore sims must be in range (-1, +1)
         lim = 1 + atol
         if sims.min() < -lim or sims.max() > lim:
