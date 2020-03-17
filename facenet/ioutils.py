@@ -21,6 +21,11 @@ def end(start, stop):
     return '\n' if (start+1) == stop else ''
 
 
+def elapsed_time(file, start_time):
+    with file.open('at') as f:
+        f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - start_time))
+
+
 def store_revision_info(output_filename, arg_string, mode='w'):
     output_filename = Path(output_filename)
 

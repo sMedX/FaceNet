@@ -12,7 +12,7 @@ import time
 import numpy as np
 from pathlib import Path
 
-from facenet import dataset, config, statistics, facenet
+from facenet import dataset, config, statistics, facenet, ioutils
 
 DefaultConfig = config.DefaultConfig()
 
@@ -21,7 +21,7 @@ DefaultConfig = config.DefaultConfig()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options for the application.')
 def main(**args_):
-    start = time.monotonic()
+    start_time = time.monotonic()
 
     args = config.YAMLConfig(args_['config'])
     np.random.seed(args.seed)
@@ -39,10 +39,12 @@ def main(**args_):
     emb = facenet.Embeddings(dbase, args)
     emb.evaluate()
 
-    stats = statistics.Validation(emb.embeddings, dbase.labels, args.validation, start_time=start)
+    stats = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
     stats.evaluate()
     stats.write_report(path=args.model, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
     print(stats)
+
+    ioutils.elapsed_time(stats.report_file, start_time)
 
 
 if __name__ == '__main__':

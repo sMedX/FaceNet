@@ -199,7 +199,7 @@ class Report:
 
 
 class Validation:
-    def __init__(self, embeddings, labels, config, start_time=None):
+    def __init__(self, embeddings, labels, config):
         """
         :param embeddings:
         :param labels:
@@ -221,10 +221,8 @@ class Validation:
 
         self.thresholds = np.linspace(0, upper_threshold, 100)
 
+        self.start_time = time.monotonic()
         self.elapsed_time = None
-        self.start_time = start_time
-        if self.start_time is None:
-            self.start_time = time.monotonic()
 
     def evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
