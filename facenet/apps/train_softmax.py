@@ -27,7 +27,6 @@ import sys
 import click
 from pathlib import Path
 import time
-import random
 import numpy as np
 import importlib
 import h5py
@@ -38,9 +37,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import dataset, lfw, statistics, config, facenet
-
-subdir = config.subdir()
+from facenet import dataset, statistics, config, facenet
 
 
 @click.command()
@@ -49,7 +46,7 @@ subdir = config.subdir()
 @click.option('--learning_rate', default=None, type=float,
               help='Learning rate value')
 def main(**args_):
-    args = config.TrainOptions(args_, subdir=subdir)
+    args = config.TrainOptions(args_, subdir=config.subdir())
 
     # import network
     print('import model \'{}\''.format(args.model.module))
@@ -57,14 +54,11 @@ def main(**args_):
 
     stat_file_name = args.model.logs.joinpath('stat.h5')
 
-    np.random.seed(seed=args.seed)
-    random.seed(args.seed)
-
     dbase = dataset.DBase(args.dataset)
     print(dbase)
 
-    train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
-    nrof_classes = len(train_set)
+    # train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
+    # nrof_classes = len(train_set)
 
     tf.reset_default_graph()
     tf.Graph().as_default()
@@ -74,16 +68,17 @@ def main(**args_):
         global_step = tf.Variable(0, trainable=False)
         
         # Get a list of image paths and their labels
-        image_list, label_list = dataset.get_image_paths_and_labels(train_set)
-        assert len(image_list) > 0, 'The training set should not be empty'
-        
-        val_image_list, val_label_list = dataset.get_image_paths_and_labels(val_set)
+        # image_list, label_list = dataset.get_image_paths_and_labels(train_set)
+        image_list = dbase.files
+        label_list = dbase.labels
+
+        # val_image_list, val_label_list = dataset.get_image_paths_and_labels(val_set)
 
         # Create a queue that produces indices into the image_list and label_list 
         labels = ops.convert_to_tensor(label_list, dtype=tf.int32)
         range_size = array_ops.shape(labels)[0]
         index_queue = tf.train.range_input_producer(range_size, num_epochs=None, shuffle=True, seed=None, capacity=32)
-        index_dequeue_op = index_queue.dequeue_many(args.batch_size*args.epoch.size, 'index_dequeue')
+        index_dequeue_op = index_queue.dequeue_many(args.batch_size*args.train.epoch.size, 'index_dequeue')
 
         placeholders = facenet.Placeholders()
         placeholders.batch_size = tf.placeholder(tf.int32, name='batch_size')
@@ -104,20 +99,14 @@ def main(**args_):
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
         label_batch = tf.identity(label_batch, 'label_batch')
-        
-        print('Number of classes in training set: %d' % nrof_classes)
-        print('Number of examples in training set: %d' % len(image_list))
 
-        print('Number of classes in validation set: %d' % len(val_set))
-        print('Number of examples in validation set: %d' % len(val_image_list))
-        
         # Build the inference graph
         print('Building training graph')
         prelogits, _ = network.inference(image_batch,
                                          config=args.model.config,
                                          phase_train=placeholders.phase_train)
 
-        logits = slim.fully_connected(prelogits, len(train_set), activation_fn=None,
+        logits = slim.fully_connected(prelogits, dbase.nrof_classes, activation_fn=None,
                                       weights_initializer=slim.initializers.xavier_initializer(),
                                       weights_regularizer=slim.l2_regularizer(args.model.config.weight_decay),
                                       scope='Logits', reuse=False)
@@ -130,18 +119,18 @@ def main(**args_):
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.prelogits_norm_loss_factor)
 
         # Add center loss
-        prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.center_loss_alfa, nrof_classes)
+        prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.center_loss_alfa, dbase.nrof_classes)
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.center_loss_factor)
 
         # define learning rate tensor
         learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
-                                                   args.learning_rate.decay_epochs*args.epoch.size,
-                                                   args.learning_rate.decay_factor, staircase=True)
+                                                   args.train.learning_rate.decay_epochs*args.train.epoch.size,
+                                                   args.train.learning_rate.decay_factor, staircase=True)
         tf.summary.scalar('learning_rate', learning_rate)
 
         # Calculate the average cross entropy loss across the batch
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=label_batch, logits=logits, name='cross_entropy_per_example')
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label_batch,
+                                                                       logits=logits, name='cross_entropy_per_example')
         cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
         tf.add_to_collection('losses', cross_entropy_mean)
         
@@ -153,8 +142,8 @@ def main(**args_):
         total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
 
         # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train_op(total_loss, global_step, args.optimizer, learning_rate, args.moving_average_decay, tf.global_variables(), args.log_histograms)
-        
+        train_op = facenet.train_op(args.train, total_loss, global_step, learning_rate, tf.global_variables())
+
         # Create a saver
         saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
 
@@ -175,8 +164,10 @@ def main(**args_):
 
             # Training and validation loop
             print('Running training')
-            nrof_steps = args.epoch.max_nrof_epochs*args.epoch.size
-            nrof_val_samples = int(math.ceil(args.epoch.max_nrof_epochs / args.validate_every_n_epochs))   # Validate every validate_every_n_epochs as well as in the last epoch
+            nrof_steps = args.train.epoch.max_nrof_epochs*args.train.epoch.size
+
+            # Validate every validate_every_n_epochs as well as in the last epoch
+            # nrof_val_samples = int(math.ceil(args.train.epoch.max_nrof_epochs / args.validate_every_n_epochs))
             stat = {
                 'loss': np.zeros((nrof_steps,), np.float32),
                 'center_loss': np.zeros((nrof_steps,), np.float32),
@@ -184,52 +175,52 @@ def main(**args_):
                 'xent_loss': np.zeros((nrof_steps,), np.float32),
                 'prelogits_norm': np.zeros((nrof_steps,), np.float32),
                 'accuracy': np.zeros((nrof_steps,), np.float32),
-                'val_loss': np.zeros((nrof_val_samples,), np.float32),
-                'val_xent_loss': np.zeros((nrof_val_samples,), np.float32),
-                'val_accuracy': np.zeros((nrof_val_samples,), np.float32),
-                'lfw_accuracy': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'lfw_valrate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'learning_rate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'time_train': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'time_validate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'time_evaluate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'prelogits_hist': np.zeros((args.epoch.max_nrof_epochs, 1000), np.float32),
+                # 'val_loss': np.zeros((nrof_val_samples,), np.float32),
+                # 'val_xent_loss': np.zeros((nrof_val_samples,), np.float32),
+                # 'val_accuracy': np.zeros((nrof_val_samples,), np.float32),
+                # 'lfw_accuracy': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
+                # 'lfw_valrate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
+                'learning_rate': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
+                'time_train': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
+                'time_validate': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
+                'time_evaluate': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
+                'prelogits_hist': np.zeros((args.train.epoch.max_nrof_epochs, 1000), np.float32),
               }
 
-            for epoch in range(args.epoch.max_nrof_epochs):
+            for epoch in range(args.train.epoch.max_nrof_epochs):
                 # train for one epoch
-                t = time.time()
+                # t = time.time()
                 cont = train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, global_step,
                              total_loss, train_op, summary_op, summary_writer, regularization_losses,
                              stat, cross_entropy_mean, accuracy, prelogits,
                              prelogits_center_loss, prelogits_norm, learning_rate, placeholders)
-                stat['time_train'][epoch-1] = time.time() - t
+                # stat['time_train'][epoch-1] = time.time() - t
                 
                 if not cont:
                     break
                   
-                t = time.time()
+                # t = time.time()
                 # if len(val_image_list)>0 and ((epoch-1) % args.validate_every_n_epochs == args.validate_every_n_epochs-1 or epoch==args.max_nrof_epochs):
                 #     validate(args, sess, epoch, val_image_list, val_label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
                 #         phase_train_placeholder, batch_size_placeholder,
                 #         stat, total_loss, regularization_losses, cross_entropy_mean, accuracy, args.validate_every_n_epochs, args.image_standardization)
-                stat['time_validate'][epoch-1] = time.time() - t
+                # stat['time_validate'][epoch-1] = time.time() - t
 
                 # save variables and the metagraph if it doesn't exist already
-                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, subdir, epoch)
+                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, epoch)
 
-                t = time.time()
+                # t = time.time()
                 # if args.validation.dir:
                 #     evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder,
                 #              phase_train_placeholder,
                 #              batch_size_placeholder, control_placeholder, embeddings, label_batch,
                 #              lfw_paths, actual_issame, step, summary_writer, stat, epoch)
 
-                stat['time_evaluate'][epoch] = time.time() - t
-                print('Saving statistics')
-                with h5py.File(stat_file_name, 'w') as f:
-                    for key, value in stat.items():
-                        f.create_dataset(key, data=value)
+                # stat['time_evaluate'][epoch] = time.time() - t
+                # print('Saving statistics')
+                # with h5py.File(stat_file_name, 'w') as f:
+                #     for key, value in stat.items():
+                #         f.create_dataset(key, data=value)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
 
@@ -256,7 +247,7 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
           step, loss, train_op, summary_op, summary_writer, reg_losses, stat, cross_entropy_mean, accuracy,
           prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
 
-    lr = facenet.learning_rate_value(epoch, args.learning_rate)
+    lr = facenet.learning_rate_value(epoch, args.train.learning_rate)
     if lr is None:
         return False
 
@@ -287,7 +278,7 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
     tensor_list = [loss, train_op, reg_losses, prelogits, cross_entropy_mean, learning_rate, prelogits_norm,
                    accuracy, prelogits_center_loss]
 
-    for batch_number in range(args.epoch.size):
+    for batch_number in range(args.train.epoch.size):
         start_time = time.time()
         step_ = sess.run(step, feed_dict=None)
 
@@ -308,10 +299,9 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
         stat['learning_rate'][epoch] = lr_
         stat['accuracy'][step_] = accuracy_
         stat['prelogits_hist'][epoch, :] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max),
-                                                         bins=1000,
-                                                         range=(0.0, args.prelogits_hist_max))[0]
+                                                         bins=1000, range=(0.0, args.prelogits_hist_max))[0]
 
-        print('Epoch: [{}/{}][{}/{}]\t'.format(epoch, step_, batch_number+1, args.epoch.size) +
+        print('Epoch: [{}/{}] [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, batch_number+1, args.train.epoch.size) +
               'Time {:.3f}\t'.format(duration) +
               'Loss {:2.3f}\t'.format(loss_) +
               'Xent {:2.3f}\t'.format(cross_entropy_mean_) +

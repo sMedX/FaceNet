@@ -177,10 +177,11 @@ def _add_loss_summaries(total_loss):
     return loss_averages_op
 
 
-def train_op(total_loss, global_step, optimizer, learning_rate, moving_average_decay, update_gradient_vars, log_histograms=True):
+def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars):
+
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
-    optimizer = optimizer.lower()
+    optimizer = args.optimizer.lower()
 
     # Compute gradients.
     with tf.control_dependencies([loss_averages_op]):
@@ -203,19 +204,18 @@ def train_op(total_loss, global_step, optimizer, learning_rate, moving_average_d
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
   
     # Add histograms for trainable variables.
-    if log_histograms:
+    if args.log_histograms:
         for var in tf.trainable_variables():
             tf.summary.histogram(var.op.name, var)
    
     # Add histograms for gradients.
-    if log_histograms:
+    if args.log_histograms:
         for grad, var in grads:
             if grad is not None:
                 tf.summary.histogram(var.op.name + '/gradients', grad)
   
     # Track the moving averages of all trainable variables.
-    variable_averages = tf.train.ExponentialMovingAverage(
-        moving_average_decay, global_step)
+    variable_averages = tf.train.ExponentialMovingAverage(args.moving_average_decay, global_step)
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
   
     with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
@@ -683,7 +683,11 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, model_name, step):
+def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, step, model_name=None):
+
+    if model_name is None:
+        model_name = model_dir.stem
+
     # save the model checkpoint
     start_time = time.time()
     checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))

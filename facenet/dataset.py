@@ -62,6 +62,9 @@ class DBase:
                 print('\r({}/{}) class {}'.format(count, len(classes), self.classes[-1].name),
                       end=utils.end(count, len(classes)))
 
+        if self.nrof_images < 1:
+            raise ValueError('The number of images in training is {}.'.format(self.nrof_images))
+
     @property
     def labels(self):
         labels = []

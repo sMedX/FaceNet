@@ -6,6 +6,8 @@ import oyaml as yaml
 from pathlib import Path
 from datetime import datetime
 import importlib
+import numpy as np
+import random
 from facenet import ioutils, facenet
 
 src_dir = Path(__file__).parents[1]
@@ -102,8 +104,11 @@ class TrainOptions(YAMLConfig):
 
         # learning rate options
         if args_['learning_rate'] is not None:
-            self.learning_rate.value = args_['learning_rate']
-        self.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.learning_rate)
+            self.train.learning_rate.value = args_['learning_rate']
+        self.train.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.train.learning_rate)
+
+        np.random.seed(seed=self.seed)
+        random.seed(self.seed)
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.model.logs.joinpath('arguments.yaml'))

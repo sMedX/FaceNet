@@ -1,5 +1,11 @@
 # coding:utf-8
 
+# Random seed
+seed: 0
+
+# Number of images to process in a batch.
+batch_size: 100
+
 dataset:
   path: none
   # Path to h5 file with information about valid images.
@@ -20,24 +26,34 @@ model:
   # Directory where to write trained models and checkpoints
   path: ~/models/facenet/softmax
 
-# Random seed
-seed: 0
+train:
+  # The optimization algorithm to use
+  optimizer: ADAM
+  # Exponential decay for tracking of training parameters
+  moving_average_decay: 0.9999
+  # Enables logging of weight/bias histograms in tensorboard
+  log_histograms: False
 
-# The ratio of the total dataset to use for validation
-validation_set_split_ratio: 0
-
-# Classes with fewer images will be removed from the validation set
-min_nrof_val_images_per_class: 0
-
-# Number of images to process in a batch.
-batch_size: 100
-
-# Number of batches per epoch.
-epoch:
   # Number of batches per epoch.
-  size: 1000
-  # Maximal number of epochs to run
-  max_nrof_epochs: 1000
+  epoch:
+    # Number of batches per epoch.
+    size: 1000
+    # Maximal number of epochs to run
+    max_nrof_epochs: 1000
+
+  # learning rate value or schedule file
+  learning_rate:
+    # Initial learning rate value
+    value: none
+    # Number of epochs between learning rate decay
+    decay_epochs: 100
+    # Learning rate decay factor
+    decay_factor: 1.0
+    # Learning rate schedule that is used when value is none
+    schedule:
+      - [100, 0.05]
+      - [200, 0.005]
+      - [300, 0.0005]
 
 # Norm to use for prelogits norm loss.
 prelogits_norm_p: 1.0
@@ -45,27 +61,6 @@ prelogits_norm_p: 1.0
 prelogits_norm_loss_factor: 0.0 # Loss based on the norm of the activations in the prelogits layer
 center_loss_alfa: 0.95          # Center update rate for center loss
 center_loss_factor: 0.0         # Center loss factor
-
-# The optimization algorithm to use
-optimizer: ADAM
-
-# learning rate value or schedule file
-learning_rate:
-  # Initial learning rate value
-  value: none
-  # Number of epochs between learning rate decay
-  decay_epochs: 100
-  # Learning rate decay factor
-  decay_factor: 1.0
-  # Learning rate schedule that is used when value is none
-  schedule:
-    - [100, 0.05]
-    - [200, 0.005]
-    - [300, 0.0005]
-
-moving_average_decay: 0.9999    # Exponential decay for tracking of training parameters
-
-log_histograms: False           # Enables logging of weight/bias histograms in tensorboard
 
 gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process
 
