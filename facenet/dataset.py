@@ -31,7 +31,10 @@ class ImageClass:
 class DBase:
     def __init__(self, config, extension=''):
         self.config = config
-        self.config.path = pathlib.Path(config.path).expanduser()
+        self.config.path = pathlib.Path(self.config.path).expanduser()
+
+        if not self.config.path.exist():
+            raise IOError('Directory {} does not exist'.format({self.config.path}))
 
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
         classes.sort()
