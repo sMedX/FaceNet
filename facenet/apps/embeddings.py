@@ -67,7 +67,6 @@ def main(**args_):
 
             image_batch, label_batch = facenet.create_input_pipeline(eval_input_queue,
                                                                      image_size,
-                                                                     nrof_preprocess_threads,
                                                                      batch_size_placeholder)
      
             # Load the model
