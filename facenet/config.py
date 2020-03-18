@@ -84,6 +84,10 @@ class YAMLConfig:
     def items(self):
         return self.__dict__.items()
 
+    def set_to(self, name, value=None):
+        if name not in self.__dict__.keys():
+            setattr(self, name, value)
+
     def __repr__(self):
         return "<config object>"
 
@@ -110,6 +114,7 @@ class TrainOptions(YAMLConfig):
         np.random.seed(seed=self.seed)
         random.seed(self.seed)
 
+        self.set_to('validation', value=None)
         if self.validation is not None:
             self.validation.batch_size = self.batch_size
             self.validation.image.size = self.image.size
