@@ -10,8 +10,7 @@ import datetime
 import tensorflow as tf
 from PIL import Image
 from subprocess import Popen, PIPE
-import facenet
-from facenet.config import src_dir
+from facenet import config
 
 
 makedirs = partial(Path.mkdir, parents=True, exist_ok=True)
@@ -37,7 +36,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
     try:
         # Get git hash
         cmd = ['git', 'rev-parse', 'HEAD']
-        gitproc = Popen(cmd, stdout=PIPE, cwd=str(src_dir))
+        gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
         (stdout, _) = gitproc.communicate()
         git_hash = stdout.strip()
     except OSError as e:
@@ -46,7 +45,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
     try:
         # Get local changes
         cmd = ['git', 'diff', 'HEAD']
-        gitproc = Popen(cmd, stdout=PIPE, cwd=str(src_dir))
+        gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
         (stdout, _) = gitproc.communicate()
         git_diff = stdout.strip()
     except OSError as e:
@@ -70,7 +69,7 @@ def write_arguments(arguments, filename):
             shift = 3 * ' '
 
             for key, item in dct.items():
-                if isinstance(item, facenet.config.YAMLConfig):
+                if isinstance(item, config.YAMLConfig):
                     f.write('{}{}:\n'.format(ident, key))
                     write_to_file(item, ident=ident + shift)
                 else:

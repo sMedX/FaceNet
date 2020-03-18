@@ -6,24 +6,25 @@
 
 
 import click
-import pathlib
+from pathlib import Path
 import numpy as np
 import importlib
 import tensorflow as tf
+
 from facenet import config
 
 
 @click.command()
-@click.option('--config', default='facenet/models/configs/inception_resnet_v1.yaml',
+@click.option('--config', default=Path('facenet/models/configs/inception_resnet_v1.yaml'),
               help='Path to yaml config file with used options of the application.')
-@click.option('--logs', default='../output', help='Path to the directory to write logs.')
+@click.option('--logs', default=Path('../output'), help='Path to the directory to write logs.')
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
     # import network
-    print('import model \'{}\''.format(args.model_def))
-    network = importlib.import_module(args.model_def)
-    if args.model_config is None:
+    print('import model \'{}\''.format(args.config))
+    network = importlib.import_module(args.module)
+    if args.config is None:
         args.update_from_file(network.config_file)
 
     # Build the inference graph
@@ -32,7 +33,7 @@ def main(**args_):
         image_batch = tf.identity(image_batch, 'input')
 
         print('Building training graph')
-        prelogits, end_points = network.inference(image_batch, config=args.model_config, phase_train=False)
+        prelogits, end_points = network.inference(image_batch, config=args.config, phase_train=False)
 
         embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
@@ -42,7 +43,7 @@ def main(**args_):
         sess.run(tf.local_variables_initializer())
 
         with sess.as_default():
-            print('Writing graph to the log dir', pathlib.Path(args_['logs']).expanduser().absolute())
+            print('Writing graph to the log dir', Path(args_['logs']).expanduser().absolute())
             writer = tf.summary.FileWriter(args_['logs'], sess.graph)
             sess.run(embeddings)
             outputs = sess.run(end_points)
