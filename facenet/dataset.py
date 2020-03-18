@@ -33,7 +33,7 @@ class DBase:
         self.config = config
         self.config.path = pathlib.Path(self.config.path).expanduser()
 
-        if not self.config.path.exist():
+        if not self.config.path.exists():
             raise IOError('Directory {} does not exist'.format({self.config.path}))
 
         classes = [path for path in self.config.path.glob('*') if path.is_dir()]
