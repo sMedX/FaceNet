@@ -807,7 +807,9 @@ class Embeddings:
 
             tf.train.start_queue_runners(coord=tf.train.Coordinator(), sess=self.sess)
 
-    def evaluate(self):
+        self._evaluate()
+
+    def _evaluate(self):
         # Run forward pass to calculate embeddings
         print('Running forward pass on images')
 

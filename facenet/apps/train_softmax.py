@@ -29,15 +29,15 @@ from pathlib import Path
 import time
 import numpy as np
 import importlib
-import h5py
-import math
+# import h5py
+# import math
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import dataset, statistics, config, facenet
+from facenet import ioutils, dataset, statistics, config, facenet
 
 
 @click.command()
@@ -46,13 +46,15 @@ from facenet import dataset, statistics, config, facenet
 @click.option('--learning_rate', default=None, type=float,
               help='Learning rate value')
 def main(**args_):
+    start_time = time.monotonic()
+
     args = config.TrainOptions(args_, subdir=config.subdir())
 
     # import network
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
 
-    stat_file_name = args.model.logs.joinpath('stat.h5')
+    # stat_file_name = args.model.logs.joinpath('stat.h5')
 
     dbase = dataset.DBase(args.dataset)
     print(dbase)
@@ -231,15 +233,16 @@ def main(**args_):
         print(dbase)
 
         emb = facenet.Embeddings(dbase, config_, model=args.model.path)
-        emb.evaluate()
         print(emb)
 
-        stats = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
-        stats.evaluate()
-        stats.write_report(path=args.model.path, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
-        print(stats)
+        validation = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
+        validation.write_report(path=args.model.path, info=(dbase.__repr__(), emb.__repr__()))
+        print(validation)
+
+        ioutils.elapsed_time(validation.report_file, start_time=start_time)
 
     print('Model has been saved to the directory: {}'.format(args.model.path))
+    print('Logs has been saved to the directory:  {}'.format(args.model.logs))
     return args.model.path
 
 

@@ -105,13 +105,7 @@ validation:
     metric: 1
     # Target false alarm rate (face pairs that was incorrectly classified as the same)
     far_target: 0.001
-    # File to write statistical report
-    file: none
 
   image:
-    # Image size (height, width) in pixels.
-    size: 160
-    # Performs standardization of images
-    standardization: true
     # Concatenates embeddings for the image and its horizontally flipped counterpart
     use_flipped_images: false

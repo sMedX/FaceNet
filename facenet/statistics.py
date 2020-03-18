@@ -234,7 +234,9 @@ class Validation:
         self.start_time = time.monotonic()
         self.elapsed_time = None
 
-    def evaluate(self):
+        self._evaluate()
+
+    def _evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
         indices = np.arange(len(self.labels))
 
@@ -268,12 +270,9 @@ class Validation:
 
         self.elapsed_time = time.monotonic() - self.start_time
 
-    def write_report(self, path=None, dbase_info=None, emb_info=None):
+    def write_report(self, path=None, info=None):
         if self.config.file is None:
-            dir_name = Path(path).expanduser()
-            if dir_name.is_file():
-                dir_name = dir_name.parent
-            self.report_file = dir_name.joinpath('report.txt')
+            self.report_file = Path(path).expanduser().joinpath('report.txt')
         else:
             self.report_file = Path(self.config.file).expanduser()
 
@@ -283,8 +282,9 @@ class Validation:
             f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n\n'.format(utils.git_diff()))
-            f.write('{}\n'.format(dbase_info))
-            f.write('{}\n'.format(emb_info))
+            if info is not None:
+                for s in info:
+                    f.write('{}\n'.format(s))
             f.write('metric: {}\n\n'.format(self.config.metric))
             f.write(self.report.__repr__())
 
@@ -292,8 +292,7 @@ class Validation:
         """Representation of the database"""
         info = ('class {}\n'.format(self.__class__.__name__) +
                 self.report.__repr__() +
-                'Report has been written to the file: {}\n'.format(self.report_file) +
-                'Elapsed time: {:.3f} sec'.format(self.elapsed_time))
+                'Report has been written to the file: {}\n'.format(self.report_file))
         return info
 
 
