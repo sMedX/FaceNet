@@ -111,7 +111,9 @@ RANDOM_CROP = 2
 RANDOM_FLIP = 4
 FIXED_STANDARDIZATION = 8
 FLIP = 16
-def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, batch_size_placeholder):
+
+
+def create_input_pipeline(input_queue, image_size, batch_size_placeholder, nrof_preprocess_threads=4):
     images_and_labels_list = []
     for _ in range(nrof_preprocess_threads):
         filenames, label, control = input_queue.dequeue()
@@ -763,7 +765,7 @@ def max_nrof_epochs(config):
 
 
 class Embeddings:
-    def __init__(self, dbase, config, model=None, nrof_preprocess_threads=4):
+    def __init__(self, dbase, config, model=None):
         self.config = config
         self.dbase = dbase
         self.embeddings = None
@@ -793,7 +795,6 @@ class Embeddings:
                                                              self.control_placeholder], name='eval_enqueue_op')
 
             self.image_batch, self.label_batch = create_input_pipeline(eval_input_queue, image_size,
-                                                                       nrof_preprocess_threads,
                                                                        self.batch_size_placeholder)
 
             # load the model to validate

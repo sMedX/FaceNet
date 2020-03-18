@@ -96,7 +96,7 @@ def main(**args_):
         enqueue_op = input_queue.enqueue_many([placeholders.image_paths, placeholders.labels, placeholders.control], name='enqueue_op')
 
         image_size = (args.image.size, args.image.size)
-        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, args.nrof_preprocess_threads, placeholders.batch_size)
+        image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, placeholders.batch_size)
 
         image_batch = tf.identity(image_batch, 'image_batch')
         image_batch = tf.identity(image_batch, 'input')
