@@ -85,9 +85,6 @@ nrof_preprocess_threads: 4 # Number of preprocessing (data loading and augmentat
 
 # Config for validation
 validation:
-  # Number of images to process in a batch
-  batch_size: 100
-
   dataset:
     # Path to the data directory containing aligned face patches
     path: none
