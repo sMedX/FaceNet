@@ -63,6 +63,9 @@ class YAMLConfig:
         else:
             self.update_from_file(item)
 
+    def __repr__(self):
+        return "<config object>"
+
     def update_from_dict(self, dct):
         """Update config from dict
 
@@ -88,13 +91,17 @@ class YAMLConfig:
         if name not in self.__dict__.keys():
             setattr(self, name, value)
 
-    def __repr__(self):
-        return "<config object>"
+    def is_exist(self, name):
+        if name not in self.__dict__.keys():
+            return True if name in self.__dict__.keys() else False
 
 
 class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])
+
+        np.random.seed(seed=self.seed)
+        random.seed(self.seed)
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
@@ -111,10 +118,9 @@ class TrainOptions(YAMLConfig):
             self.train.learning_rate.value = args_['learning_rate']
         self.train.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.train.learning_rate)
 
-        np.random.seed(seed=self.seed)
-        random.seed(self.seed)
+        if not self.is_exist('validation'):
+            self.validation = None
 
-        self.set_to('validation', value=None)
         if self.validation is not None:
             self.validation.batch_size = self.batch_size
             self.validation.image.size = self.image.size
