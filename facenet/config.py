@@ -87,20 +87,18 @@ class YAMLConfig:
     def items(self):
         return self.__dict__.items()
 
-    def set_to(self, name, value=None):
-        if name not in self.__dict__.keys():
-            setattr(self, name, value)
-
     def is_exist(self, name):
-        if name not in self.__dict__.keys():
-            return True if name in self.__dict__.keys() else False
+        return True if name in self.__dict__.keys() else False
+
+    def __getattr__(self, name):
+        return self.__dict__.get(name)
 
 
 class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])
 
-        np.random.seed(seed=self.seed)
+        np.random.seed(self.seed)
         random.seed(self.seed)
 
         if subdir is None:
@@ -117,9 +115,6 @@ class TrainOptions(YAMLConfig):
         if args_['learning_rate'] is not None:
             self.train.learning_rate.value = args_['learning_rate']
         self.train.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.train.learning_rate)
-
-        if not self.is_exist('validation'):
-            self.validation = None
 
         if self.validation is not None:
             self.validation.batch_size = self.batch_size
