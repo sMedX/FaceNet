@@ -51,14 +51,16 @@ class YAMLConfig:
     def update_from_file(self, path):
         """Update config from YAML file
         """
-        if path is not None:
-            with path.open('r') as custom_config:
-                self.update_from_dict(yaml.safe_load(custom_config.read()))
+        if not path.exists():
+            raise ValueError('file {} does not exist'.format(path))
+
+        with path.open('r') as custom_config:
+            self.update_from_dict(yaml.safe_load(custom_config.read()))
 
     def items(self):
         return self.__dict__.items()
 
-    def exist(self, name):
+    def exists(self, name):
         return True if name in self.__dict__.keys() else False
 
     def __getattr__(self, name):
