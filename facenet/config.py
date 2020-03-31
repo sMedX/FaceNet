@@ -54,8 +54,8 @@ class YAMLConfig:
         if not path.exists():
             raise ValueError('file {} does not exist'.format(path))
 
-        with path.open('r') as custom_config:
-            self.update_from_dict(yaml.safe_load(custom_config.read()))
+        with path.open('r') as f:
+            self.update_from_dict(yaml.safe_load(f.read()))
 
     def items(self):
         return self.__dict__.items()
