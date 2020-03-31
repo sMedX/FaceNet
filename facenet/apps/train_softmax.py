@@ -227,7 +227,7 @@ def main(**args_):
     facenet.save_freeze_graph(model_dir=args.model.path)
 
     # perform validation
-    if args.validation is not None:
+    if args.validation:
         config_ = args.validation
         dbase = dataset.DBase(config_.dataset)
         print(dbase)

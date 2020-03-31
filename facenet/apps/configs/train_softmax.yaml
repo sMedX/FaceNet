@@ -7,22 +7,22 @@ seed: 0
 batch_size: 100
 
 dataset:
-  path: none
+  path:
   # Path to h5 file with information about valid images.
-  h5file: none
+  h5file:
   # Number of classes to download from data set
-  nrof_classes: none
+  nrof_classes:
   # Maximal number of images to download from class
-  nrof_images: none
+  nrof_images:
 
 # Model definition
 model:
   # module containing the definition of the inference graph.',
   module: facenet.models.inception_resnet_v1
   # Model config
-  config: none
+  config:
   # Load a pretrained checkpoint before training starts.
-  checkpoint: none
+  checkpoint:
   # Directory where to write trained models and checkpoints
   path: ~/models/facenet/softmax
 
@@ -32,7 +32,7 @@ train:
   # Exponential decay for tracking of training parameters
   moving_average_decay: 0.9999
   # Enables logging of weight/bias histograms in tensorboard
-  log_histograms: False
+  log_histograms: false
 
   # Number of batches per epoch.
   epoch:
@@ -44,7 +44,7 @@ train:
   # learning rate value or schedule file
   learning_rate:
     # Initial learning rate value
-    value: none
+    value:
     # Number of epochs between learning rate decay
     decay_epochs: 100
     # Learning rate decay factor
@@ -80,13 +80,13 @@ image:
 validation:
   dataset:
     # Path to the data directory containing aligned face patches
-    path: none
+    path:
     # Path to h5 file with information about valid images
-    h5file: none
+    h5file:
     # Number of classes to download from data set
-    nrof_classes: none
+    nrof_classes:
     # Maximal number of images to download from class
-    nrof_images: none
+    nrof_images:
 
   validation:
     # Number of folds to use for cross validation. Mainly used for testing

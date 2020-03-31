@@ -24,35 +24,6 @@ def default_app_config(apps_file_name):
     return config_dir.joinpath(config_name + '.yaml')
 
 
-def replace_str_value(x):
-    dct = {'none': None, 'false': False, 'true': True}
-
-    if isinstance(x, str):
-        for name, value in dct.items():
-            if x.lower() == name:
-                return value
-    return x
-
-
-# class Namespace:
-#     """Simple object for storing attributes.
-#     Implements equality by attribute names and values, and provides a simple string representation.
-#     """
-#
-#     def __init__(self, dct):
-#         for key, item in dct.items():
-#             if isinstance(item, dict):
-#                 setattr(self, key, Namespace(item))
-#             else:
-#                 setattr(self, key, replace_str_value(item))
-#
-#     def items(self):
-#         return self.__dict__.items()
-#
-#     def __repr__(self):
-#         return "<namespace object>"
-
-
 class YAMLConfig:
     """Object representing YAML settings as a dict-like object with values as fields
     """
@@ -75,23 +46,26 @@ class YAMLConfig:
             if isinstance(item, dict):
                 setattr(self, key, YAMLConfig(item))
             else:
-                setattr(self, key, replace_str_value(item))
+                setattr(self, key, item)
 
     def update_from_file(self, path):
         """Update config from YAML file
         """
         if path is not None:
-            with open(str(path), 'r') as custom_config:
+            with path.open('r') as custom_config:
                 self.update_from_dict(yaml.safe_load(custom_config.read()))
 
     def items(self):
         return self.__dict__.items()
 
-    def is_exist(self, name):
+    def exist(self, name):
         return True if name in self.__dict__.keys() else False
 
     def __getattr__(self, name):
-        return self.__dict__.get(name)
+        return self.__dict__.get(name, YAMLConfig({}))
+
+    def __bool__(self):
+        return bool(self.__dict__)
 
 
 class TrainOptions(YAMLConfig):
@@ -116,7 +90,7 @@ class TrainOptions(YAMLConfig):
             self.train.learning_rate.value = args_['learning_rate']
         self.train.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.train.learning_rate)
 
-        if self.validation is not None:
+        if self.validation:
             self.validation.batch_size = self.batch_size
             self.validation.image.size = self.image.size
             self.validation.image.standardization = self.image.standardization

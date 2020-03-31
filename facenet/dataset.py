@@ -48,12 +48,12 @@ class DBase:
             files = list(path.glob('*' + extension))
             files.sort()
 
-            if self.config.h5file is not None:
+            if self.config.h5file:
                 self.config.h5file = pathlib.Path(self.config.h5file).expanduser()
                 files = [f for f in files if
                          h5utils.read(self.config.h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if self.config.nrof_images is not None:
+            if self.config.nrof_images:
                 if len(files) > self.config.nrof_images:
                     files = np.random.choice(files, size=self.config.nrof_images, replace=False)
 

@@ -205,13 +205,11 @@ def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars)
     # Apply gradients.
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
   
-    # Add histograms for trainable variables.
+    # Add histograms for trainable variables and for gradients.
     if args.log_histograms:
         for var in tf.trainable_variables():
             tf.summary.histogram(var.op.name, var)
    
-    # Add histograms for gradients.
-    if args.log_histograms:
         for grad, var in grads:
             if grad is not None:
                 tf.summary.histogram(var.op.name + '/gradients', grad)
@@ -758,10 +756,10 @@ def learning_rate_value(epoch, config):
 
 
 def max_nrof_epochs(config):
-    if config.value is not None:
-        return config.max_nrof_epochs
-    else:
+    if config.schedule:
         return config.schedule[-1][0]
+    else:
+        return config.max_nrof_epochs
 
 
 class Embeddings:
