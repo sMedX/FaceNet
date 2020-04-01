@@ -150,6 +150,16 @@ def main(**args_):
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
+        tensor_dict = {'train_op': train_op,
+                       'loss': total_loss,
+                       'reg_losses': regularization_losses,
+                       'prelogits': prelogits,
+                       'cross_entropy_mean': cross_entropy_mean,
+                       'learning_rate': learning_rate,
+                       'prelogits_norm': prelogits_norm,
+                       'accuracy': accuracy,
+                       'center_loss': prelogits_center_loss}
+
         with sess.as_default():
             tf.compat.v1.train.global_step(sess, global_step)
             sess.run(global_step.initializer)
@@ -157,47 +167,42 @@ def main(**args_):
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             # Training and validation loop
-            print('Running training')
-
-            nrof_steps = args.train.epoch.max_nrof_epochs*args.train.epoch.size
-            nrof_val_steps = math.ceil(args.train.epoch.max_nrof_epochs / args.validate.every_n_epochs)
+            max_nrof_epochs = args.train.epoch.max_nrof_epochs
             stat = {
-                'loss': np.zeros(nrof_steps, np.float32),
-                'center_loss': np.zeros(nrof_steps, np.float32),
-                'reg_loss': np.zeros(nrof_steps, np.float32),
-                'xent_loss': np.zeros(nrof_steps, np.float32),
-                'prelogits_norm': np.zeros(nrof_steps, np.float32),
-                'accuracy': np.zeros(nrof_steps, np.float32),
-                'val_loss': np.zeros(nrof_val_steps, np.float32),
-                'val_xent_loss': np.zeros(nrof_val_steps, np.float32),
-                'val_accuracy': np.zeros(nrof_val_steps, np.float32),
-                'learning_rate': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
-                'time_train': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
-                'time_validate': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
-                'time_evaluate': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
-                'prelogits_hist': np.zeros((args.train.epoch.max_nrof_epochs, 1000), np.float32),
+                'loss': np.zeros(max_nrof_epochs, np.float32),
+                'center_loss': np.zeros(max_nrof_epochs, np.float32),
+                'reg_loss': np.zeros(max_nrof_epochs, np.float32),
+                'xent_loss': np.zeros(max_nrof_epochs, np.float32),
+                'prelogits_norm': np.zeros(max_nrof_epochs, np.float32),
+                'accuracy': np.zeros(max_nrof_epochs, np.float32),
+                'val_loss': np.zeros(max_nrof_epochs, np.float32),
+                'val_xent_loss': np.zeros(max_nrof_epochs, np.float32),
+                'val_accuracy': np.zeros(max_nrof_epochs, np.float32),
+                'learning_rate': np.zeros(max_nrof_epochs, np.float32),
+                'time_train': np.zeros(max_nrof_epochs, np.float32),
+                'time_validate': np.zeros(max_nrof_epochs, np.float32),
+                'time_evaluate': np.zeros(max_nrof_epochs, np.float32),
+                'prelogits_hist': np.zeros((max_nrof_epochs, 1000), np.float32)
               }
 
-            for epoch in range(args.train.epoch.max_nrof_epochs):
+            for epoch in range(max_nrof_epochs):
                 # train for one epoch
-                if not train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, global_step,
-                             total_loss, train_op, summary_op, summary_writer, regularization_losses,
-                             stat, cross_entropy_mean, accuracy, prelogits,
-                             prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
-                    break
+                train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, global_step,
+                      summary_op, summary_writer, stat, placeholders, tensor_dict)
 
+                # perform validation
                 if args.validate:
-                    tensor_dict = {'loss': total_loss,
-                                   'xent': cross_entropy_mean,
-                                   'accuracy': accuracy}
+                    tensor_dict_val = {'loss': total_loss,
+                                       'xent': cross_entropy_mean,
+                                       'accuracy': accuracy}
                     if (epoch+1) % args.validate.every_n_epochs == 0 or (epoch+1) == args.train.epoch.max_nrof_epochs:
                         validate(args, sess, epoch, val_dbase, enqueue_op, global_step, summary_writer, placeholders,
-                                 stat, tensor_dict)
+                                 stat, tensor_dict_val)
 
                 # save variables and the meta graph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
 
-                print('Save statistics to file {}'.format(args.model.stats))
+                # save statistics to h5 file
                 h5utils.write_dict(args.model.stats, stat)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
@@ -223,11 +228,11 @@ def main(**args_):
 
 
 def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
-          global_step, loss, train_op, summary_op, summary_writer, reg_losses, stat, cross_entropy_mean, accuracy,
-          prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
+          global_step, summary_op, summary_writer, stat, placeholders, tensor_dict):
 
-    lr = facenet.learning_rate_value(epoch, args.train.learning_rate)
-    if not lr:
+    print('\nRunning training')
+    learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
+    if not learning_rate:
         return False
 
     index_epoch = sess.run(index_dequeue_op)
@@ -250,51 +255,47 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
 
     elapsed_time = 0
 
-    feed_dict = {placeholders.learning_rate: lr,
+    feed_dict = {placeholders.learning_rate: learning_rate,
                  placeholders.phase_train: True,
                  placeholders.batch_size: args.batch_size}
-
-    tensor_list = [loss, train_op, reg_losses, prelogits, cross_entropy_mean, learning_rate, prelogits_norm,
-                   accuracy, prelogits_center_loss]
 
     for batch_number in range(args.train.epoch.size):
         start_time = time.time()
         step = sess.run(global_step, feed_dict=None)
 
-        if batch_number % 100 == 0:
-            loss_, _, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_, summary = sess.run(tensor_list + [summary_op], feed_dict=feed_dict)
-            summary_writer.add_summary(summary, global_step=step)
-        else:
-            loss_, _, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_ = sess.run(tensor_list, feed_dict=feed_dict)
-         
+        output, summary = sess.run([tensor_dict, summary_op], feed_dict=feed_dict)
+        summary_writer.add_summary(summary, global_step=step)
+
         duration = time.time() - start_time
         elapsed_time += duration
 
-        stat['loss'][step] = loss_
-        stat['center_loss'][step] = center_loss_
-        stat['reg_loss'][step] = np.sum(reg_losses_)
-        stat['xent_loss'][step] = cross_entropy_mean_
-        stat['prelogits_norm'][step] = prelogits_norm_
-        stat['learning_rate'][epoch] = lr_
-        stat['accuracy'][step] = accuracy_
-        stat['prelogits_hist'][epoch, :] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max),
+        stat['loss'][epoch] += output['loss']
+        stat['center_loss'][epoch] += output['center_loss']
+        stat['reg_loss'][epoch] += np.sum(output['reg_losses'])
+        stat['xent_loss'][epoch] += output['cross_entropy_mean']
+        stat['prelogits_norm'][epoch] += output['prelogits_norm']
+        stat['accuracy'][epoch] += output['accuracy']
+        stat['prelogits_hist'][epoch, :] += np.histogram(np.minimum(np.abs(output['prelogits']), args.prelogits_hist_max),
                                                          bins=1000, range=(0.0, args.prelogits_hist_max))[0]
 
         print('Epoch: [{}/{}/{}] [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, step, batch_number+1, args.train.epoch.size) +
               'Time {:.3f}\t'.format(duration) +
-              'Loss {:.3f}\t'.format(loss_) +
-              'Xent {:.3f}\t'.format(cross_entropy_mean_) +
-              'RegLoss {:.3f}\t'.format(np.sum(reg_losses_)) +
-              'Accuracy {:.3f}\t'.format(accuracy_) +
-              'Lr {:.5f}\t'.format(lr_) +
-              'Center loss {:.3f}'.format(center_loss_))
+              'Loss {:.3f}\t'.format(output['loss']) +
+              'Xent {:.3f}\t'.format(output['cross_entropy_mean']) +
+              'RegLoss {:.3f}\t'.format(np.sum(output['reg_losses'])) +
+              'Accuracy {:.3f}\t'.format(output['accuracy']) +
+              'Lr {:.5f}\t'.format(output['learning_rate']) +
+              'Center loss {:.3f}'.format(output['center_loss']))
 
+    stat['learning_rate'][epoch] = learning_rate
     stat['time_train'][epoch] = elapsed_time
+    for key in stat.keys():
+        stat[key][epoch] = stat[key][epoch]/args.train.epoch.size
 
     # add validation loss and accuracy to summary
     summary = tf.Summary()
     summary.value.add(tag='time/train', simple_value=elapsed_time)
-    summary_writer.add_summary(summary, global_step=step)
+    summary_writer.add_summary(summary, global_step=epoch)
     return True
 
 
@@ -347,7 +348,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
           'Time {:.3f}\t'.format(elapsed_time) +
           'Loss {:.3f}\t'.format(loss.mean()) +
           'Xent {:.3f}\t'.format(xent.mean()) +
-          'Accuracy {:.3f}\n'.format(accuracy.mean()))
+          'Accuracy {:.3f}'.format(accuracy.mean()))
 
     step = epoch // args.train.epoch.max_nrof_epochs
     stat['time_validate'][step] = elapsed_time

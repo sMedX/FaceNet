@@ -9,6 +9,7 @@ from pathlib import Path
 
 def write_dict(file, dct):
     file = Path(file).expanduser()
+    print('save statistics to h5 file {}'.format(file))
 
     with h5py.File(str(file), 'w') as f:
         for name, data in dct.items():
