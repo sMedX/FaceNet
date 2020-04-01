@@ -26,25 +26,17 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
     np.random.seed(args.seed)
 
-    if args.model is None:
-        args.model = DefaultConfig.model
-
-    if args.image.size is None:
-        args.image.size = DefaultConfig.image_size
-
-    # Get the paths for the corresponding images
     dbase = dataset.DBase(args.dataset)
     print(dbase)
 
     emb = facenet.Embeddings(dbase, args)
-    emb.evaluate()
+    print(emb)
 
-    stats = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
-    stats.evaluate()
-    stats.write_report(path=args.model, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
-    print(stats)
+    validation = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
+    validation.write_report(path=args.model, info=(dbase.__repr__(), emb.__repr__()))
+    print(validation)
 
-    ioutils.elapsed_time(stats.report_file, start_time)
+    ioutils.elapsed_time(validation.report_file, start_time)
 
 
 if __name__ == '__main__':
