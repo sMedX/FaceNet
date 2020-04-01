@@ -126,7 +126,8 @@ def main(**args_):
         
         correct_prediction = tf.cast(tf.equal(tf.argmax(logits, 1), tf.cast(label_batch, tf.int64)), tf.float32)
         accuracy = tf.reduce_mean(correct_prediction)
-        
+        tf.summary.scalar('accuracy', accuracy)
+
         # Calculate the total losses
         regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
@@ -179,21 +180,22 @@ def main(**args_):
 
             for epoch in range(args.train.epoch.max_nrof_epochs):
                 # train for one epoch
-                cont = train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, global_step,
+                if not train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, global_step,
                              total_loss, train_op, summary_op, summary_writer, regularization_losses,
                              stat, cross_entropy_mean, accuracy, prelogits,
-                             prelogits_center_loss, prelogits_norm, learning_rate, placeholders)
-
-                if not cont:
+                             prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
                     break
-                  
+
                 if args.validate:
+                    tensor_dict = {'loss': total_loss,
+                                   'xent': cross_entropy_mean,
+                                   'accuracy': accuracy}
                     if (epoch+1) % args.validate.every_n_epochs == 0 or (epoch+1) == args.train.epoch.max_nrof_epochs:
                         validate(args, sess, epoch, val_dbase, enqueue_op, global_step, summary_writer, placeholders,
-                                 stat, total_loss, cross_entropy_mean, accuracy)
+                                 stat, tensor_dict)
 
                 # save variables and the meta graph if it doesn't exist already
-                facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, epoch)
+                facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
 
                 print('Save statistics to file {}'.format(args.model.stats))
                 h5utils.write_dict(args.model.stats, stat)
@@ -246,7 +248,6 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
                           placeholders.labels: labels_array,
                           placeholders.control: control_array})
 
-    step = 0
     elapsed_time = 0
 
     feed_dict = {placeholders.learning_rate: lr,
@@ -279,7 +280,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
         stat['prelogits_hist'][epoch, :] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max),
                                                          bins=1000, range=(0.0, args.prelogits_hist_max))[0]
 
-        print('Epoch: [{}/{}] [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, batch_number+1, args.train.epoch.size) +
+        print('Epoch: [{}/{}/{}] [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, step, batch_number+1, args.train.epoch.size) +
               'Time {:.3f}\t'.format(duration) +
               'Loss {:.3f}\t'.format(loss_) +
               'Xent {:.3f}\t'.format(cross_entropy_mean_) +
@@ -297,39 +298,37 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
     return True
 
 
-def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, placeholders,
-             stat, loss, cross_entropy_mean, accuracy):
-    print('Running forward pass on validation set')
+def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, placeholders, stat, tensor_dict):
+    print('\nRunning forward pass on validation set')
+    start_time = time.time()
 
     # Enqueue one epoch of image paths and labels
     files = np.expand_dims(np.array(dbase.files), 1)
     labels = np.expand_dims(np.array(dbase.labels), 1)
     controls = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
 
-    feed_dict = {placeholders.files: files,
-                 placeholders.labels: labels,
-                 placeholders.control: controls}
+    feed_dict = {placeholders.files: files, placeholders.labels: labels, placeholders.control: controls}
     sess.run(enqueue_op, feed_dict=feed_dict)
 
-    start_time = time.time()
+    if args.validate.batch_size:
+        batch_size = args.validate.batch_size
+    else:
+        batch_size = dbase.nrof_images
 
-    nrof_images = dbase.nrof_images
-    batch_size = args.batch_size
-    nrof_batches = math.ceil(nrof_images / batch_size)
-
-    loss_array = np.zeros(nrof_batches, np.float32)
-    xent_array = np.zeros(nrof_batches, np.float32)
-    accuracy_array = np.zeros(nrof_batches, np.float32)
+    nrof_batches = math.ceil(dbase.nrof_images / batch_size)
+    loss = np.zeros(nrof_batches, np.float32)
+    xent = np.zeros(nrof_batches, np.float32)
+    accuracy = np.zeros(nrof_batches, np.float32)
 
     for i in range(nrof_batches):
-        if (i + 1) == nrof_batches:
-            batch_size = nrof_images % args.batch_size
-            if batch_size == 0:
-                batch_size = args.batch_size
+        batch_size_ = min(dbase.nrof_images - i * batch_size, batch_size)
 
-        feed_dict = {placeholders.phase_train: False, placeholders.batch_size: batch_size}
-        loss_, cross_entropy_mean_, accuracy_ = sess.run([loss, cross_entropy_mean, accuracy], feed_dict=feed_dict)
-        loss_array[i], xent_array[i], accuracy_array[i] = (loss_, cross_entropy_mean_, accuracy_)
+        feed_dict = {placeholders.phase_train: False, placeholders.batch_size: batch_size_}
+        output = sess.run(tensor_dict, feed_dict=feed_dict)
+
+        loss[i] = output['loss']
+        xent[i] = output['xent']
+        accuracy[i] = output['accuracy']
 
         # if i % 10 == 9:
         #     print('.', end='')
@@ -339,24 +338,22 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
 
     summary = tf.Summary()
     summary.value.add(tag='validate/time', simple_value=elapsed_time)
-    summary.value.add(tag='validate/loss', simple_value=np.mean(loss_array))
-    summary.value.add(tag='validate/xent', simple_value=np.mean(xent_array))
-    summary.value.add(tag='validate/accuracy', simple_value=np.mean(accuracy_array))
-
-    step = sess.run(global_step, feed_dict=None)
-    summary_writer.add_summary(summary, global_step=step)
-
-    step = epoch // args.train.epoch.max_nrof_epochs
-    stat['time_validate'][step] = elapsed_time
-    stat['val_loss'][step] = np.mean(loss_array)
-    stat['val_xent_loss'][step] = np.mean(xent_array)
-    stat['val_accuracy'][step] = np.mean(accuracy_array)
+    summary.value.add(tag='validate/loss', simple_value=loss.mean())
+    summary.value.add(tag='validate/xent', simple_value=xent.mean())
+    summary.value.add(tag='validate/accuracy', simple_value=accuracy.mean())
+    summary_writer.add_summary(summary, global_step=epoch)
 
     print('Epoch: [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs) +
           'Time {:.3f}\t'.format(elapsed_time) +
-          'Loss {:.3f}\t'.format(loss_array.mean()) +
-          'Xent {:.3f}\t'.format(xent_array.mean()) +
-          'Accuracy {:.3f}'.format(accuracy_array.mean()))
+          'Loss {:.3f}\t'.format(loss.mean()) +
+          'Xent {:.3f}\t'.format(xent.mean()) +
+          'Accuracy {:.3f}\n'.format(accuracy.mean()))
+
+    step = epoch // args.train.epoch.max_nrof_epochs
+    stat['time_validate'][step] = elapsed_time
+    stat['val_loss'][step] = np.mean(loss)
+    stat['val_xent_loss'][step] = np.mean(xent)
+    stat['val_accuracy'][step] = np.mean(accuracy)
 
 
 if __name__ == '__main__':
