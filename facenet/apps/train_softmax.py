@@ -52,9 +52,8 @@ def main(**args_):
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
 
-    dbase1 = dataset.DBase(args.dataset)
-
-    train_dbase, val_dbase = dbase1.random_split(args.validate.dataset_split_ratio)
+    dbase = dataset.DBase(args.dataset)
+    train_dbase, val_dbase = dbase.random_split(args.validate.dataset_split_ratio)
     print('train dbase:', train_dbase)
     print('validate dbase:', val_dbase)
 
@@ -193,7 +192,7 @@ def main(**args_):
                         validate(args, sess, epoch, val_dbase, enqueue_op, global_step, summary_writer, placeholders,
                                  stat, total_loss, cross_entropy_mean, accuracy)
 
-                # save variables and the metagraph if it doesn't exist already
+                # save variables and the meta graph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, epoch)
 
                 print('Save statistics to file {}'.format(args.model.stats))
