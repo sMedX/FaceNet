@@ -1,7 +1,7 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
-import itertools
+from cached_property import cached_property
 import numpy as np
 from pathlib import Path
 
@@ -88,7 +88,14 @@ class DBase:
                 'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
                 'Maximal number of images in class {}\n'.format(self.max_nrof_images))
 
-    @property
+    @cached_property
+    def files(self):
+        files = []
+        for cls in self.classes:
+            files += cls.files
+        return files
+
+    @cached_property
     def labels(self):
         labels = []
         for idx, cls in enumerate(self.classes):
@@ -122,10 +129,6 @@ class DBase:
     @property
     def nrof_pairs(self):
         return self.nrof_images * (self.nrof_images - 1) // 2
-
-    @property
-    def files(self):
-        return list(itertools.chain.from_iterable(cls.files for cls in self.classes))
 
     @property
     def nrof_images_per_class(self):
