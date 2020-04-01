@@ -2,14 +2,23 @@
 __author__ = 'Ruslan N. Kosarev'
 
 import os
-import pathlib as plib
 import numpy as np
 import h5py
+from pathlib import Path
+
+
+def write_dict(file, dct):
+    file = Path(file).expanduser()
+
+    with h5py.File(str(file), 'w') as f:
+        for name, data in dct.items():
+            data = np.atleast_1d(data)
+            f.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
 
 
 def filename2key(filename, key):
-    file = plib.Path(filename)
-    return str(plib.Path(file.parent.stem).joinpath(file.stem, key))
+    file = Path(filename)
+    return str(Path(file.parent.stem).joinpath(file.stem, key))
 
 
 def write_image(hf, name, image, mode='a', check_name=True):
