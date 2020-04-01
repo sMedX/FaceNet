@@ -2,6 +2,7 @@
 __author__ = 'Ruslan N. Kosarev'
 
 import os
+import sys
 import time
 import numpy as np
 from functools import partial
@@ -54,10 +55,11 @@ def store_revision_info(output_filename, arg_string, mode='w'):
     # Store a text file in the log directory
     with open(str(output_filename), mode) as f:
         f.write('{}\n'.format(datetime.datetime.now()))
-        f.write('arguments: %s\n--------------------\n' % arg_string)
-        f.write('tensorflow version: %s\n--------------------\n' % tf.__version__)  # @UndefinedVariable
-        f.write('git hash: %s\n--------------------\n' % git_hash)
-        f.write('git diff: %s\n' % git_diff)
+        f.write('python version: {}\n'.format(sys.version))
+        f.write('arguments: {}\n'.format(arg_string))
+        f.write('tensorflow version: {}\n'.format(tf.__version__))
+        f.write('git hash: {}\n'.format(git_hash))
+        f.write('git diff: {}\n'.format(git_diff))
         f.write('\n')
 
 
