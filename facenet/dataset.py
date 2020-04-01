@@ -48,6 +48,10 @@ class ImageClass:
             files = np.random.choice(files, size=nrof_images, replace=False)
         return ImageClass(self, files=files)
 
+    def random_split(self, split_ratio=0.05):
+        index = round(self.nrof_images * (1-split_ratio))
+        return ImageClass(self, files=self.files[:index]), ImageClass(self, files=self.files[index:])
+
 
 class DBase:
     def __init__(self, config, classes=None, ext=''):
@@ -149,6 +153,17 @@ class DBase:
                 classes.append(self.classes[i].random_choice(nrof_images))
 
         return DBase(self, classes=classes)
+
+    def random_split(self, split_ratio=0.05):
+        train = []
+        test = []
+
+        for cls in self.classes:
+            train_, test_ = cls.random_split(split_ratio=split_ratio)
+            train.append(train_)
+            test.append(test_)
+
+        return DBase(self, classes=train), DBase(self, classes=test)
 
     # def extract_data(self, folder_idx, embeddings=None):
     #     indices = np.where(self.labels == folder_idx)[0]
