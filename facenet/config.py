@@ -81,7 +81,9 @@ class TrainOptions(YAMLConfig):
             self.model.path = Path(self.model.path).expanduser()
         else:
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
+
         self.model.logs = self.model.path.joinpath('logs')
+        self.model.stats = self.model.logs.joinpath('statistics.h5')
 
         if self.model.config is None:
             network = importlib.import_module(self.model.module)
