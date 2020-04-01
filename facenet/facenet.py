@@ -683,32 +683,32 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, step, model_name=None):
+def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
 
     if model_name is None:
         model_name = model_dir.stem
 
     # save the model checkpoint
-    start_time = time.time()
+    # start_time = time.time()
     checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
     saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
-    save_time_variables = time.time() - start_time
+    # save_time_variables = time.time() - start_time
     print('saving checkpoint: {}-{}'.format(checkpoint_path, step))
 
     metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
 
     if not metagraph_filename.exists():
-        start_time = time.time()
+        # start_time = time.time()
         saver.export_meta_graph(str(metagraph_filename))
-        save_time_metagraph = time.time() - start_time
+        # save_time_metagraph = time.time() - start_time
         print('saving meta graph: ', metagraph_filename)
-    else:
-        save_time_metagraph = 0
+    # else:
+    #     save_time_metagraph = 0
 
-    summary = tf.Summary()
-    summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
-    summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
-    summary_writer.add_summary(summary, step)
+    # summary = tf.Summary()
+    # summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
+    # summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
+    # summary_writer.add_summary(summary, step)
 
 
 def save_freeze_graph(model_dir, output_file=None):
