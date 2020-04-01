@@ -23,21 +23,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 import click
-from pathlib import Path
+import h5py
 import time
 import numpy as np
 import importlib
-# import h5py
-# import math
+import math
+from pathlib import Path
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import ioutils, dataset, statistics, config, facenet
+from facenet import ioutils, h5utils, dataset, statistics, config, facenet
 
 
 @click.command()
@@ -54,30 +53,21 @@ def main(**args_):
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
 
-    # stat_file_name = args.model.logs.joinpath('stat.h5')
-
     dbase = dataset.DBase(args.dataset)
-    print(dbase)
+    print('train dbase:', dbase)
 
-    # train_set, val_set = dbase.split(args.validation_set_split_ratio, args.min_nrof_val_images_per_class)
-    # nrof_classes = len(train_set)
+    dbase_val = dbase.random_choice(args.validate.dataset_split_ratio)
+    print('validate dbase:', dbase_val)
 
     tf.reset_default_graph()
     tf.Graph().as_default()
 
     with tf.Graph().as_default():
         tf.set_random_seed(args.seed)
-        global_step = tf.Variable(0, trainable=False)
-        
-        # Get a list of image paths and their labels
-        # image_list, label_list = dataset.get_image_paths_and_labels(train_set)
-        image_list = dbase.files
-        label_list = dbase.labels
+        global_step = tf.Variable(0, trainable=False, name='global_step')
 
-        # val_image_list, val_label_list = dataset.get_image_paths_and_labels(val_set)
-
-        # Create a queue that produces indices into the image_list and label_list 
-        labels = ops.convert_to_tensor(label_list, dtype=tf.int32)
+        # Create a queue that produces indices into the image_list and label_list
+        labels = ops.convert_to_tensor(dbase.labels, dtype=tf.int32)
         range_size = array_ops.shape(labels)[0]
         index_queue = tf.train.range_input_producer(range_size, num_epochs=None, shuffle=True, seed=None, capacity=32)
         index_dequeue_op = index_queue.dequeue_many(args.batch_size*args.train.epoch.size, 'index_dequeue')
@@ -162,67 +152,53 @@ def main(**args_):
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
+            tf.compat.v1.train.global_step(sess, global_step)
+            sess.run(global_step.initializer)
+
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             # Training and validation loop
             print('Running training')
-            nrof_steps = args.train.epoch.max_nrof_epochs*args.train.epoch.size
 
-            # Validate every validate_every_n_epochs as well as in the last epoch
-            # nrof_val_samples = int(math.ceil(args.train.epoch.max_nrof_epochs / args.validate_every_n_epochs))
+            nrof_steps = args.train.epoch.max_nrof_epochs*args.train.epoch.size
+            nrof_val_steps = math.ceil(args.train.epoch.max_nrof_epochs / args.validate.every_n_epochs)
             stat = {
-                'loss': np.zeros((nrof_steps,), np.float32),
-                'center_loss': np.zeros((nrof_steps,), np.float32),
-                'reg_loss': np.zeros((nrof_steps,), np.float32),
-                'xent_loss': np.zeros((nrof_steps,), np.float32),
-                'prelogits_norm': np.zeros((nrof_steps,), np.float32),
-                'accuracy': np.zeros((nrof_steps,), np.float32),
-                # 'val_loss': np.zeros((nrof_val_samples,), np.float32),
-                # 'val_xent_loss': np.zeros((nrof_val_samples,), np.float32),
-                # 'val_accuracy': np.zeros((nrof_val_samples,), np.float32),
-                # 'lfw_accuracy': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                # 'lfw_valrate': np.zeros((args.epoch.max_nrof_epochs,), np.float32),
-                'learning_rate': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
-                'time_train': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
-                'time_validate': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
-                'time_evaluate': np.zeros((args.train.epoch.max_nrof_epochs,), np.float32),
+                'loss': np.zeros(nrof_steps, np.float32),
+                'center_loss': np.zeros(nrof_steps, np.float32),
+                'reg_loss': np.zeros(nrof_steps, np.float32),
+                'xent_loss': np.zeros(nrof_steps, np.float32),
+                'prelogits_norm': np.zeros(nrof_steps, np.float32),
+                'accuracy': np.zeros(nrof_steps, np.float32),
+                'val_loss': np.zeros(nrof_val_steps, np.float32),
+                'val_xent_loss': np.zeros(nrof_val_steps, np.float32),
+                'val_accuracy': np.zeros(nrof_val_steps, np.float32),
+                'learning_rate': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
+                'time_train': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
+                'time_validate': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
+                'time_evaluate': np.zeros(args.train.epoch.max_nrof_epochs, np.float32),
                 'prelogits_hist': np.zeros((args.train.epoch.max_nrof_epochs, 1000), np.float32),
               }
 
             for epoch in range(args.train.epoch.max_nrof_epochs):
                 # train for one epoch
-                # t = time.time()
-                cont = train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op, global_step,
+                cont = train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, global_step,
                              total_loss, train_op, summary_op, summary_writer, regularization_losses,
                              stat, cross_entropy_mean, accuracy, prelogits,
                              prelogits_center_loss, prelogits_norm, learning_rate, placeholders)
-                # stat['time_train'][epoch-1] = time.time() - t
-                
+
                 if not cont:
                     break
                   
-                # t = time.time()
-                # if len(val_image_list)>0 and ((epoch-1) % args.validate_every_n_epochs == args.validate_every_n_epochs-1 or epoch==args.max_nrof_epochs):
-                #     validate(args, sess, epoch, val_image_list, val_label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
-                #         phase_train_placeholder, batch_size_placeholder,
-                #         stat, total_loss, regularization_losses, cross_entropy_mean, accuracy, args.validate_every_n_epochs, args.image_standardization)
-                # stat['time_validate'][epoch-1] = time.time() - t
+                if args.validate:
+                    if (epoch+1) % args.validate.every_n_epochs == 0 or (epoch+1) == args.train.epoch.max_nrof_epochs:
+                        validate(args, sess, epoch, dbase_val, enqueue_op, global_step, summary_writer, placeholders,
+                                 stat, total_loss, cross_entropy_mean, accuracy)
 
                 # save variables and the metagraph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, summary_writer, args.model.path, epoch)
 
-                # t = time.time()
-                # if args.validation.dir:
-                #     evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder,
-                #              phase_train_placeholder,
-                #              batch_size_placeholder, control_placeholder, embeddings, label_batch,
-                #              lfw_paths, actual_issame, step, summary_writer, stat, epoch)
-
-                # stat['time_evaluate'][epoch] = time.time() - t
-                # print('Saving statistics')
-                # with h5py.File(stat_file_name, 'w') as f:
-                #     for key, value in stat.items():
-                #         f.create_dataset(key, data=value)
+                print('Save statistics to file {}'.format(args.model.stats))
+                h5utils.write_dict(args.model.stats, stat)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
 
@@ -246,8 +222,8 @@ def main(**args_):
     return args.model.path
 
 
-def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_op,
-          step, loss, train_op, summary_op, summary_writer, reg_losses, stat, cross_entropy_mean, accuracy,
+def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
+          global_step, loss, train_op, summary_op, summary_writer, reg_losses, stat, cross_entropy_mean, accuracy,
           prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
 
     lr = facenet.learning_rate_value(epoch, args.train.learning_rate)
@@ -255,9 +231,9 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
         return False
 
     index_epoch = sess.run(index_dequeue_op)
-    label_epoch = np.array(label_list)[index_epoch]
-    image_epoch = np.array(image_list)[index_epoch]
-    
+    image_epoch = np.array(dbase.files)[index_epoch]
+    label_epoch = np.array(dbase.labels)[index_epoch]
+
     # Enqueue one epoch of image paths and labels
     labels_array = np.expand_dims(np.array(label_epoch), 1)
     image_paths_array = np.expand_dims(np.array(image_epoch), 1)
@@ -272,7 +248,8 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
                           placeholders.labels: labels_array,
                           placeholders.control: control_array})
 
-    train_time = 0
+    step = 0
+    elapsed_time = 0
 
     feed_dict = {placeholders.learning_rate: lr,
                  placeholders.phase_train: True,
@@ -283,150 +260,105 @@ def train(args, sess, epoch, image_list, label_list, index_dequeue_op, enqueue_o
 
     for batch_number in range(args.train.epoch.size):
         start_time = time.time()
-        step_ = sess.run(step, feed_dict=None)
+        step = sess.run(global_step, feed_dict=None)
 
         if batch_number % 100 == 0:
-            loss_, _, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_, summary_str = sess.run(tensor_list + [summary_op], feed_dict=feed_dict)
-            summary_writer.add_summary(summary_str, global_step=step_)
+            loss_, _, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_, summary = sess.run(tensor_list + [summary_op], feed_dict=feed_dict)
+            summary_writer.add_summary(summary, global_step=step)
         else:
             loss_, _, reg_losses_, prelogits_, cross_entropy_mean_, lr_, prelogits_norm_, accuracy_, center_loss_ = sess.run(tensor_list, feed_dict=feed_dict)
          
         duration = time.time() - start_time
-        train_time += duration
+        elapsed_time += duration
 
-        stat['loss'][step_] = loss_
-        stat['center_loss'][step_] = center_loss_
-        stat['reg_loss'][step_] = np.sum(reg_losses_)
-        stat['xent_loss'][step_] = cross_entropy_mean_
-        stat['prelogits_norm'][step_] = prelogits_norm_
+        stat['loss'][step] = loss_
+        stat['center_loss'][step] = center_loss_
+        stat['reg_loss'][step] = np.sum(reg_losses_)
+        stat['xent_loss'][step] = cross_entropy_mean_
+        stat['prelogits_norm'][step] = prelogits_norm_
         stat['learning_rate'][epoch] = lr_
-        stat['accuracy'][step_] = accuracy_
+        stat['accuracy'][step] = accuracy_
         stat['prelogits_hist'][epoch, :] += np.histogram(np.minimum(np.abs(prelogits_), args.prelogits_hist_max),
                                                          bins=1000, range=(0.0, args.prelogits_hist_max))[0]
 
         print('Epoch: [{}/{}] [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, batch_number+1, args.train.epoch.size) +
               'Time {:.3f}\t'.format(duration) +
-              'Loss {:2.3f}\t'.format(loss_) +
-              'Xent {:2.3f}\t'.format(cross_entropy_mean_) +
-              'RegLoss {:2.3f}\t'.format(np.sum(reg_losses_)) +
-              'Accuracy {:2.3f}\t'.format(accuracy_) +
-              'Lr {:2.5f}\t'.format(lr_) +
-              'Center loss {:2.3f}'.format(center_loss_))
+              'Loss {:.3f}\t'.format(loss_) +
+              'Xent {:.3f}\t'.format(cross_entropy_mean_) +
+              'RegLoss {:.3f}\t'.format(np.sum(reg_losses_)) +
+              'Accuracy {:.3f}\t'.format(accuracy_) +
+              'Lr {:.5f}\t'.format(lr_) +
+              'Center loss {:.3f}'.format(center_loss_))
+
+    stat['time_train'][epoch] = elapsed_time
 
     # add validation loss and accuracy to summary
     summary = tf.Summary()
-    summary.value.add(tag='time/total', simple_value=train_time)
-    summary_writer.add_summary(summary, global_step=step_-1)
+    summary.value.add(tag='time/train', simple_value=elapsed_time)
+    summary_writer.add_summary(summary, global_step=step)
     return True
 
 
-def validate(args, sess, epoch, image_list, label_list, enqueue_op, image_paths_placeholder, labels_placeholder, control_placeholder,
-             phase_train_placeholder, batch_size_placeholder, 
-             stat, loss, regularization_losses, cross_entropy_mean, accuracy, validate_every_n_epochs, image_standardization):
-  
+def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, placeholders,
+             stat, loss, cross_entropy_mean, accuracy):
     print('Running forward pass on validation set')
 
-    nrof_batches = len(label_list) // args.validation.batch_size
-    nrof_images = nrof_batches * args.validation.batch_size
-    
     # Enqueue one epoch of image paths and labels
-    labels_array = np.expand_dims(np.array(label_list[:nrof_images]),1)
-    image_paths_array = np.expand_dims(np.array(image_list[:nrof_images]),1)
-    control_array = np.ones_like(labels_array, np.int32)*facenet.FIXED_STANDARDIZATION * image_standardization
-    sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
+    files = np.expand_dims(np.array(dbase.files), 1)
+    labels = np.expand_dims(np.array(dbase.labels), 1)
+    controls = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
 
-    loss_array = np.zeros((nrof_batches,), np.float32)
-    xent_array = np.zeros((nrof_batches,), np.float32)
-    accuracy_array = np.zeros((nrof_batches,), np.float32)
+    feed_dict = {placeholders.image_paths: files,
+                 placeholders.labels: labels,
+                 placeholders.control: controls}
+    sess.run(enqueue_op, feed_dict=feed_dict)
 
-    # Training loop
     start_time = time.time()
+
+    nrof_images = dbase.nrof_images
+    batch_size = args.batch_size
+    nrof_batches = math.ceil(nrof_images / batch_size)
+
+    loss_array = np.zeros(nrof_batches, np.float32)
+    xent_array = np.zeros(nrof_batches, np.float32)
+    accuracy_array = np.zeros(nrof_batches, np.float32)
+
     for i in range(nrof_batches):
-        feed_dict = {phase_train_placeholder: False, batch_size_placeholder: args.lfw_batch_size}
+        if (i + 1) == nrof_batches:
+            batch_size = nrof_images % args.batch_size
+            if batch_size == 0:
+                batch_size = args.batch_size
+
+        feed_dict = {placeholders.phase_train: False, placeholders.batch_size: batch_size}
         loss_, cross_entropy_mean_, accuracy_ = sess.run([loss, cross_entropy_mean, accuracy], feed_dict=feed_dict)
         loss_array[i], xent_array[i], accuracy_array[i] = (loss_, cross_entropy_mean_, accuracy_)
-        if i % 10 == 9:
-            print('.', end='')
-            sys.stdout.flush()
-    print('')
 
-    duration = time.time() - start_time
+        # if i % 10 == 9:
+        #     print('.', end='')
+        #     sys.stdout.flush()
 
-    val_index = (epoch-1)//validate_every_n_epochs
-    stat['val_loss'][val_index] = np.mean(loss_array)
-    stat['val_xent_loss'][val_index] = np.mean(xent_array)
-    stat['val_accuracy'][val_index] = np.mean(accuracy_array)
+    elapsed_time = time.time() - start_time
 
-    print('Validation Epoch: %d\tTime %.3f\tLoss %2.3f\tXent %2.3f\tAccuracy %2.3f' %
-          (epoch, duration, np.mean(loss_array), np.mean(xent_array), np.mean(accuracy_array)))
-
-
-def evaluate(args, sess, enqueue_op, image_paths_placeholder, labels_placeholder, phase_train_placeholder,
-             batch_size_placeholder, control_placeholder, embeddings, labels, image_paths, actual_issame,
-             step, summary_writer, stat, epoch):
-    start_time = time.time()
-    # Run forward pass to calculate embeddings
-    print('Runnning forward pass on LFW images')
-
-    validation = args.validation
-    
-    # Enqueue one epoch of image paths and labels
-    nrof_embeddings = len(actual_issame)*2  # nrof_pairs * nrof_images_per_pair
-    nrof_flips = 2 if validation.use_flipped_images else 1
-    nrof_images = nrof_embeddings * nrof_flips
-    labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-    image_paths_array = np.expand_dims(np.repeat(np.array(image_paths), nrof_flips), 1)
-    control_array = np.zeros_like(labels_array, np.int32)
-
-    if args.image.standardization:
-        control_array += np.ones_like(labels_array)*facenet.FIXED_STANDARDIZATION
-
-    if args.validation.use_flipped_images:
-        # Flip every second image
-        control_array += (labels_array % 2)*facenet.FLIP
-    sess.run(enqueue_op, {image_paths_placeholder: image_paths_array, labels_placeholder: labels_array, control_placeholder: control_array})
-    
-    embedding_size = int(embeddings.get_shape()[1])
-    assert nrof_images % validation.batch_size == 0, 'The number of LFW images must be an integer multiple of the LFW batch size'
-    nrof_batches = nrof_images // validation.batch_size
-    emb_array = np.zeros((nrof_images, embedding_size))
-    lab_array = np.zeros((nrof_images,))
-    for i in range(nrof_batches):
-        feed_dict = {phase_train_placeholder:False, batch_size_placeholder: validation.batch_size}
-        emb, lab = sess.run([embeddings, labels], feed_dict=feed_dict)
-        lab_array[lab] = lab
-        emb_array[lab, :] = emb
-        if i % 10 == 9:
-            print('.', end='')
-            sys.stdout.flush()
-    print('')
-    embeddings = np.zeros((nrof_embeddings, embedding_size*nrof_flips))
-    if validation.use_flipped_images:
-        # Concatenate embeddings for flipped and non flipped version of the images
-        embeddings[:, :embedding_size] = emb_array[0::2, :]
-        embeddings[:, embedding_size:] = emb_array[1::2, :]
-    else:
-        embeddings = emb_array
-
-    assert np.array_equal(lab_array, np.arange(nrof_images))==True, 'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
-    _, _, accuracy, val, val_std, far = lfw.evaluate(embeddings, actual_issame,
-                                                     nrof_folds=validation.nrof_folds,
-                                                     distance_metric=validation.distance_metric,
-                                                     subtract_mean=validation.subtract_mean)
-    
-    print('Accuracy: %2.5f+-%2.5f' % (np.mean(accuracy), np.std(accuracy)))
-    print('Validation rate: %2.5f+-%2.5f @ FAR=%2.5f' % (val, val_std, far))
-    lfw_time = time.time() - start_time
-    # Add validation loss and accuracy to summary
     summary = tf.Summary()
-    summary.value.add(tag='lfw/accuracy', simple_value=np.mean(accuracy))
-    summary.value.add(tag='lfw/val_rate', simple_value=val)
-    summary.value.add(tag='time/lfw', simple_value=lfw_time)
-    summary_writer.add_summary(summary, step)
-    with open(args.log_dir.joinpath('lfw_result.txt'), 'at') as f:
-        f.write('%d\t%.5f\t%.5f\n' % (step, np.mean(accuracy), val))
-    stat['lfw_accuracy'][epoch-1] = np.mean(accuracy)
-    stat['lfw_valrate'][epoch-1] = val
+    summary.value.add(tag='validate/time', simple_value=elapsed_time)
+    summary.value.add(tag='validate/loss', simple_value=np.mean(loss_array))
+    summary.value.add(tag='validate/xent', simple_value=np.mean(xent_array))
+    summary.value.add(tag='validate/accuracy', simple_value=np.mean(accuracy_array))
+
+    step = sess.run(global_step, feed_dict=None)
+    summary_writer.add_summary(summary, global_step=step)
+
+    step = epoch // args.train.epoch.max_nrof_epochs
+    stat['time_validate'][step] = elapsed_time
+    stat['val_loss'][step] = np.mean(loss_array)
+    stat['val_xent_loss'][step] = np.mean(xent_array)
+    stat['val_accuracy'][step] = np.mean(accuracy_array)
+
+    print('Epoch: [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs) +
+          'Time {:.3f}\t'.format(elapsed_time) +
+          'Loss {:.3f}\t'.format(loss_array.mean()) +
+          'Xent {:.3f}\t'.format(xent_array.mean()) +
+          'Accuracy {:.3f}'.format(accuracy_array.mean()))
 
 
 if __name__ == '__main__':
