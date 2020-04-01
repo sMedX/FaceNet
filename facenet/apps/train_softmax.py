@@ -24,7 +24,6 @@
 # SOFTWARE.
 
 import click
-import h5py
 import time
 import numpy as np
 import importlib
@@ -75,7 +74,7 @@ def main(**args_):
         placeholders = facenet.Placeholders()
         placeholders.batch_size = tf.placeholder(tf.int32, name='batch_size')
         placeholders.phase_train = tf.placeholder(tf.bool, name='phase_train')
-        placeholders.image_paths = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
+        placeholders.files = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
         placeholders.labels = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
         placeholders.control = tf.placeholder(tf.int32, shape=(None, 1), name='control')
         placeholders.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
@@ -83,7 +82,7 @@ def main(**args_):
                                               dtypes=[tf.string, tf.int32, tf.int32],
                                               shapes=[(1,), (1,), (1,)],
                                               shared_name=None, name=None)
-        enqueue_op = input_queue.enqueue_many([placeholders.image_paths, placeholders.labels, placeholders.control], name='enqueue_op')
+        enqueue_op = input_queue.enqueue_many([placeholders.files, placeholders.labels, placeholders.control], name='enqueue_op')
 
         image_size = (args.image.size, args.image.size)
         image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, placeholders.batch_size)
@@ -227,7 +226,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
           prelogits, prelogits_center_loss, prelogits_norm, learning_rate, placeholders):
 
     lr = facenet.learning_rate_value(epoch, args.train.learning_rate)
-    if lr is None:
+    if not lr:
         return False
 
     index_epoch = sess.run(index_dequeue_op)
@@ -244,7 +243,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
                      facenet.FIXED_STANDARDIZATION * args.image.standardization)
 
     control_array = np.ones_like(labels_array) * control_value
-    sess.run(enqueue_op, {placeholders.image_paths: image_paths_array,
+    sess.run(enqueue_op, {placeholders.files: image_paths_array,
                           placeholders.labels: labels_array,
                           placeholders.control: control_array})
 
@@ -308,7 +307,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     labels = np.expand_dims(np.array(dbase.labels), 1)
     controls = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
 
-    feed_dict = {placeholders.image_paths: files,
+    feed_dict = {placeholders.files: files,
                  placeholders.labels: labels,
                  placeholders.control: controls}
     sess.run(enqueue_op, feed_dict=feed_dict)

@@ -44,7 +44,7 @@ from facenet import utils
 class Placeholders:
     batch_size = None
     phase_train = None
-    image_paths = None
+    files = None
     labels = None
     control = None
     learning_rate = None
