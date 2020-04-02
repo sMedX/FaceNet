@@ -306,14 +306,6 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     print('\nRunning forward pass on validation set')
     start_time = time.time()
 
-    # Enqueue one epoch of image paths and labels
-    files = np.expand_dims(np.array(dbase.files), 1)
-    labels = np.expand_dims(np.array(dbase.labels), 1)
-    control = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
-
-    feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
-    sess.run(enqueue_op, feed_dict=feed_dict)
-
     # evaluate batch size and number of batches
     batch_size = args.batch_size
     nrof_batches = dbase.nrof_images // batch_size
@@ -321,6 +313,14 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     if nrof_batches < 1:
         nrof_batches = 1
         batch_size = dbase.nrof_images
+
+    # Enqueue one epoch of image paths and labels
+    files = np.expand_dims(np.array(dbase.files), 1)
+    labels = np.expand_dims(np.array(dbase.labels), 1)
+    control = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
+
+    feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
+    sess.run(enqueue_op, feed_dict=feed_dict)
 
     loss = np.zeros(nrof_batches, np.float32)
     xent = np.zeros(nrof_batches, np.float32)
