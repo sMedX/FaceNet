@@ -231,6 +231,8 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
           global_step, summary_op, summary_writer, stat, placeholders, tensor_dict):
 
     print('\nRunning training')
+    start_time = time.monotonic()
+
     learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
     if not learning_rate:
         return False
@@ -253,39 +255,37 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
                           placeholders.labels: labels_array,
                           placeholders.control: control_array})
 
-    elapsed_time = 0
-
     feed_dict = placeholders.train_feed_dict(learning_rate, True, args.batch_size)
 
-    for batch_number in range(args.train.epoch.size):
-        start_time = time.monotonic()
-        step = sess.run(global_step, feed_dict=None)
+    with tqdm(total=args.train.epoch.size) as bar:
+        for batch_number in range(args.train.epoch.size):
+            step = sess.run(global_step, feed_dict=None)
 
-        output, summary = sess.run([tensor_dict, summary_op], feed_dict=feed_dict)
-        summary_writer.add_summary(summary, global_step=step)
+            output, summary = sess.run([tensor_dict, summary_op], feed_dict=feed_dict)
+            summary_writer.add_summary(summary, global_step=step)
 
-        duration = time.monotonic() - start_time
-        elapsed_time += duration
+            stat['loss'][epoch] += output['loss']
+            stat['center_loss'][epoch] += output['center_loss']
+            stat['reg_loss'][epoch] += np.sum(output['reg_losses'])
+            stat['xent_loss'][epoch] += output['cross_entropy_mean']
+            stat['prelogits_norm'][epoch] += output['prelogits_norm']
+            stat['accuracy'][epoch] += output['accuracy']
 
-        stat['loss'][epoch] += output['loss']
-        stat['center_loss'][epoch] += output['center_loss']
-        stat['reg_loss'][epoch] += np.sum(output['reg_losses'])
-        stat['xent_loss'][epoch] += output['cross_entropy_mean']
-        stat['prelogits_norm'][epoch] += output['prelogits_norm']
-        stat['accuracy'][epoch] += output['accuracy']
+            prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
+            stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
 
-        prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
-        stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
+            info = ('[{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step+1) +
+                    'Loss {:.5f} '.format(output['loss']) +
+                    'Xent {:.5f} '.format(output['cross_entropy_mean']) +
+                    'RegLoss {:.5f} '.format(np.sum(output['reg_losses'])) +
+                    'Accuracy {:.5f} '.format(output['accuracy']) +
+                    'Lr {:.5f} '.format(output['learning_rate']) +
+                    'Center loss {:.5f}'.format(output['center_loss']))
 
-        print('Epoch: [{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step+1) +
-              '[{}/{}]  '.format(batch_number+1, args.train.epoch.size) +
-              'Time {:.3f}  '.format(duration) +
-              'Loss {:.5f}  '.format(output['loss']) +
-              'Xent {:.5f}  '.format(output['cross_entropy_mean']) +
-              'RegLoss {:.5f}  '.format(np.sum(output['reg_losses'])) +
-              'Accuracy {:.5f}  '.format(output['accuracy']) +
-              'Lr {:.5f}  '.format(output['learning_rate']) +
-              'Center loss {:.5f}'.format(output['center_loss']))
+            bar.set_postfix_str(info)
+            bar.update()
+
+    elapsed_time = time.monotonic() - start_time
 
     stat['learning_rate'][epoch] = learning_rate
     stat['time_train'][epoch] = elapsed_time
