@@ -284,12 +284,12 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
         print('Epoch: [{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step+1) +
               '[{}/{}]  '.format(batch_number+1, args.train.epoch.size) +
               'Time {:.3f}  '.format(duration) +
-              'Loss {:.3f}  '.format(output['loss']) +
-              'Xent {:.3f}  '.format(output['cross_entropy_mean']) +
-              'RegLoss {:.3f}  '.format(np.sum(output['reg_losses'])) +
-              'Accuracy {:.3f}  '.format(output['accuracy']) +
+              'Loss {:.5f}  '.format(output['loss']) +
+              'Xent {:.5f}  '.format(output['cross_entropy_mean']) +
+              'RegLoss {:.5f}  '.format(np.sum(output['reg_losses'])) +
+              'Accuracy {:.5f}  '.format(output['accuracy']) +
               'Lr {:.5f}  '.format(output['learning_rate']) +
-              'Center loss {:.3f}'.format(output['center_loss']))
+              'Center loss {:.5f}'.format(output['center_loss']))
 
     stat['learning_rate'][epoch] = learning_rate
     stat['time_train'][epoch] = elapsed_time
@@ -348,9 +348,9 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
 
     print('Epoch: [{}/{}]  '.format(epoch+1, args.train.epoch.max_nrof_epochs) +
           'Time {:.3f}  '.format(elapsed_time) +
-          'Loss {:.3f}  '.format(loss.mean()) +
-          'Xent {:.3f}  '.format(xent.mean()) +
-          'Accuracy {:.3f}'.format(accuracy.mean()))
+          'Loss {:.5f}  '.format(loss.mean()) +
+          'Xent {:.5f}  '.format(xent.mean()) +
+          'Accuracy {:.5f}'.format(accuracy.mean()))
 
     step = epoch // args.train.epoch.max_nrof_epochs
     stat['time_validate'][step] = elapsed_time
