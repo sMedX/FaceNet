@@ -27,7 +27,7 @@ import click
 import time
 import numpy as np
 import importlib
-import math
+from tqdm import tqdm
 from pathlib import Path
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -255,19 +255,16 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
 
     elapsed_time = 0
 
-    # feed_dict = {placeholders.learning_rate: learning_rate,
-    #              placeholders.phase_train: True,
-    #              placeholders.batch_size: args.batch_size}
     feed_dict = placeholders.train_feed_dict(learning_rate, True, args.batch_size)
 
     for batch_number in range(args.train.epoch.size):
-        start_time = time.time()
+        start_time = time.monotonic()
         step = sess.run(global_step, feed_dict=None)
 
         output, summary = sess.run([tensor_dict, summary_op], feed_dict=feed_dict)
         summary_writer.add_summary(summary, global_step=step)
 
-        duration = time.time() - start_time
+        duration = time.monotonic() - start_time
         elapsed_time += duration
 
         stat['loss'][epoch] += output['loss']
@@ -304,7 +301,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
 
 def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, placeholders, stat, tensor_dict):
     print('\nRunning forward pass on validation set')
-    start_time = time.time()
+    start_time = time.monotonic()
 
     # evaluate batch size and number of batches
     batch_size = args.batch_size
@@ -326,7 +323,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     xent = np.zeros(nrof_batches, np.float32)
     accuracy = np.zeros(nrof_batches, np.float32)
 
-    for i in range(nrof_batches):
+    for i in tqdm(range(nrof_batches)):
         feed_dict = placeholders.run_feed_dict(batch_size)
         output = sess.run(tensor_dict, feed_dict=feed_dict)
 
@@ -334,7 +331,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
         xent[i] = output['xent']
         accuracy[i] = output['accuracy']
 
-    elapsed_time = time.time() - start_time
+    elapsed_time = time.monotonic() - start_time
 
     summary = tf.Summary()
     summary.value.add(tag='validate/time', simple_value=elapsed_time)
