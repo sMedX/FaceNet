@@ -311,25 +311,23 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     labels = np.expand_dims(np.array(dbase.labels), 1)
     control = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
 
-    # feed_dict = {placeholders.files: files, placeholders.labels: labels, placeholders.control: controls}
     feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
     sess.run(enqueue_op, feed_dict=feed_dict)
 
-    if args.validate.batch_size:
-        batch_size = args.validate.batch_size
-    else:
+    # evaluate batch size and number of batches
+    batch_size = args.batch_size
+    nrof_batches = dbase.nrof_images // batch_size
+
+    if nrof_batches < 1:
+        nrof_batches = 1
         batch_size = dbase.nrof_images
 
-    nrof_batches = math.ceil(dbase.nrof_images / batch_size)
     loss = np.zeros(nrof_batches, np.float32)
     xent = np.zeros(nrof_batches, np.float32)
     accuracy = np.zeros(nrof_batches, np.float32)
 
     for i in range(nrof_batches):
-        batch_size_ = min(dbase.nrof_images - i * batch_size, batch_size)
-
-        # feed_dict = {placeholders.phase_train: False, placeholders.batch_size: batch_size_}
-        feed_dict = placeholders.run_feed_dict(batch_size_)
+        feed_dict = placeholders.run_feed_dict(batch_size)
         output = sess.run(tensor_dict, feed_dict=feed_dict)
 
         loss[i] = output['loss']

@@ -60,7 +60,7 @@ class DBase:
 
         if classes is None:
             self.path = Path(self.path).expanduser()
-            print('download data set \'{}\''.format(self.path))
+            print('Download data set \'{}\''.format(self.path))
 
             if not self.path.exists():
                 raise ValueError('Directory {} does not exit'.format(self.path))
