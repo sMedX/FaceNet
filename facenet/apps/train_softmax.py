@@ -52,6 +52,7 @@ def main(**args_):
     print('import model \'{}\''.format(args.model.module))
     network = importlib.import_module(args.model.module)
 
+    print('download data set \'{}\''.format(args.dataset.path))
     dbase = dataset.DBase(args.dataset)
     train_dbase, val_dbase = dbase.random_split(args.validate.dataset_split_ratio)
     print('train dbase:', train_dbase)
