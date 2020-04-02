@@ -2,7 +2,7 @@
 __author__ = 'Ruslan N. Kosarev'
 
 import sys
-import oyaml as yaml
+import yaml
 from pathlib import Path
 from datetime import datetime
 import importlib
