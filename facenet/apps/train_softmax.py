@@ -281,7 +281,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
         prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
         stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
 
-        print('Epoch: [{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step) +
+        print('Epoch: [{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step+1) +
               '[{}/{}]  '.format(batch_number+1, args.train.epoch.size) +
               'Time {:.3f}  '.format(duration) +
               'Loss {:.3f}  '.format(output['loss']) +
