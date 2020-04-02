@@ -49,6 +49,21 @@ class Placeholders:
     control = None
     learning_rate = None
 
+    def train_feed_dict(self, learning_rate, phase_train, batch_size):
+        dct = {self.learning_rate: learning_rate,
+               self.phase_train: phase_train,
+               self.batch_size: batch_size}
+        return dct
+
+    def run_feed_dict(self, batch_size):
+        dct = {self.phase_train: False,
+               self.batch_size: batch_size}
+        return dct
+
+    def enqueue_feed_dict(self, files, labels, control):
+        feed_dict = {self.files: files, self.labels: labels, self.control: control}
+        return feed_dict
+
 
 def triplet_loss(anchor, positive, negative, alpha):
     """Calculate the triplet loss according to the FaceNet paper

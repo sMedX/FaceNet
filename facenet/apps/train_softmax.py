@@ -105,12 +105,12 @@ def main(**args_):
 
         # Norm for the prelogits
         eps = 1e-4
-        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits)+eps, ord=args.prelogits_norm_p, axis=1))
-        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.prelogits_norm_loss_factor)
+        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits)+eps, ord=args.loss.prelogits_norm_p, axis=1))
+        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.loss.prelogits_norm_factor)
 
         # Add center loss
-        prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.center_loss_alfa, train_dbase.nrof_classes)
-        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.center_loss_factor)
+        prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.loss.center_alfa, train_dbase.nrof_classes)
+        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.loss.center_factor)
 
         # define learning rate tensor
         learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
@@ -255,9 +255,10 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
 
     elapsed_time = 0
 
-    feed_dict = {placeholders.learning_rate: learning_rate,
-                 placeholders.phase_train: True,
-                 placeholders.batch_size: args.batch_size}
+    # feed_dict = {placeholders.learning_rate: learning_rate,
+    #              placeholders.phase_train: True,
+    #              placeholders.batch_size: args.batch_size}
+    feed_dict = placeholders.train_feed_dict(learning_rate, True, args.batch_size)
 
     for batch_number in range(args.train.epoch.size):
         start_time = time.time()
@@ -275,10 +276,12 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
         stat['xent_loss'][epoch] += output['cross_entropy_mean']
         stat['prelogits_norm'][epoch] += output['prelogits_norm']
         stat['accuracy'][epoch] += output['accuracy']
-        stat['prelogits_hist'][epoch, :] += np.histogram(np.minimum(np.abs(output['prelogits']), args.prelogits_hist_max),
-                                                         bins=1000, range=(0.0, args.prelogits_hist_max))[0]
 
-        print('Epoch: [{}/{}/{}] [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, step, batch_number+1, args.train.epoch.size) +
+        prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
+        stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
+
+        print('Epoch: [{}/{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, step) +
+              '[{}/{}]\t'.format(batch_number+1, args.train.epoch.size) +
               'Time {:.3f}\t'.format(duration) +
               'Loss {:.3f}\t'.format(output['loss']) +
               'Xent {:.3f}\t'.format(output['cross_entropy_mean']) +
@@ -306,9 +309,10 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     # Enqueue one epoch of image paths and labels
     files = np.expand_dims(np.array(dbase.files), 1)
     labels = np.expand_dims(np.array(dbase.labels), 1)
-    controls = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
+    control = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
 
-    feed_dict = {placeholders.files: files, placeholders.labels: labels, placeholders.control: controls}
+    # feed_dict = {placeholders.files: files, placeholders.labels: labels, placeholders.control: controls}
+    feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
     sess.run(enqueue_op, feed_dict=feed_dict)
 
     if args.validate.batch_size:
@@ -324,16 +328,13 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     for i in range(nrof_batches):
         batch_size_ = min(dbase.nrof_images - i * batch_size, batch_size)
 
-        feed_dict = {placeholders.phase_train: False, placeholders.batch_size: batch_size_}
+        # feed_dict = {placeholders.phase_train: False, placeholders.batch_size: batch_size_}
+        feed_dict = placeholders.run_feed_dict(batch_size_)
         output = sess.run(tensor_dict, feed_dict=feed_dict)
 
         loss[i] = output['loss']
         xent[i] = output['xent']
         accuracy[i] = output['accuracy']
-
-        # if i % 10 == 9:
-        #     print('.', end='')
-        #     sys.stdout.flush()
 
     elapsed_time = time.time() - start_time
 
