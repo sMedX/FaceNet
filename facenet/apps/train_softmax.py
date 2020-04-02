@@ -281,14 +281,14 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
         prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
         stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
 
-        print('Epoch: [{}/{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs, step) +
-              '[{}/{}]\t'.format(batch_number+1, args.train.epoch.size) +
-              'Time {:.3f}\t'.format(duration) +
-              'Loss {:.3f}\t'.format(output['loss']) +
-              'Xent {:.3f}\t'.format(output['cross_entropy_mean']) +
-              'RegLoss {:.3f}\t'.format(np.sum(output['reg_losses'])) +
-              'Accuracy {:.3f}\t'.format(output['accuracy']) +
-              'Lr {:.5f}\t'.format(output['learning_rate']) +
+        print('Epoch: [{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step) +
+              '[{}/{}]  '.format(batch_number+1, args.train.epoch.size) +
+              'Time {:.3f}  '.format(duration) +
+              'Loss {:.3f}  '.format(output['loss']) +
+              'Xent {:.3f}  '.format(output['cross_entropy_mean']) +
+              'RegLoss {:.3f}  '.format(np.sum(output['reg_losses'])) +
+              'Accuracy {:.3f}  '.format(output['accuracy']) +
+              'Lr {:.5f}  '.format(output['learning_rate']) +
               'Center loss {:.3f}'.format(output['center_loss']))
 
     stat['learning_rate'][epoch] = learning_rate
@@ -346,10 +346,10 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     summary.value.add(tag='validate/accuracy', simple_value=accuracy.mean())
     summary_writer.add_summary(summary, global_step=epoch)
 
-    print('Epoch: [{}/{}]\t'.format(epoch+1, args.train.epoch.max_nrof_epochs) +
-          'Time {:.3f}\t'.format(elapsed_time) +
-          'Loss {:.3f}\t'.format(loss.mean()) +
-          'Xent {:.3f}\t'.format(xent.mean()) +
+    print('Epoch: [{}/{}]  '.format(epoch+1, args.train.epoch.max_nrof_epochs) +
+          'Time {:.3f}  '.format(elapsed_time) +
+          'Loss {:.3f}  '.format(loss.mean()) +
+          'Xent {:.3f}  '.format(xent.mean()) +
           'Accuracy {:.3f}'.format(accuracy.mean()))
 
     step = epoch // args.train.epoch.max_nrof_epochs
