@@ -55,13 +55,12 @@ train:
       - [200, 0.005]
       - [300, 0.0005]
 
-prelogits_norm_p: 1.0           # Norm to use for prelogits norm loss.
-prelogits_hist_max: 10.0        # The max value for the prelogits histogram
-prelogits_norm_loss_factor: 0.0 # Loss based on the norm of the activations in the prelogits layer
-center_loss_alfa: 0.95          # Center update rate for center loss
-center_loss_factor: 0.0         # Center loss factor
-gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process
-validate_every_n_epochs: 10     # Number of epoch between validation
+loss:
+  prelogits_norm_p: 1.0       # Norm to use for prelogits norm loss.
+  prelogits_hist_max: 10.0    # The max value for the prelogits histogram
+  prelogits_norm_factor: 0.0  # Loss based on the norm of the activations in the prelogits layer
+  center_alfa: 0.95           # Center update rate for center loss
+  center_factor: 0.0          # Center loss factor
 
 image:
   # Image size (height, width) in pixels.
@@ -75,6 +74,16 @@ image:
   random_flip: false
   # Performs random rotations of training images
   random_rotate: false
+
+
+# Config for validation
+validate:
+  # Number of epoch between validation
+  every_n_epochs: 10
+
+  # split ratio to extract validate data set
+  dataset_split_ratio: 0.05
+
 
 # Config for validation
 validation:
@@ -99,3 +108,5 @@ validation:
   image:
     # Concatenates embeddings for the image and its horizontally flipped counterpart
     use_flipped_images: false
+
+gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process
