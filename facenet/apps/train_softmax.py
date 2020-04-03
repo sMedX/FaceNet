@@ -154,7 +154,7 @@ def main(**args_):
                        'loss': total_loss,
                        'reg_losses': regularization_losses,
                        'prelogits': prelogits,
-                       'cross_entropy_mean': cross_entropy_mean,
+                       'xent': cross_entropy_mean,
                        'learning_rate': learning_rate,
                        'prelogits_norm': prelogits_norm,
                        'accuracy': accuracy,
@@ -172,7 +172,7 @@ def main(**args_):
                 'loss': np.zeros(max_nrof_epochs, np.float32),
                 'center_loss': np.zeros(max_nrof_epochs, np.float32),
                 'reg_loss': np.zeros(max_nrof_epochs, np.float32),
-                'xent_loss': np.zeros(max_nrof_epochs, np.float32),
+                'xent': np.zeros(max_nrof_epochs, np.float32),
                 'prelogits_norm': np.zeros(max_nrof_epochs, np.float32),
                 'accuracy': np.zeros(max_nrof_epochs, np.float32),
                 'val_loss': np.zeros(max_nrof_epochs, np.float32),
@@ -267,7 +267,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
             stat['loss'][epoch] += output['loss']
             stat['center_loss'][epoch] += output['center_loss']
             stat['reg_loss'][epoch] += np.sum(output['reg_losses'])
-            stat['xent_loss'][epoch] += output['cross_entropy_mean']
+            stat['xent'][epoch] += output['xent']
             stat['prelogits_norm'][epoch] += output['prelogits_norm']
             stat['accuracy'][epoch] += output['accuracy']
 
@@ -276,7 +276,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
 
             info = ('[{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step+1) +
                     'Loss {:.5f} '.format(output['loss']) +
-                    'Xent {:.5f} '.format(output['cross_entropy_mean']) +
+                    'Xent {:.5f} '.format(output['xent']) +
                     'RegLoss {:.5f} '.format(np.sum(output['reg_losses'])) +
                     'Accuracy {:.5f} '.format(output['accuracy']) +
                     'Lr {:.5f} '.format(output['learning_rate']) +
@@ -323,13 +323,22 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     xent = np.zeros(nrof_batches, np.float32)
     accuracy = np.zeros(nrof_batches, np.float32)
 
-    for i in tqdm(range(nrof_batches)):
-        feed_dict = placeholders.run_feed_dict(batch_size)
-        output = sess.run(tensor_dict, feed_dict=feed_dict)
+    with tqdm(total=nrof_batches) as bar:
+        for i in range(nrof_batches):
+            feed_dict = placeholders.run_feed_dict(batch_size)
+            output = sess.run(tensor_dict, feed_dict=feed_dict)
 
-        loss[i] = output['loss']
-        xent[i] = output['xent']
-        accuracy[i] = output['accuracy']
+            loss[i] = output['loss']
+            xent[i] = output['xent']
+            accuracy[i] = output['accuracy']
+
+            info = ('[{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs) +
+                    'Loss {:.5f} '.format(np.mean(loss[:i+1])) +
+                    'Xent {:.5f} '.format(np.mean(xent[:i+1])) +
+                    'Accuracy {:.5f}'.format(np.mean(accuracy[:i+1])))
+
+            bar.set_postfix_str(info)
+            bar.update()
 
     elapsed_time = time.monotonic() - start_time
 
@@ -340,17 +349,11 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
     summary.value.add(tag='validate/accuracy', simple_value=accuracy.mean())
     summary_writer.add_summary(summary, global_step=epoch)
 
-    print('Epoch: [{}/{}]  '.format(epoch+1, args.train.epoch.max_nrof_epochs) +
-          'Time {:.3f}  '.format(elapsed_time) +
-          'Loss {:.5f}  '.format(loss.mean()) +
-          'Xent {:.5f}  '.format(xent.mean()) +
-          'Accuracy {:.5f}'.format(accuracy.mean()))
-
     step = epoch // args.train.epoch.max_nrof_epochs
     stat['time_validate'][step] = elapsed_time
-    stat['val_loss'][step] = np.mean(loss)
-    stat['val_xent_loss'][step] = np.mean(xent)
-    stat['val_accuracy'][step] = np.mean(accuracy)
+    stat['val_loss'][step] = loss.mean()
+    stat['val_xent_loss'][step] = xent.mean()
+    stat['val_accuracy'][step] = accuracy.mean()
 
 
 if __name__ == '__main__':
