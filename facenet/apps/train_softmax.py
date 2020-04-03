@@ -333,9 +333,9 @@ def validate(args, sess, epoch, dbase, enqueue_op, global_step, summary_writer, 
             accuracy[i] = output['accuracy']
 
             info = ('[{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs) +
-                    'Loss {:.5f} '.format(np.mean(loss[:i+1])) +
-                    'Xent {:.5f} '.format(np.mean(xent[:i+1])) +
-                    'Accuracy {:.5f}'.format(np.mean(accuracy[:i+1])))
+                    'Loss {:.5f} '.format(loss[:i+1].mean()) +
+                    'Xent {:.5f} '.format(xent[:i+1].mean()) +
+                    'Accuracy {:.5f}'.format(accuracy[:i+1].mean()))
 
             bar.set_postfix_str(info)
             bar.update()
