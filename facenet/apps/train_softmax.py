@@ -29,6 +29,7 @@ import numpy as np
 import importlib
 from tqdm import tqdm
 from pathlib import Path
+import math
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import data_flow_ops
@@ -166,8 +167,8 @@ def main(**args_):
 
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
-            # Training and validation loop
             max_nrof_epochs = args.train.epoch.max_nrof_epochs
+            nrof_val_samples = math.ceil(max_nrof_epochs / args.validate.every_n_epochs)
             stat = {
                 'loss': np.zeros(max_nrof_epochs, np.float32),
                 'center_loss': np.zeros(max_nrof_epochs, np.float32),
@@ -175,16 +176,16 @@ def main(**args_):
                 'xent': np.zeros(max_nrof_epochs, np.float32),
                 'prelogits_norm': np.zeros(max_nrof_epochs, np.float32),
                 'accuracy': np.zeros(max_nrof_epochs, np.float32),
-                'val_loss': np.zeros(max_nrof_epochs, np.float32),
-                'val_xent_loss': np.zeros(max_nrof_epochs, np.float32),
-                'val_accuracy': np.zeros(max_nrof_epochs, np.float32),
                 'learning_rate': np.zeros(max_nrof_epochs, np.float32),
                 'time_train': np.zeros(max_nrof_epochs, np.float32),
-                'time_validate': np.zeros(max_nrof_epochs, np.float32),
-                'time_evaluate': np.zeros(max_nrof_epochs, np.float32),
-                'prelogits_hist': np.zeros((max_nrof_epochs, 1000), np.float32)
+                'prelogits_hist': np.zeros((max_nrof_epochs, 1000), np.float32),
+                'time_validate': np.zeros(nrof_val_samples, np.float32),
+                'val_loss': np.zeros(nrof_val_samples, np.float32),
+                'val_xent_loss': np.zeros(nrof_val_samples, np.float32),
+                'val_accuracy': np.zeros(nrof_val_samples, np.float32)
               }
 
+            # Training and validation loop
             for epoch in range(max_nrof_epochs):
                 # train for one epoch
                 train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, global_step,
