@@ -39,7 +39,7 @@ train:
     # Number of batches per epoch.
     size: 1000
     # Maximal number of epochs to run
-    max_nrof_epochs: 1000
+    nrof_epochs: 1000
 
   # learning rate value or schedule file
   learning_rate:
