@@ -69,7 +69,7 @@ def main(**args_):
         labels = ops.convert_to_tensor(train_dbase.labels, dtype=tf.int32)
         range_size = array_ops.shape(labels)[0]
         index_queue = tf.train.range_input_producer(range_size, num_epochs=None, shuffle=True, seed=None, capacity=32)
-        index_dequeue_op = index_queue.dequeue_many(args.batch_size*args.train.epoch.size, 'index_dequeue')
+        index_dequeue_op = index_queue.dequeue_many(args.batch_size * args.train.epoch.size, 'index_dequeue')
 
         placeholders = facenet.Placeholders()
         placeholders.batch_size = tf.placeholder(tf.int32, name='batch_size')
@@ -82,7 +82,8 @@ def main(**args_):
                                               dtypes=[tf.string, tf.int32, tf.int32],
                                               shapes=[(1,), (1,), (1,)],
                                               shared_name=None, name=None)
-        enqueue_op = input_queue.enqueue_many([placeholders.files, placeholders.labels, placeholders.control], name='enqueue_op')
+        enqueue_op = input_queue.enqueue_many([placeholders.files, placeholders.labels, placeholders.control],
+                                              name='enqueue_op')
 
         image_size = (args.image.size, args.image.size)
         image_batch, label_batch = facenet.create_input_pipeline(input_queue, image_size, placeholders.batch_size)
@@ -106,28 +107,27 @@ def main(**args_):
 
         # Norm for the prelogits
         eps = 1e-4
-        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits)+eps, ord=args.loss.prelogits_norm_p, axis=1))
+        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=args.loss.prelogits_norm_p, axis=1))
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.loss.prelogits_norm_factor)
 
         # Add center loss
-        prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.loss.center_alfa, train_dbase.nrof_classes)
+        prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.loss.center_alfa,
+                                                       train_dbase.nrof_classes)
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.loss.center_factor)
 
         # define learning rate tensor
         learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
-                                                   args.train.learning_rate.decay_epochs*args.train.epoch.size,
+                                                   args.train.learning_rate.decay_epochs * args.train.epoch.size,
                                                    args.train.learning_rate.decay_factor, staircase=True)
-        tf.summary.scalar('learning_rate', learning_rate)
 
         # Calculate the average cross entropy loss across the batch
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label_batch,
                                                                        logits=logits, name='cross_entropy_per_example')
         cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
         tf.add_to_collection('losses', cross_entropy_mean)
-        
+
         correct_prediction = tf.cast(tf.equal(tf.argmax(logits, 1), tf.cast(label_batch, tf.int64)), tf.float32)
         accuracy = tf.reduce_mean(correct_prediction)
-        tf.summary.scalar('accuracy', accuracy)
 
         # Calculate the total losses
         regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -145,9 +145,8 @@ def main(**args_):
         # Start running operations on the Graph.
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
-        summary_writer = tf.summary.FileWriter(args.model.logs, sess.graph)
+        sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+        summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
         coord = tf.train.Coordinator()
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
@@ -157,58 +156,38 @@ def main(**args_):
 
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
-            max_nrof_epochs = args.train.epoch.max_nrof_epochs
-            stat = {'time': np.zeros(max_nrof_epochs, np.float32),
-                    'loss': np.zeros(max_nrof_epochs, np.float32),
-                    'center_loss': np.zeros(max_nrof_epochs, np.float32),
-                    'reg_loss': np.zeros(max_nrof_epochs, np.float32),
-                    'xent': np.zeros(max_nrof_epochs, np.float32),
-                    'prelogits_norm': np.zeros(max_nrof_epochs, np.float32),
-                    'accuracy': np.zeros(max_nrof_epochs, np.float32),
-                    'learning_rate': np.zeros(max_nrof_epochs, np.float32),
-                    'prelogits_hist': np.zeros((max_nrof_epochs, 1000), np.float32)}
+            nrof_steps = args.train.epoch.nrof_epochs * args.train.epoch.size
+            train_tensor_op = facenet.Tensors({'accuracy': accuracy,
+                                               'loss': total_loss,
+                                               'xent': cross_entropy_mean,
+                                               'center_loss': prelogits_center_loss,
+                                               'prelogits_norm': prelogits_norm,
+                                               'learning_rate': learning_rate}, nrof_steps,
+                                              train_op, summary_op, global_step, summary_writer, tag='train')
 
-            tensor_dict = {'train_op': train_op,
-                           'learning_rate': learning_rate,
-                           'loss': total_loss,
-                           'reg_losses': regularization_losses,
-                           'prelogits': prelogits,
-                           'xent': cross_entropy_mean,
-                           'prelogits_norm': prelogits_norm,
-                           'accuracy': accuracy,
-                           'center_loss': prelogits_center_loss}
-
-            nrof_val_epochs = math.ceil(max_nrof_epochs / args.validate.every_n_epochs)
-            stat_val = {'time': np.zeros(nrof_val_epochs, np.float32),
-                        'loss': np.zeros(nrof_val_epochs, np.float32),
-                        'xent': np.zeros(nrof_val_epochs, np.float32),
-                        'accuracy': np.zeros(nrof_val_epochs, np.float32)}
-
-            tensor_dict_val = {'loss': total_loss,
-                               'xent': cross_entropy_mean,
-                               'accuracy': accuracy}
+            nrof_val_steps = math.ceil(args.train.epoch.nrof_epochs / args.validate.every_n_epochs)
+            val_tensor_op = facenet.Tensors({'accuracy': accuracy,
+                                             'loss': total_loss,
+                                             'xent': cross_entropy_mean}, nrof_val_steps,
+                                            summary_writer=summary_writer, tag='validate')
 
             # Training and validation loop
-            val_epoch = 0
-
-            for epoch in range(max_nrof_epochs):
+            for epoch in range(args.train.epoch.nrof_epochs):
                 # train for one epoch
-                train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, global_step,
-                      summary_op, summary_writer, stat, placeholders, tensor_dict)
+                train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, placeholders, train_tensor_op)
 
                 # perform validation
                 if args.validate:
-                    if (epoch+1) % args.validate.every_n_epochs == 0 or (epoch+1) == args.train.epoch.max_nrof_epochs:
-                        validate(args, sess, epoch, val_dbase, enqueue_op, global_step, val_epoch, summary_writer,
-                                 placeholders, stat_val, tensor_dict_val)
-                        val_epoch += 1
+                    epoch1 = epoch + 1
+                    if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
+                        validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_op)
+                        h5utils.write_dict(args.h5logs, val_tensor_op.stats)
 
                 # save variables and the meta graph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
 
                 # save statistics to h5 file
-                h5utils.write_dict(args.model.stats, stat)
-                h5utils.write_dict(args.model.stats, stat_val)
+                h5utils.write_dict(args.h5logs, train_tensor_op.stats)
 
     facenet.save_freeze_graph(model_dir=args.model.path)
 
@@ -228,15 +207,12 @@ def main(**args_):
         ioutils.elapsed_time(validation.report_file, start_time=start_time)
 
     print('Model has been saved to the directory: {}'.format(args.model.path))
-    print('Logs has been saved to the directory:  {}'.format(args.model.logs))
+    print('Logs have been saved to the directory: {}'.format(args.logs))
     return args.model.path
 
 
-def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
-          global_step, summary_op, summary_writer, stat, placeholders, tensor_dict):
-
-    print('\nRunning training')
-    start_time = time.monotonic()
+def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, tensors):
+    print('\nRunning training', flush=True)
 
     learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
     if not learning_rate:
@@ -263,100 +239,67 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op,
     feed_dict = placeholders.train_feed_dict(learning_rate, True, args.batch_size)
     nrof_batches = args.train.epoch.size
 
+    start_time = time.monotonic()
+
     with tqdm(total=nrof_batches) as bar:
         for batch_number in range(nrof_batches):
-            step = sess.run(global_step, feed_dict=None)
+            output = sess.run(tensors.tensors, feed_dict=feed_dict)
+            tensors.set_output(output)
 
-            output, summary = sess.run([tensor_dict, summary_op], feed_dict=feed_dict)
-            summary_writer.add_summary(summary, global_step=step)
+            # prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
+            # stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
 
-            stat['loss'][epoch] += output['loss']
-            stat['center_loss'][epoch] += output['center_loss']
-            stat['reg_loss'][epoch] += np.sum(output['reg_losses'])
-            stat['xent'][epoch] += output['xent']
-            stat['prelogits_norm'][epoch] += output['prelogits_norm']
-            stat['accuracy'][epoch] += output['accuracy']
-
-            prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
-            stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
-
-            info = ('[{}/{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs, step+1) +
-                    'Loss {:.5f} '.format(output['loss']) +
-                    'Xent {:.5f} '.format(output['xent']) +
-                    'RegLoss {:.5f} '.format(np.sum(output['reg_losses'])) +
-                    'Accuracy {:.5f} '.format(output['accuracy']) +
-                    'Lr {:.5f} '.format(output['learning_rate']) +
-                    'Center loss {:.5f}'.format(output['center_loss']))
-
-            bar.set_postfix_str(info)
+            info = '[{}/{}] '.format(epoch + 1, args.train.epoch.nrof_epochs)
+            bar.set_postfix_str(info + tensors.get_info_str(output))
             bar.update()
 
     elapsed_time = time.monotonic() - start_time
+    tensors.set_elapsed_time(elapsed_time)
 
-    stat['time'][epoch] = elapsed_time
-    stat['learning_rate'][epoch] = learning_rate
-
-    stat['loss'][epoch] /= nrof_batches
-    stat['center_loss'][epoch] /= nrof_batches
-    stat['reg_loss'][epoch] /= nrof_batches
-    stat['xent'][epoch] /= nrof_batches
-    stat['prelogits_norm'][epoch] /= nrof_batches
-    stat['accuracy'][epoch] /= nrof_batches
-    stat['prelogits_hist'][epoch, :] /= nrof_batches
-
-    # add validation loss and accuracy to summary
-    summary = tf.Summary()
-    summary.value.add(tag='time/train', simple_value=elapsed_time)
-    summary_writer.add_summary(summary, global_step=epoch)
     return True
 
 
-def validate(args, sess, epoch, dbase, enqueue_op, global_step, val_epoch, summary_writer, placeholders, stat, tensor_dict):
-    print('\nRunning forward pass on validation set')
-    start_time = time.monotonic()
+def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
+    print('\nRunning forward pass on validation set', flush=True)
 
     # evaluate batch size and number of batches
-    batch_size = args.batch_size
+    batch_size = min(args.batch_size, dbase.nrof_images)
     nrof_batches = dbase.nrof_images // batch_size
-
-    if nrof_batches < 1:
-        nrof_batches = 1
-        batch_size = dbase.nrof_images
 
     # Enqueue one epoch of image paths and labels
     files = np.expand_dims(np.array(dbase.files), 1)
     labels = np.expand_dims(np.array(dbase.labels), 1)
-    control = np.ones_like(labels, np.int32)*facenet.FIXED_STANDARDIZATION * args.image.standardization
+    control = np.ones_like(labels, np.int32) * facenet.FIXED_STANDARDIZATION * args.image.standardization
 
     feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
     sess.run(enqueue_op, feed_dict=feed_dict)
 
-    keys = ['loss', 'xent', 'accuracy']
+    start_time = time.monotonic()
+
+    outputs = {}
+    for key in tensors.tensors['tensors'].keys():
+        outputs[key] = []
 
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
             feed_dict = placeholders.run_feed_dict(batch_size)
-            output = sess.run(tensor_dict, feed_dict=feed_dict)
+            output = sess.run(tensors.tensors, feed_dict=feed_dict)
 
-            info = '[{}/{}] '.format(epoch+1, args.train.epoch.max_nrof_epochs)
-            for key in keys:
-                stat[key][val_epoch] += output[key]
-                info += '{} {:.5f} '.format(key, stat[key][val_epoch]/(i+1))
+            for key, value in output['tensors'].items():
+                outputs[key].append(value)
 
-            bar.set_postfix_str(info)
+            info = '[{}/{}] '.format(epoch + 1, args.train.epoch.nrof_epochs)
+            bar.set_postfix_str(info + tensors.get_info_str(output))
             bar.update()
 
-    # write to summary
-    summary = tf.Summary()
+    elapsed_time = time.monotonic() - start_time
+    tensors.set_elapsed_time(elapsed_time)
 
-    key = 'time'
-    stat[key][val_epoch] = time.monotonic() - start_time
-    summary.value.add(tag='validate/' + key, simple_value=stat[key][val_epoch])
+    for key, value in outputs.items():
+        outputs[key] = np.mean(value)
 
-    for key in keys:
-        stat[key][val_epoch] /= nrof_batches
-        summary.value.add(tag='validate/' + key, simple_value=stat[key][val_epoch])
-    summary_writer.add_summary(summary, global_step=epoch)
+    outputs = {'tensors': outputs}
+    tensors.set_output(outputs)
 
 
 if __name__ == '__main__':

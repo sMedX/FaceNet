@@ -770,13 +770,6 @@ def learning_rate_value(epoch, config):
             return lr_
 
 
-def max_nrof_epochs(config):
-    if config.schedule:
-        return config.schedule[-1][0]
-    else:
-        return config.max_nrof_epochs
-
-
 class Embeddings:
     def __init__(self, dbase, config, model=None):
         self.config = config
@@ -891,3 +884,57 @@ class Embeddings:
                'elapsed time  : {}\n'.format(self.elapsed_time) + \
                'time per image: {}\n'.format(self.elapsed_time / self.embeddings.shape[0])
         return info
+
+
+class Tensors:
+    def __init__(self, tensors, nrof_steps,
+                 train_op=None, summary_op=None, global_step=None, summary_writer=None, tag=''):
+        self.summary_writer = summary_writer
+        self.tag = tag
+
+        self.tensors = {'tensors': tensors}
+        if train_op is not None:
+            self.tensors['train_op'] = train_op
+        if summary_op is not None:
+            self.tensors['summary_op'] = summary_op
+        if global_step is not None:
+            self.tensors['global_step'] = global_step
+
+        self.stats = {}
+        for key in tensors.keys():
+            self.stats[key] = np.zeros(nrof_steps, np.float32)
+
+        self.elapsed_time = []
+        self._count = 0
+        # self._outputs = dict((key, []) for key in tensors.keys())
+
+    def set_output(self, output):
+        self._count += 1
+
+        for key, item in output['tensors'].items():
+            self.stats[key][self._count-1] = item
+
+        if output.get('summary_op'):
+            self.summary_writer.add_summary(output['summary_op'], global_step=self._count-1)
+
+        summary = tf.Summary()
+        for key, value in output['tensors'].items():
+            summary.value.add(tag=self.tag + '/' + key, simple_value=value)
+        self.summary_writer.add_summary(summary, global_step=self._count - 1)
+
+    # def append_output(self, output, start, end):
+    #     for key, value in output['tensors'].items():
+    #         self._outputs[key].append(value)
+
+    def get_info_str(self, output):
+        info = ''
+        for key, item in output['tensors'].items():
+            info += '{} {:.5f} '.format(key, item)
+        return info
+
+    def set_elapsed_time(self, value):
+        self.elapsed_time.append(value)
+
+        summary = tf.Summary()
+        summary.value.add(tag=self.tag + '/time', simple_value=value)
+        self.summary_writer.add_summary(summary, global_step=len(self.elapsed_time)-1)
