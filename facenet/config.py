@@ -92,7 +92,9 @@ class TrainOptions(YAMLConfig):
         # learning rate options
         if args_['learning_rate'] is not None:
             self.train.learning_rate.value = args_['learning_rate']
-        self.train.epoch.nrof_epochs = facenet.max_nrof_epochs(self.train.learning_rate, self.train.epoch.nrof_epochs)
+
+        if self.train.learning_rate.schedule:
+            self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
         if self.validation:
             self.validation.batch_size = self.batch_size
