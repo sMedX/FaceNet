@@ -56,14 +56,14 @@ def write(filename, name, data, mode='a'):
     # print('dataset \'{}\' has been written to the file {} (length {})'.format(name, filename, len(data)))
 
 
-def read(filename, name, default=None):
-    with h5py.File(str(filename), mode='r') as hf:
+def read(file, name, default=None):
+    with h5py.File(str(file), mode='r') as hf:
         if name in hf:
             return hf[name][...]
         else:
             return default
 
 
-def keys(h5file):
-    with h5py.File(h5file) as f:
+def keys(file):
+    with h5py.File(str(file), mode='r') as f:
         return list(f.keys())
