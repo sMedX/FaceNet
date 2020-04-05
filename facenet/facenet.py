@@ -886,25 +886,17 @@ class Embeddings:
         return info
 
 
-class Tensors:
-    def __init__(self, tensors, nrof_steps,
-                 train_op=None, summary_op=None, global_step=None, summary_writer=None, tag=''):
+class Summary:
+    def __init__(self, tensor_dict, nrof_steps, summary_writer=None, tag=''):
+        self.tensors = tensor_dict
         self.summary_writer = summary_writer
         self.tag = tag
 
-        self.tensors = {'tensors': tensors}
-        if train_op is not None:
-            self.tensors['train_op'] = train_op
-        if summary_op is not None:
-            self.tensors['summary_op'] = summary_op
-        if global_step is not None:
-            self.tensors['global_step'] = global_step
-
         self.stats = {}
-        for key in tensors.keys():
+        for key in tensor_dict['tensors'].keys():
             self.stats[key] = np.zeros(nrof_steps, np.float32)
 
-        self.elapsed_time = []
+        self._elapsed_time = []
         self._count = 0
         # self._outputs = dict((key, []) for key in tensors.keys())
 
@@ -926,15 +918,16 @@ class Tensors:
     #     for key, value in output['tensors'].items():
     #         self._outputs[key].append(value)
 
-    def get_info_str(self, output):
+    @staticmethod
+    def get_info_str(output):
         info = ''
         for key, item in output['tensors'].items():
             info += '{} {:.5f} '.format(key, item)
         return info
 
     def set_elapsed_time(self, value):
-        self.elapsed_time.append(value)
+        self._elapsed_time.append(value)
 
         summary = tf.Summary()
         summary.value.add(tag=self.tag + '/time', simple_value=value)
-        self.summary_writer.add_summary(summary, global_step=len(self.elapsed_time)-1)
+        self.summary_writer.add_summary(summary, global_step=len(self._elapsed_time) - 1)

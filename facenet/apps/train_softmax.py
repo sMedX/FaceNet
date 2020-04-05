@@ -157,22 +157,15 @@ def main(**args_):
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             nrof_steps = args.train.epoch.nrof_epochs * args.train.epoch.size
-            train_tensor_op = facenet.Tensors({'accuracy': accuracy,
-                                               'loss': total_loss,
-                                               'xent': cross_entropy_mean,
-                                               'center_loss': prelogits_center_loss,
-                                               'prelogits_norm': prelogits_norm,
-                                               'learning_rate': learning_rate}, nrof_steps,
-                                              train_op=train_op,
-                                              summary_op=summary_op, summary_writer=summary_writer,
-                                              tag='train')
+            tensor_dict = {'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean,
+                                       'center_loss': prelogits_center_loss, 'prelogits_norm': prelogits_norm,
+                                       'learning_rate': learning_rate},
+                           'train_op': train_op, 'summary_op': summary_op}
+            train_tensor_op = facenet.Summary(tensor_dict, nrof_steps, summary_writer=summary_writer, tag='train')
 
-            nrof_val_steps = math.ceil(args.train.epoch.nrof_epochs / args.validate.every_n_epochs)
-            val_tensor_op = facenet.Tensors({'accuracy': accuracy,
-                                             'loss': total_loss,
-                                             'xent': cross_entropy_mean}, nrof_val_steps,
-                                            summary_writer=summary_writer,
-                                            tag='validate')
+            val_tensor_dict = {'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean}}
+            val_nrof_steps = math.ceil(args.train.epoch.nrof_epochs / args.validate.every_n_epochs)
+            val_tensor_op = facenet.Summary(val_tensor_dict, val_nrof_steps, summary_writer=summary_writer, tag='validate')
 
             # Training and validation loop
             for epoch in range(args.train.epoch.nrof_epochs):
