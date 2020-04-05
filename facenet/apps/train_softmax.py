@@ -263,8 +263,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, 
             bar.set_postfix_str(tensors.get_info_str(output))
             bar.update()
 
-    elapsed_time = time.monotonic() - start_time
-    tensors.set_elapsed_time(elapsed_time)
+    tensors.set_elapsed_time(time.monotonic() - start_time)
 
     return True
 
@@ -301,14 +300,13 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
             bar.set_postfix_str(tensors.get_info_str(output))
             bar.update()
 
-    elapsed_time = time.monotonic() - start_time
-    tensors.set_elapsed_time(elapsed_time)
-
     for key, value in outputs.items():
         outputs[key] = np.mean(value)
 
     outputs = {'tensors': outputs}
     tensors.set_output(outputs)
+
+    tensors.set_elapsed_time(time.monotonic() - start_time)
 
 
 if __name__ == '__main__':
