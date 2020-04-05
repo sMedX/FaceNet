@@ -163,13 +163,16 @@ def main(**args_):
                                                'center_loss': prelogits_center_loss,
                                                'prelogits_norm': prelogits_norm,
                                                'learning_rate': learning_rate}, nrof_steps,
-                                              train_op, summary_op, global_step, summary_writer, tag='train')
+                                              train_op=train_op,
+                                              summary_op=summary_op, summary_writer=summary_writer,
+                                              tag='train')
 
             nrof_val_steps = math.ceil(args.train.epoch.nrof_epochs / args.validate.every_n_epochs)
             val_tensor_op = facenet.Tensors({'accuracy': accuracy,
                                              'loss': total_loss,
                                              'xent': cross_entropy_mean}, nrof_val_steps,
-                                            summary_writer=summary_writer, tag='validate')
+                                            summary_writer=summary_writer,
+                                            tag='validate')
 
             # Training and validation loop
             for epoch in range(args.train.epoch.nrof_epochs):
