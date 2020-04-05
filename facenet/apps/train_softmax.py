@@ -158,12 +158,17 @@ def main(**args_):
 
             nrof_steps = args.train.epoch.nrof_epochs * args.train.epoch.size
             tensor_dict = {'train_op': train_op, 'summary_op': summary_op,
-                           'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean,
-                                       'center_loss': prelogits_center_loss, 'prelogits_norm': prelogits_norm,
+                           'tensors': {'accuracy': accuracy,
+                                       'loss': total_loss,
+                                       'xent': cross_entropy_mean,
+                                       'center_loss': prelogits_center_loss,
+                                       'prelogits_norm': prelogits_norm,
                                        'learning_rate': learning_rate}}
             train_tensor_op = facenet.Summary(tensor_dict, nrof_steps, summary_writer=summary_writer, tag='train')
 
-            val_tensor_dict = {'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean}}
+            val_tensor_dict = {'tensors': {'accuracy': accuracy,
+                                           'loss': total_loss,
+                                           'xent': cross_entropy_mean}}
             val_nrof_steps = math.ceil(args.train.epoch.nrof_epochs / args.validate.every_n_epochs)
             val_tensor_op = facenet.Summary(val_tensor_dict, val_nrof_steps, summary_writer=summary_writer, tag='validate')
 
