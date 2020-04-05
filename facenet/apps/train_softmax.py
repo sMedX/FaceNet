@@ -157,10 +157,10 @@ def main(**args_):
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             nrof_steps = args.train.epoch.nrof_epochs * args.train.epoch.size
-            tensor_dict = {'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean,
+            tensor_dict = {'train_op': train_op, 'summary_op': summary_op,
+                           'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean,
                                        'center_loss': prelogits_center_loss, 'prelogits_norm': prelogits_norm,
-                                       'learning_rate': learning_rate},
-                           'train_op': train_op, 'summary_op': summary_op}
+                                       'learning_rate': learning_rate}}
             train_tensor_op = facenet.Summary(tensor_dict, nrof_steps, summary_writer=summary_writer, tag='train')
 
             val_tensor_dict = {'tensors': {'accuracy': accuracy, 'loss': total_loss, 'xent': cross_entropy_mean}}
