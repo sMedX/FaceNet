@@ -180,13 +180,13 @@ def main(**args_):
                 epoch1 = epoch + 1
                 if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
                     validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_op)
-                    h5utils.write_dict(args.h5logs, val_tensor_op.stats, group='validate')
+                    h5utils.write_dict(args.h5file, val_tensor_op.stats, group='validate')
 
                 # save variables and the meta graph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
 
                 # save statistics to h5 file
-                h5utils.write_dict(args.h5logs, train_tensor_op.stats, group='train')
+                h5utils.write_dict(args.h5file, train_tensor_op.stats, group='train')
 
     facenet.save_freeze_graph(model_dir=args.model.path)
 
@@ -205,7 +205,7 @@ def main(**args_):
 
         ioutils.elapsed_time(validation.report_file, start_time=start_time)
 
-    print('Statistics have been saved to the h5 file: {}'.format(args.h5logs))
+    print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
     print('Logs have been saved to the directory: {}'.format(args.logs))
     print('Model has been saved to the directory: {}'.format(args.model.path))
     return args.model.path
