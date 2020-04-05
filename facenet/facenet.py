@@ -922,8 +922,8 @@ class Summary:
     def get_info_str(output):
         info = ''
         for key, item in output['tensors'].items():
-            info += '{} {:.5f} '.format(key, item)
-        return info
+            info += ' {} {:.5f}'.format(key, item)
+        return info[1:]
 
     def set_elapsed_time(self, value):
         self._elapsed_time.append(value)

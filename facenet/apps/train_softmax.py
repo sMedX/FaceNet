@@ -223,7 +223,7 @@ def main(**args_):
 
 
 def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, tensors):
-    print('\nRunning training', flush=True)
+    print('\nRunning training [{}/{}]'.format(epoch+1, args.train.epoch.nrof_epochs), flush=True)
 
     learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
     if not learning_rate:
@@ -260,8 +260,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, 
             # prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
             # stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
 
-            info = '[{}/{}] '.format(epoch + 1, args.train.epoch.nrof_epochs)
-            bar.set_postfix_str(info + tensors.get_info_str(output))
+            bar.set_postfix_str(tensors.get_info_str(output))
             bar.update()
 
     elapsed_time = time.monotonic() - start_time
@@ -271,7 +270,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, 
 
 
 def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
-    print('\nRunning forward pass on validation set', flush=True)
+    print('\nRunning forward pass on validation set [{}/{}]'.format(epoch+1, args.train.epoch.nrof_epochs), flush=True)
 
     # evaluate batch size and number of batches
     batch_size = min(args.batch_size, dbase.nrof_images)
@@ -299,8 +298,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
             for key, value in output['tensors'].items():
                 outputs[key].append(value)
 
-            info = '[{}/{}] '.format(epoch + 1, args.train.epoch.nrof_epochs)
-            bar.set_postfix_str(info + tensors.get_info_str(output))
+            bar.set_postfix_str(tensors.get_info_str(output))
             bar.update()
 
     elapsed_time = time.monotonic() - start_time
