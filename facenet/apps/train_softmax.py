@@ -151,10 +151,9 @@ def main(**args_):
         tf.train.start_queue_runners(coord=coord, sess=sess)
 
         with sess.as_default():
+            facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
             tf.compat.v1.train.global_step(sess, global_step)
             sess.run(global_step.initializer)
-
-            facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
 
             tensor_dict = {
                 'train_op': train_op,
