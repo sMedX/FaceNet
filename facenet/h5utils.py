@@ -7,14 +7,21 @@ import h5py
 from pathlib import Path
 
 
-def write_dict(file, dct):
+def write_dict(file, dct, group=None):
     file = Path(file).expanduser()
     print('save statistics to h5 file {}'.format(file))
 
-    with h5py.File(str(file), 'w') as f:
+    with h5py.File(str(file), 'a') as f:
         for name, data in dct.items():
+            if group:
+                name = group + '/' + name
+
             data = np.atleast_1d(data)
-            f.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
+
+            if name in f:
+                f[name][...] = data
+            else:
+                f.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
 
 
 def filename2key(filename, key):
