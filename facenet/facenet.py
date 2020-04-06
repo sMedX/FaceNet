@@ -887,36 +887,32 @@ class Embeddings:
 
 
 class Summary:
-    def __init__(self, tensor_dict, nrof_steps, summary_writer=None, tag=''):
+    def __init__(self, tensor_dict, summary_size, summary_writer, tag=None):
         self.tensors = tensor_dict
-        self.summary_writer = summary_writer
-        self.tag = tag
+        self._summary_writer = summary_writer
+        self._tag = tag + '/' if tag else ''
 
         self.stats = {}
         for key in tensor_dict['tensors'].keys():
-            self.stats[key] = np.zeros(nrof_steps, np.float32)
+            self.stats[key] = np.zeros(summary_size, np.float32)
 
         self._elapsed_time = []
         self._count = 0
-        # self._outputs = dict((key, []) for key in tensors.keys())
+        # self._outputs = dict((key, []) for key in self.tensor['tensors'].keys())
 
-    def set_output(self, output):
+    def write_output(self, output):
         self._count += 1
 
         for key, item in output['tensors'].items():
             self.stats[key][self._count-1] = item
 
         if output.get('summary_op'):
-            self.summary_writer.add_summary(output['summary_op'], global_step=self._count-1)
+            self._summary_writer.add_summary(output['summary_op'], global_step=self._count - 1)
 
         summary = tf.Summary()
         for key, value in output['tensors'].items():
-            summary.value.add(tag=self.tag + '/' + key, simple_value=value)
-        self.summary_writer.add_summary(summary, global_step=self._count - 1)
-
-    # def append_output(self, output, start, end):
-    #     for key, value in output['tensors'].items():
-    #         self._outputs[key].append(value)
+            summary.value.add(tag=self._tag + key, simple_value=value)
+        self._summary_writer.add_summary(summary, global_step=self._count - 1)
 
     @staticmethod
     def get_info_str(output):
@@ -929,5 +925,5 @@ class Summary:
         self._elapsed_time.append(value)
 
         summary = tf.Summary()
-        summary.value.add(tag=self.tag + '/time', simple_value=value)
-        self.summary_writer.add_summary(summary, global_step=len(self._elapsed_time) - 1)
+        summary.value.add(tag=self._tag + '/time', simple_value=value)
+        self._summary_writer.add_summary(summary, global_step=len(self._elapsed_time) - 1)

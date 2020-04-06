@@ -255,7 +255,7 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, 
     with tqdm(total=nrof_batches) as bar:
         for batch_number in range(nrof_batches):
             output = sess.run(tensors.tensors, feed_dict=feed_dict)
-            tensors.set_output(output)
+            tensors.write_output(output)
 
             # prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
             # stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
@@ -304,7 +304,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
         outputs[key] = np.mean(value)
 
     outputs = {'tensors': outputs}
-    tensors.set_output(outputs)
+    tensors.write_output(outputs)
 
     tensors.set_elapsed_time(time.monotonic() - start_time)
 
