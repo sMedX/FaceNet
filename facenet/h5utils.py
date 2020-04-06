@@ -74,3 +74,8 @@ def read(file, name, default=None):
 def keys(file):
     with h5py.File(str(file), mode='r') as f:
         return list(f.keys())
+
+
+def visit(file, func=print):
+    with h5py.File(str(file), mode='r') as f:
+        f.visit(func)

@@ -219,6 +219,7 @@ def main(**args_):
     print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
     print('Logs have been saved to the directory: {}'.format(args.logs))
     print('Model has been saved to the directory: {}'.format(args.model.path))
+
     return args.model.path
 
 
