@@ -304,7 +304,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
         for key, value in outputs.items():
             outputs[key] = np.mean(value)
 
-        bar.set_postfix_str('tensors.get_info_str(output)')
+        bar.set_postfix_str(tensors.get_info_str(output))
 
     outputs = {'tensors': outputs}
     tensors.write_output(outputs)
