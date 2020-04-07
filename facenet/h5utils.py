@@ -8,20 +8,18 @@ from pathlib import Path
 
 
 def write_dict(file, dct, group=None):
-    file = Path(file).expanduser()
-    print('save statistics to the h5 file {}'.format(file))
+    group = group + '/' if group else ''
 
-    with h5py.File(str(file), 'a') as f:
-        for name, data in dct.items():
-            if group:
-                name = group + '/' + name
-
+    with h5py.File(str(file), mode='a') as hf:
+        for key, data in dct.items():
+            name = group + key
             data = np.atleast_1d(data)
 
-            if name in f:
-                f[name][...] = data
+            if name in hf:
+                hf[name].resize(hf[name].shape[0] + data.shape[0], axis=0)
+                hf[name][-data.shape[0]:] = data
             else:
-                f.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
+                hf.create_dataset(name, data=data, maxshape=(None,), compression='gzip', dtype=data.dtype)
 
 
 def filename2key(filename, key):
