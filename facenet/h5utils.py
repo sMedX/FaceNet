@@ -30,17 +30,13 @@ def filename2key(filename, key):
 def write_image(hf, name, image, mode='a', check_name=True):
     with h5py.File(str(hf), mode) as hf:
 
-        if name in hf and check_name is True:
+        if name in hf and check_name:
             raise IOError('data set {} has already existed'.format(name))
 
-        if not name in hf:
-            dset = hf.create_dataset(name=name,
-                                     data=image,
-                                     dtype='uint8',
-                                     compression='gzip',
-                                     compression_opts=9)
-        else:
+        if name in hf:
             hf[name][...] = image
+        else:
+            hf.create_dataset(name=name, data=image, dtype='uint8', compression='gzip', compression_opts=9)
 
 
 def write(filename, name, data, mode='a'):
