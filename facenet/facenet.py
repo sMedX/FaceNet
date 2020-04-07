@@ -38,7 +38,7 @@ from tensorflow.python.ops import data_flow_ops
 import math
 from pathlib import Path
 
-from facenet import utils
+from facenet import utils, h5utils
 
 
 class Placeholders:
@@ -887,43 +887,51 @@ class Embeddings:
 
 
 class Summary:
-    def __init__(self, tensor_dict, summary_size, summary_writer, tag=None):
-        self.tensors = tensor_dict
+    def __init__(self, summary_writer, h5file, tag=None):
         self._summary_writer = summary_writer
-        self._tag = tag + '/' if tag else ''
-
-        self.stats = {}
-        for key in tensor_dict['tensors'].keys():
-            self.stats[key] = np.zeros(summary_size, np.float32)
-
-        self._elapsed_time = []
+        self._h5file = h5file
+        self._tag = tag
+        self._elapsed_time_count = 0
         self._count = 0
-        # self._outputs = dict((key, []) for key in self.tensor['tensors'].keys())
 
-    def write_output(self, output):
+    @staticmethod
+    def get_info_str(output):
+        if output.get('tensor_op'):
+            output = output['tensor_op']
+
+        info = ''
+        for key, item in output.items():
+            info += ' {} {:.5f}'.format(key, item)
+
+        return info[1:]
+
+    def write_tf_summary(self, output):
         self._count += 1
-
-        for key, item in output['tensors'].items():
-            self.stats[key][self._count-1] = item
 
         if output.get('summary_op'):
             self._summary_writer.add_summary(output['summary_op'], global_step=self._count - 1)
 
+        if output.get('tensor_op'):
+            output = output['tensor_op']
+
+        tag = self._tag + '/' if self._tag else ''
         summary = tf.Summary()
-        for key, value in output['tensors'].items():
-            summary.value.add(tag=self._tag + key, simple_value=value)
+
+        for key, value in output.items():
+            summary.value.add(tag=tag + key, simple_value=value)
         self._summary_writer.add_summary(summary, global_step=self._count - 1)
 
-    @staticmethod
-    def get_info_str(output):
-        info = ''
-        for key, item in output['tensors'].items():
-            info += ' {} {:.5f}'.format(key, item)
-        return info[1:]
+    def write_h5_summary(self, output):
+        h5utils.write_dict(self._h5file, output, group=self._tag)
 
-    def set_elapsed_time(self, value):
-        self._elapsed_time.append(value)
+    def write_elapsed_time(self, value):
+        self._elapsed_time_count += 1
+
+        tag = self._tag + '/time' if self._tag else 'time'
 
         summary = tf.Summary()
-        summary.value.add(tag=self._tag + '/time', simple_value=value)
-        self._summary_writer.add_summary(summary, global_step=len(self._elapsed_time) - 1)
+        summary.value.add(tag=tag, simple_value=value)
+        self._summary_writer.add_summary(summary, global_step=self._elapsed_time_count - 1)
+
+        h5utils.write_dict(self._h5file, {'time': value}, group=self._tag)
+

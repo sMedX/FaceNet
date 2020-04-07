@@ -29,14 +29,13 @@ import numpy as np
 import importlib
 from tqdm import tqdm
 from pathlib import Path
-import math
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import ioutils, h5utils, dataset, statistics, config, facenet
+from facenet import ioutils, dataset, statistics, config, facenet
 
 
 @click.command()
@@ -158,7 +157,7 @@ def main(**args_):
             tensor_dict = {
                 'train_op': train_op,
                 'summary_op': summary_op,
-                'tensors': {
+                'tensor_op': {
                     'accuracy': accuracy,
                     'loss': total_loss,
                     'xent': cross_entropy_mean,
@@ -168,36 +167,30 @@ def main(**args_):
                 }
             }
 
-            nrof_steps = args.train.epoch.nrof_epochs * args.train.epoch.size
-            train_tensor_op = facenet.Summary(tensor_dict, nrof_steps, summary_writer=summary_writer, tag='train')
+            train_summary = facenet.Summary(summary_writer, args.h5file, tag='train')
 
             val_tensor_dict = {
-                'tensors': {
+                'tensor_op': {
                     'accuracy': accuracy,
                     'loss': total_loss,
                     'xent': cross_entropy_mean
                 }
             }
 
-            val_nrof_steps = math.ceil(args.train.epoch.nrof_epochs / args.validate.every_n_epochs)
-            val_tensor_op = facenet.Summary(val_tensor_dict, val_nrof_steps, summary_writer=summary_writer, tag='validate')
+            val_summary = facenet.Summary(summary_writer, args.h5file, tag='validate')
 
             # Training and validation loop
             for epoch in range(args.train.epoch.nrof_epochs):
                 # train for one epoch
-                train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, placeholders, train_tensor_op)
+                train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, placeholders, tensor_dict, train_summary)
 
                 # perform validation
                 epoch1 = epoch + 1
                 if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
-                    validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_op)
-                    h5utils.write_dict(args.h5file, val_tensor_op.stats, group='validate')
+                    validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_dict, val_summary)
 
                 # save variables and the meta graph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
-
-                # save statistics to h5 file
-                h5utils.write_dict(args.h5file, train_tensor_op.stats, group='train')
 
     facenet.save_freeze_graph(model_dir=args.model.path)
 
@@ -223,8 +216,9 @@ def main(**args_):
     return args.model.path
 
 
-def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, tensors):
+def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, tensor_dict, summary):
     print('\nRunning training [{}/{}]'.format(epoch+1, args.train.epoch.nrof_epochs), flush=True)
+    start_time = time.monotonic()
 
     learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
     if not learning_rate:
@@ -251,26 +245,29 @@ def train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, 
     feed_dict = placeholders.train_feed_dict(learning_rate, True, args.batch_size)
     nrof_batches = args.train.epoch.size
 
-    start_time = time.monotonic()
+    outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
     with tqdm(total=nrof_batches) as bar:
         for batch_number in range(nrof_batches):
-            output = sess.run(tensors.tensors, feed_dict=feed_dict)
-            tensors.write_output(output)
+            output = sess.run(tensor_dict, feed_dict=feed_dict)
 
-            # prelogits_hist = np.minimum(np.abs(output['prelogits']), args.loss.prelogits_hist_max)
-            # stat['prelogits_hist'][epoch, :] += np.histogram(prelogits_hist, bins=1000, range=(0.0, args.loss.prelogits_hist_max))[0]
+            for key, value in output['tensor_op'].items():
+                outputs[key].append(value)
 
-            bar.set_postfix_str(tensors.get_info_str(output))
+            summary.write_tf_summary(output)
+
+            bar.set_postfix_str(summary.get_info_str(output))
             bar.update()
 
-    tensors.set_elapsed_time(time.monotonic() - start_time)
+    summary.write_h5_summary(outputs)
+    summary.write_elapsed_time(time.monotonic() - start_time)
 
     return True
 
 
-def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
+def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, summary):
     print('\nRunning forward pass on validation set [{}/{}]'.format(epoch+1, args.train.epoch.nrof_epochs), flush=True)
+    start_time = time.monotonic()
 
     # evaluate batch size and number of batches
     batch_size = min(args.batch_size, dbase.nrof_images)
@@ -284,32 +281,27 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensors):
     feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
     sess.run(enqueue_op, feed_dict=feed_dict)
 
-    start_time = time.monotonic()
-
-    outputs = {}
-    for key in tensors.tensors['tensors'].keys():
-        outputs[key] = []
+    outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
             feed_dict = placeholders.run_feed_dict(batch_size)
-            output = sess.run(tensors.tensors, feed_dict=feed_dict)
+            output = sess.run(tensor_dict, feed_dict=feed_dict)
 
-            for key, value in output['tensors'].items():
+            for key, value in output['tensor_op'].items():
                 outputs[key].append(value)
 
-            bar.set_postfix_str(tensors.get_info_str(output))
+            bar.set_postfix_str(summary.get_info_str(output))
             bar.update()
 
         for key, value in outputs.items():
             outputs[key] = np.mean(value)
 
-        bar.set_postfix_str(tensors.get_info_str(output))
+        bar.set_postfix_str(summary.get_info_str(outputs))
 
-    outputs = {'tensors': outputs}
-    tensors.write_output(outputs)
-
-    tensors.set_elapsed_time(time.monotonic() - start_time)
+    summary.write_tf_summary(outputs)
+    summary.write_h5_summary(outputs)
+    summary.write_elapsed_time(time.monotonic() - start_time)
 
 
 if __name__ == '__main__':
