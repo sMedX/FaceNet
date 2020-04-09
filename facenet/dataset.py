@@ -34,6 +34,9 @@ class ImageClass:
     def __repr__(self):
         return 'name: {}, images: {}'.format(self.name, self.nrof_images)
 
+    def __bool__(self):
+        return True if self.nrof_images > 1 else False
+
     @property
     def nrof_images(self):
         return len(self.files)
@@ -77,8 +80,10 @@ class DBase:
 
             for idx, path in enumerate(dirs):
                 config.path = path
-                classes.append(ImageClass(config, ext=ext))
-                print('\r({}/{}) {}'.format(idx, len(dirs), classes[-1].__repr__()), end=utils.end(idx, len(dirs)))
+                images = ImageClass(config, ext=ext)
+                if images:
+                    classes.append(images)
+                    print('\r({}/{}) {}'.format(idx, len(dirs), str(images)), end=utils.end(idx, len(dirs)))
 
         self.classes = classes
 
@@ -93,6 +98,9 @@ class DBase:
                 'Number of negative pairs {} \n'.format(self.nrof_negative_pairs) +
                 'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
                 'Maximal number of images in class {}\n'.format(self.max_nrof_images))
+
+    def __bool__(self):
+        return True if self.nrof_classes > 1 else False
 
     @cached_property
     def files(self):

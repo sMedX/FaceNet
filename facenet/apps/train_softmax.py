@@ -206,7 +206,7 @@ def main(**args_):
         print(emb)
 
         validation = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
-        validation.write_report(path=args.model.path, info=(dbase.__repr__(), emb.__repr__()))
+        validation.write_report(path=args.model.path, info=(str(dbase), str(emb)))
         print(validation)
 
         ioutils.elapsed_time(validation.report_file, start_time=start_time)
