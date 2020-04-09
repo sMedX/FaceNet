@@ -281,7 +281,8 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     feed_dict = placeholders.enqueue_feed_dict(files, labels, control)
     sess.run(enqueue_op, feed_dict=feed_dict)
 
-    outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
+    # dictionary with mean values of tensor output
+    outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
 
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
@@ -289,15 +290,10 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
             output = sess.run(tensor_dict, feed_dict=feed_dict)
 
             for key, value in output['tensor_op'].items():
-                outputs[key].append(value)
+                outputs[key] = (outputs[key]*i + value)/(i+1)
 
-            bar.set_postfix_str(summary.get_info_str(output))
+            bar.set_postfix_str(summary.get_info_str(outputs))
             bar.update()
-
-        for key, value in outputs.items():
-            outputs[key] = np.mean(value)
-
-        bar.set_postfix_str(summary.get_info_str(outputs))
 
     summary.write_tf_summary(outputs)
     summary.write_h5_summary(outputs)

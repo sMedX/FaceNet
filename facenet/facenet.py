@@ -713,17 +713,8 @@ def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
     metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
 
     if not metagraph_filename.exists():
-        # start_time = time.time()
         saver.export_meta_graph(str(metagraph_filename))
-        # save_time_metagraph = time.time() - start_time
-        print('saving meta graph: ', metagraph_filename)
-    # else:
-    #     save_time_metagraph = 0
-
-    # summary = tf.Summary()
-    # summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
-    # summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
-    # summary_writer.add_summary(summary, step)
+        print('saving meta graph:', metagraph_filename)
 
 
 def save_freeze_graph(model_dir, output_file=None):
