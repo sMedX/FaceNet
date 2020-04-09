@@ -188,7 +188,7 @@ def main(**args_):
 
                 # perform validation
                 epoch1 = epoch + 1
-                if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
+                if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
                     validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_dict, val_summary, info)
 
                 # save variables and the meta graph if it doesn't exist already
