@@ -2,7 +2,7 @@
 __author__ = 'Ruslan N. Kosarev'
 
 import sys
-import oyaml as yaml
+import yaml
 from pathlib import Path
 from datetime import datetime
 import importlib
@@ -81,7 +81,9 @@ class TrainOptions(YAMLConfig):
             self.model.path = Path(self.model.path).expanduser()
         else:
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
-        self.model.logs = self.model.path.joinpath('logs')
+
+        self.logs = self.model.path.joinpath('logs')
+        self.h5file = self.logs.joinpath('statistics.h5')
 
         if self.model.config is None:
             network = importlib.import_module(self.model.module)
@@ -90,7 +92,9 @@ class TrainOptions(YAMLConfig):
         # learning rate options
         if args_['learning_rate'] is not None:
             self.train.learning_rate.value = args_['learning_rate']
-        self.train.epoch.max_nrof_epochs = facenet.max_nrof_epochs(self.train.learning_rate)
+
+        if self.train.learning_rate.schedule:
+            self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
         if self.validation:
             self.validation.batch_size = self.batch_size
@@ -99,8 +103,8 @@ class TrainOptions(YAMLConfig):
             self.validation.validation.file = None
 
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.model.logs.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.model.logs, sys.argv)
+        ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
+        ioutils.store_revision_info(self.logs, sys.argv)
 
 
 class DefaultConfig:

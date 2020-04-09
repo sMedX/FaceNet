@@ -38,16 +38,31 @@ from tensorflow.python.ops import data_flow_ops
 import math
 from pathlib import Path
 
-from facenet import utils
+from facenet import utils, h5utils
 
 
 class Placeholders:
     batch_size = None
     phase_train = None
-    image_paths = None
+    files = None
     labels = None
     control = None
     learning_rate = None
+
+    def train_feed_dict(self, learning_rate, phase_train, batch_size):
+        dct = {self.learning_rate: learning_rate,
+               self.phase_train: phase_train,
+               self.batch_size: batch_size}
+        return dct
+
+    def run_feed_dict(self, batch_size):
+        dct = {self.phase_train: False,
+               self.batch_size: batch_size}
+        return dct
+
+    def enqueue_feed_dict(self, files, labels, control):
+        feed_dict = {self.files: files, self.labels: labels, self.control: control}
+        return feed_dict
 
 
 def triplet_loss(anchor, positive, negative, alpha):
@@ -683,32 +698,23 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_variables_and_metagraph(sess, saver, summary_writer, model_dir, step, model_name=None):
+def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
 
     if model_name is None:
         model_name = model_dir.stem
 
     # save the model checkpoint
-    start_time = time.time()
+    # start_time = time.time()
     checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
     saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
-    save_time_variables = time.time() - start_time
+    # save_time_variables = time.time() - start_time
     print('saving checkpoint: {}-{}'.format(checkpoint_path, step))
 
     metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
 
     if not metagraph_filename.exists():
-        start_time = time.time()
         saver.export_meta_graph(str(metagraph_filename))
-        save_time_metagraph = time.time() - start_time
-        print('saving meta graph: ', metagraph_filename)
-    else:
-        save_time_metagraph = 0
-
-    summary = tf.Summary()
-    summary.value.add(tag='time/save_variables', simple_value=save_time_variables)
-    summary.value.add(tag='time/save_metagraph', simple_value=save_time_metagraph)
-    summary_writer.add_summary(summary, step)
+        print('saving meta graph:', metagraph_filename)
 
 
 def save_freeze_graph(model_dir, output_file=None):
@@ -753,13 +759,6 @@ def learning_rate_value(epoch, config):
     for (epoch_, lr_) in config.schedule:
         if epoch < epoch_:
             return lr_
-
-
-def max_nrof_epochs(config):
-    if config.schedule:
-        return config.schedule[-1][0]
-    else:
-        return config.max_nrof_epochs
 
 
 class Embeddings:
@@ -876,3 +875,54 @@ class Embeddings:
                'elapsed time  : {}\n'.format(self.elapsed_time) + \
                'time per image: {}\n'.format(self.elapsed_time / self.embeddings.shape[0])
         return info
+
+
+class Summary:
+    def __init__(self, summary_writer, h5file, tag=None):
+        self._summary_writer = summary_writer
+        self._h5file = h5file
+        self._tag = tag
+        self._elapsed_time_count = 0
+        self._count = 0
+
+    @staticmethod
+    def get_info_str(output):
+        if output.get('tensor_op'):
+            output = output['tensor_op']
+
+        info = ''
+        for key, item in output.items():
+            info += ' {} {:.5f}'.format(key, item)
+
+        return info[1:]
+
+    def write_tf_summary(self, output):
+        self._count += 1
+
+        if output.get('summary_op'):
+            self._summary_writer.add_summary(output['summary_op'], global_step=self._count - 1)
+
+        if output.get('tensor_op'):
+            output = output['tensor_op']
+
+        tag = self._tag + '/' if self._tag else ''
+        summary = tf.Summary()
+
+        for key, value in output.items():
+            summary.value.add(tag=tag + key, simple_value=value)
+        self._summary_writer.add_summary(summary, global_step=self._count - 1)
+
+    def write_h5_summary(self, output):
+        h5utils.write_dict(self._h5file, output, group=self._tag)
+
+    def write_elapsed_time(self, value):
+        self._elapsed_time_count += 1
+
+        tag = self._tag + '/time' if self._tag else 'time'
+
+        summary = tf.Summary()
+        summary.value.add(tag=tag, simple_value=value)
+        self._summary_writer.add_summary(summary, global_step=self._elapsed_time_count - 1)
+
+        h5utils.write_dict(self._h5file, {'time': value}, group=self._tag)
+
