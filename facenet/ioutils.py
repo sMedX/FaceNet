@@ -3,6 +3,7 @@ __author__ = 'Ruslan N. Kosarev'
 
 import os
 import sys
+import platform
 import time
 import numpy as np
 from functools import partial
@@ -55,6 +56,7 @@ def store_revision_info(output_filename, arg_string, mode='w'):
     # Store a text file in the log directory
     with open(str(output_filename), mode) as f:
         f.write('{}\n'.format(datetime.datetime.now()))
+        f.write('release version: {}\n'.format(platform.version()))
         f.write('python version: {}\n'.format(sys.version))
         f.write('arguments: {}\n'.format(arg_string))
         f.write('tensorflow version: {}\n'.format(tf.__version__))
