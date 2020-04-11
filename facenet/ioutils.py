@@ -35,9 +35,9 @@ def store_revision_info(output_filename, arg_string, mode='w'):
 
     arg_string = ' '.join(arg_string)
 
+    cmd = ['git', 'rev-parse', 'HEAD']
     try:
         # Get git hash
-        cmd = ['git', 'rev-parse', 'HEAD']
         gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
         (stdout, _) = gitproc.communicate()
         git_hash = stdout.strip()
