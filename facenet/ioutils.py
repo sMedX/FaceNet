@@ -35,18 +35,18 @@ def store_revision_info(output_filename, arg_string, mode='w'):
 
     arg_string = ' '.join(arg_string)
 
+    # Get git hash
     cmd = ['git', 'rev-parse', 'HEAD']
     try:
-        # Get git hash
         gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
         (stdout, _) = gitproc.communicate()
         git_hash = stdout.strip()
     except OSError as e:
         git_hash = ' '.join(cmd) + ': ' + e.strerror
 
+    # Get local changes
+    cmd = ['git', 'diff', 'HEAD']
     try:
-        # Get local changes
-        cmd = ['git', 'diff', 'HEAD']
         gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
         (stdout, _) = gitproc.communicate()
         git_diff = stdout.strip()
