@@ -850,9 +850,13 @@ class Summary:
     def __init__(self, summary_writer, h5file, tag=None):
         self._summary_writer = summary_writer
         self._h5file = h5file
-        self._tag = tag
         self._elapsed_time_count = 0
         self._count = 0
+        self._tag = tag
+
+    @property
+    def tag(self):
+        return self._tag
 
     @staticmethod
     def get_info_str(output):
