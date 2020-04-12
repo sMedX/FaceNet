@@ -162,6 +162,23 @@ class Report:
         self.conf_matrix_train = []
         self.conf_matrix_test = []
 
+    def __repr__(self):
+        dct = self.dictionary()
+
+        info = self.criterion + '\n'
+
+        info += ('Area under curve (AUC): {:1.5f}\n'.format(dct['auc']) +
+                 'Equal error rate (EER): {:1.5f}\n'.format(dct['eer']) + '\n'
+                 )
+
+        info += ('Accuracy:  {:2.5f}+-{:2.5f}\n'.format(dct['accuracy'], dct['accuracy_std']) +
+                 'Precision: {:2.5f}+-{:2.5f}\n'.format(dct['precision'], std(dct['precision_std'])) +
+                 'Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.format(dct['tp_rates'], dct['tp_rates_std']) +
+                 'Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.format(dct['tn_rates'], dct['tn_rates_std']) +
+                 'Threshold: {:2.5f}+-{:2.5f}\n'.format(dct['threshold'], dct['threshold_std']) + '\n'
+                 )
+        return info
+
     def append_fold(self, name, conf_matrix):
         if name == 'train':
             self.conf_matrix_train.append(conf_matrix)
@@ -183,42 +200,15 @@ class Report:
         except:
             pass
 
-        accuracy = [m.accuracy for m in self.conf_matrix_test]
-        precision = [m.precision for m in self.conf_matrix_test]
-        tp_rates = [m.tp_rates for m in self.conf_matrix_test]
-        tn_rates = [m.tn_rates for m in self.conf_matrix_test]
-        threshold = [m.threshold for m in self.conf_matrix_test]
+        def get(name):
+            return [m.__getattribute__(name) for m in self.conf_matrix_test]
 
-        dct['accuracy'] = np.mean(accuracy)
-        dct['accuracy_std'] = np.std(accuracy)
+        for key in ('accuracy', 'precision', 'tp_rates', 'tn_rates', 'threshold'):
+            x = get(key)
+            dct[key] = np.mean(x)
+            dct[key + '_std'] = np.std(x)
 
-        dct['precision'] = np.mean(precision)
-        dct['precision_std'] = np.std(precision)
-
-        dct['tp_rates'] = np.mean(tp_rates)
-        dct['tp_rates_std'] = np.std(tp_rates)
-
-        dct['tn_rates'] = np.mean(tn_rates)
-        dct['tn_rates_std'] = np.std(tn_rates)
-
-        dct['threshold'] = np.mean(threshold)
-        dct['threshold_std'] = np.std(threshold)
         return dct
-
-    def __repr__(self):
-        dct = self.dictionary()
-
-        info = ('Area under curve (AUC): {:1.5f}\n'.format(dct['auc']) +
-                'Equal error rate (EER): {:1.5f}\n'.format(dct['eer']))
-
-        info += (self.criterion + '\n'
-                 'Accuracy:  {:2.5f}+-{:2.5f}\n'.format(dct['accuracy'], dct['accuracy_std']) +
-                 'Precision: {:2.5f}+-{:2.5f}\n'.format(dct['precision'], std(dct['precision_std'])) +
-                 'Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.format(dct['tp_rates'], dct['tp_rates_std']) +
-                 'Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.format(dct['tn_rates'], dct['tn_rates_std']) +
-                 'Threshold: {:2.5f}+-{:2.5f}\n'.format(dct['threshold'], dct['threshold_std']) + '\n'
-                 )
-        return info
 
 
 class FaceToFaceValidation:
@@ -244,17 +234,10 @@ class FaceToFaceValidation:
 
         self.thresholds = np.linspace(0, upper_threshold, 100)
 
-        self.start_time = time.monotonic()
-        self.elapsed_time = None
-
-        self._evaluate()
-
-    def _evaluate(self):
+    def evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
         indices = np.arange(len(self.labels))
 
-        # criterion = ('Maximum accuracy criterion',
-        #              'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
         self.reports = [
             Report(criterion='MaximumAccuracy'),
             Report(criterion='FalseAlarmRate(FAR = {})'.format(self.config.far_target))
@@ -285,8 +268,6 @@ class FaceToFaceValidation:
             self.reports[0].append_fold('test', ConfidenceMatrix(calculator, accuracy_threshold))
             self.reports[1].append_fold('test', ConfidenceMatrix(calculator, far_threshold))
 
-        self.elapsed_time = time.monotonic() - self.start_time
-
     def dictionary(self):
         output = {r.criterion: r.dictionary() for r in self.reports}
         return output
@@ -295,9 +276,8 @@ class FaceToFaceValidation:
         self.file = file
 
         with self.file.open('at') as f:
-            f.write(64 * ' ' + '\n')
+            f.write(64 * '-' + '\n')
             f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
-            f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n\n'.format(utils.git_diff()))
             if info:

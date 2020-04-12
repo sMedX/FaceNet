@@ -22,15 +22,19 @@ def end(start, stop):
     return '\n' if (start+1) == stop else ''
 
 
-def write_elapsed_time(file, start_time):
-    file = Path(file).expanduser()
-    elapsed_time = (time.monotonic() - start_time)/60
+def write_elapsed_time(files, start_time):
+    if not isinstance(files, list):
+        files = [files]
 
-    if file.suffix == '.h5':
-        h5utils.write(file, 'elapsed_time', elapsed_time)
-    else:
-        with file.open('at') as f:
-            f.write('elapsed time: {:.3f}\n'.format(elapsed_time))
+    for file in files:
+        file = Path(file).expanduser()
+        elapsed_time = (time.monotonic() - start_time)/60
+
+        if file.suffix == '.h5':
+            h5utils.write(file, 'elapsed_time', elapsed_time)
+        else:
+            with file.open('at') as f:
+                f.write('elapsed time: {:.3f}\n'.format(elapsed_time))
 
 
 def store_revision_info(output_filename, arg_string, mode='w'):

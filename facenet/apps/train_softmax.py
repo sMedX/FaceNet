@@ -194,21 +194,8 @@ def main(**args_):
                 if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
                     validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_dict, val_summary, info)
 
-    ioutils.write_elapsed_time(args.h5file, start_time)
+    ioutils.write_elapsed_time([args.h5file, args.report], start_time)
     facenet.save_freeze_graph(model_dir=args.model.path)
-
-    # perform validation
-    # if args.validation:
-    #     config_ = args.validation
-    #     dbase = dataset.DBase(config_.dataset)
-    #     print(dbase)
-    #
-    #emb = facenet.Embeddings(dbase, config_, model=args.model.path)
-    #     print(emb)
-    #
-    #     validation = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
-    #     validation.write_report(path=args.model.path, info=(str(dbase), str(emb)))
-    #     print(validation)
 
     print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
     print('Logs have been saved to the directory: {}'.format(args.logs))
@@ -305,6 +292,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     summary.write_elapsed_time(time.monotonic() - start_time)
 
     validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validation)
+    validation.evaluate()
     outputs = validation.dictionary()
 
     for key, dct in outputs.items():
