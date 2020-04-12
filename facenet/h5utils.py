@@ -1,25 +1,29 @@
 # coding:utf-8
 __author__ = 'Ruslan N. Kosarev'
 
-import os
 import numpy as np
 import h5py
 from pathlib import Path
 
 
 def write_dict(file, dct, group=None):
-    group = group + '/' if group else ''
-
     with h5py.File(str(file), mode='a') as hf:
-        for key, data in dct.items():
-            name = group + key
-            data = np.atleast_1d(data)
+        def _write(dct, group=None):
+            group = group + '/' if group else ''
 
-            if name in hf:
-                hf[name].resize(hf[name].shape[0] + data.shape[0], axis=0)
-                hf[name][-data.shape[0]:] = data
-            else:
-                hf.create_dataset(name, data=data, maxshape=(None,), compression='gzip', dtype=data.dtype)
+            for key, item in dct.items():
+                name = group + key
+                if isinstance(item, dict):
+                    _write(item, name)
+                else:
+                    data = np.atleast_1d(item)
+                    if name in hf:
+                        hf[name].resize(hf[name].shape[0] + data.shape[0], axis=0)
+                        hf[name][-data.shape[0]:] = data
+                    else:
+                        hf.create_dataset(name, data=data, maxshape=(None,), compression='gzip', dtype=data.dtype)
+
+        _write(dct, group=group)
 
 
 def filename2key(filename, key):
