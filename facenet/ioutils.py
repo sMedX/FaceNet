@@ -12,7 +12,7 @@ import datetime
 import tensorflow as tf
 from PIL import Image
 from subprocess import Popen, PIPE
-from facenet import config
+from facenet import config, h5utils
 
 
 makedirs = partial(Path.mkdir, parents=True, exist_ok=True)
@@ -22,9 +22,15 @@ def end(start, stop):
     return '\n' if (start+1) == stop else ''
 
 
-def elapsed_time(file, start_time):
-    with file.open('at') as f:
-        f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - start_time))
+def write_elapsed_time(file, start_time):
+    file = Path(file).expanduser()
+    elapsed_time = (time.monotonic() - start_time)/60
+
+    if file.suffix == '.h5':
+        h5utils.write(file, 'elapsed_time', elapsed_time)
+    else:
+        with file.open('at') as f:
+            f.write('elapsed time: {:.3f}\n'.format(elapsed_time))
 
 
 def store_revision_info(output_filename, arg_string, mode='w'):

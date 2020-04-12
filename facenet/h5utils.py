@@ -39,22 +39,16 @@ def write_image(hf, name, image, mode='a', check_name=True):
             hf.create_dataset(name=name, data=image, dtype='uint8', compression='gzip', compression_opts=9)
 
 
-def write(filename, name, data, mode='a'):
-    filename = os.path.expanduser(str(filename))
+def write(file, name, data, mode='a'):
+    file = Path(file).expanduser()
     name = str(name)
+    data = np.atleast_1d(data)
 
-    with h5py.File(filename, mode=mode) as hf:
+    with h5py.File(file, mode=mode) as hf:
         if name in hf:
-            del hf[name]
-
-        data = np.atleast_1d(data)
-
-        hf.create_dataset(name,
-                          data=data,
-                          compression='gzip',
-                          dtype=data.dtype)
-
-    # print('dataset \'{}\' has been written to the file {} (length {})'.format(name, filename, len(data)))
+            hf[name] = data
+        else:
+            hf.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
 
 
 def read(file, name, default=None):
