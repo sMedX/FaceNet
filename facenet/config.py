@@ -35,7 +35,18 @@ class YAMLConfig:
             self.update_from_file(item)
 
     def __repr__(self):
-        return "<config object>"
+        shift = 3 * ' '
+
+        def get_str(obj, ident=''):
+            s = ''
+            for key, item in obj.items():
+                if isinstance(item, YAMLConfig):
+                    s += '{}{}: \n{}'.format(ident, key, get_str(item, ident=ident + shift))
+                else:
+                    s += '{}{}: {}\n'.format(ident, key, str(item))
+            return s
+
+        return get_str(self)
 
     def update_from_dict(self, dct):
         """Update config from dict

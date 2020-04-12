@@ -45,7 +45,6 @@ from facenet import ioutils, dataset, statistics, config, facenet
               help='Learning rate value')
 def main(**args_):
     start_time = time.monotonic()
-
     args = config.TrainOptions(args_, subdir=config.subdir())
 
     # import network
