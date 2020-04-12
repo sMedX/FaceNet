@@ -95,6 +95,7 @@ class TrainOptions(YAMLConfig):
 
         self.logs = self.model.path.joinpath('logs')
         self.h5file = self.logs.joinpath('statistics.h5')
+        self.report = self.model.path.joinpath('report.txt')
 
         if self.model.config is None:
             network = importlib.import_module(self.model.module)
