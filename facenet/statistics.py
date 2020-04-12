@@ -268,6 +268,7 @@ class FaceToFaceValidation:
             self.reports[0].append_fold('test', ConfidenceMatrix(calculator, accuracy_threshold))
             self.reports[1].append_fold('test', ConfidenceMatrix(calculator, far_threshold))
 
+    @property
     def dictionary(self):
         output = {r.criterion: r.dictionary() for r in self.reports}
         return output
@@ -287,7 +288,7 @@ class FaceToFaceValidation:
                 f.write(str(r))
 
     def write_h5file(self, h5file, tag=None):
-        h5utils.write_dict(h5file, self.dictionary(), group=tag)
+        h5utils.write_dict(h5file, self.dictionary, group=tag)
 
     def __repr__(self):
         """Representation of the database"""

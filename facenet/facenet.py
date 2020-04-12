@@ -878,11 +878,17 @@ class Summary:
         if output.get('tensor_op'):
             output = output['tensor_op']
 
-        tag = self._tag + '/' if self._tag else ''
         summary = tf.Summary()
 
-        for key, value in output.items():
-            summary.value.add(tag=tag + key, simple_value=value)
+        def add_summary(dct, tag):
+            tag = tag + '/' if tag else ''
+            for key, value in dct.items():
+                if isinstance(value, dict):
+                    add_summary(value, tag + key)
+                else:
+                    summary.value.add(tag=tag + key, simple_value=value)
+
+        add_summary(output, self.tag)
         self._summary_writer.add_summary(summary, global_step=self._count - 1)
 
     def write_h5_summary(self, output):

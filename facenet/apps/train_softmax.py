@@ -48,12 +48,15 @@ def main(**args_):
     args = config.TrainOptions(args_, subdir=config.subdir())
 
     # import network
-    print('import model \'{}\''.format(args.model.module))
+    print('import model {}'.format(args.model.module))
     network = importlib.import_module(args.model.module)
 
     dbase = dataset.DBase(args.dataset)
-    train_dbase, val_dbase = dbase.random_split(args.validate.dataset_split_ratio)
-    print('train dbase:', train_dbase)
+    if args.validate.dataset:
+        val_dbase = dataset.DBase(args.validate.dataset)
+    else:
+        dbase, val_dbase = dbase.random_split(args.validate.dataset_split_ratio)
+    print('train dbase:', dbase)
     print('validate dbase:', val_dbase)
 
     tf.reset_default_graph()
@@ -64,7 +67,7 @@ def main(**args_):
         global_step = tf.Variable(0, trainable=False, name='global_step')
 
         # Create a queue that produces indices into the image_list and label_list
-        labels = ops.convert_to_tensor(train_dbase.labels, dtype=tf.int32)
+        labels = ops.convert_to_tensor(dbase.labels, dtype=tf.int32)
         range_size = array_ops.shape(labels)[0]
         index_queue = tf.train.range_input_producer(range_size, num_epochs=None, shuffle=True, seed=None, capacity=32)
         index_dequeue_op = index_queue.dequeue_many(args.batch_size * args.train.epoch.size, 'index_dequeue')
@@ -76,7 +79,7 @@ def main(**args_):
         placeholders.labels = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
         placeholders.control = tf.placeholder(tf.int32, shape=(None, 1), name='control')
         placeholders.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
-        input_queue = data_flow_ops.FIFOQueue(capacity=train_dbase.nrof_images,
+        input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
                                               dtypes=[tf.string, tf.int32, tf.int32],
                                               shapes=[(1,), (1,), (1,)],
                                               shared_name=None, name=None)
@@ -96,7 +99,7 @@ def main(**args_):
                                          config=args.model.config,
                                          phase_train=placeholders.phase_train)
 
-        logits = slim.fully_connected(prelogits, train_dbase.nrof_classes, activation_fn=None,
+        logits = slim.fully_connected(prelogits, dbase.nrof_classes, activation_fn=None,
                                       weights_initializer=slim.initializers.xavier_initializer(),
                                       weights_regularizer=slim.l2_regularizer(args.model.config.weight_decay),
                                       scope='Logits', reuse=False)
@@ -110,7 +113,7 @@ def main(**args_):
 
         # Add center loss
         prelogits_center_loss, _ = facenet.center_loss(prelogits, label_batch, args.loss.center_alfa,
-                                                       train_dbase.nrof_classes)
+                                                       dbase.nrof_classes)
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.loss.center_factor)
 
         # define learning rate tensor
@@ -184,7 +187,7 @@ def main(**args_):
                 info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
                 # train for one epoch
-                train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, placeholders, tensor_dict, train_summary, info)
+                train(args, sess, epoch, dbase, index_dequeue_op, enqueue_op, placeholders, tensor_dict, train_summary, info)
 
                 # save variables and the meta graph if it doesn't exist already
                 facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
@@ -287,21 +290,16 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
             bar.set_postfix_str(summary.get_info_str(outputs))
             bar.update()
 
+    validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate)
+    validation.evaluate()
+    validation.write_report(args.report)
+
+    for key, item in validation.dictionary.items():
+        outputs[key] = item
+
     summary.write_tf_summary(outputs)
     summary.write_h5_summary(outputs)
     summary.write_elapsed_time(time.monotonic() - start_time)
-
-    validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validation)
-    validation.evaluate()
-    outputs = validation.dictionary()
-
-    for key, dct in outputs.items():
-        summary.write_tf_summary(dct)
-
-    validation.write_h5file(args.h5file, tag=summary.tag)
-
-    if epoch+1 == args.train.epoch.nrof_epochs:
-        validation.write_report(args.report)
 
 
 if __name__ == '__main__':

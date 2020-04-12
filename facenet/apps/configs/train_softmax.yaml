@@ -97,13 +97,12 @@ validation:
     # Maximal number of images to download from class
     nrof_images:
 
-  validation:
-    # Number of folds to use for cross validation. Mainly used for testing
-    nrof_folds: 10
-    # Distance metric  0: euclidean, 1: cosine similarity
-    metric: 1
-    # Target false alarm rate (face pairs that was incorrectly classified as the same)
-    far_target: 0.001
+  # Number of folds to use for cross validation. Mainly used for testing
+  nrof_folds: 10
+  # Distance metric  0: euclidean, 1: cosine similarity
+  metric: 1
+  # Target false alarm rate (face pairs that was incorrectly classified as the same)
+  far_target: 0.001
 
   image:
     # Concatenates embeddings for the image and its horizontally flipped counterpart
