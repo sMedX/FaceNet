@@ -35,7 +35,7 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 
-from facenet import ioutils, dataset, statistics, config, facenet
+from facenet import ioutils, dataset, statistics, config, h5utils, facenet
 
 
 @click.command()
@@ -101,7 +101,7 @@ def main(**args_):
                                       weights_regularizer=slim.l2_regularizer(args.model.config.weight_decay),
                                       scope='Logits', reuse=False)
 
-        embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
+        embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
 
         # Norm for the prelogits
         eps = 1e-4
@@ -169,6 +169,7 @@ def main(**args_):
             train_summary = facenet.Summary(summary_writer, args.h5file, tag='train')
 
             val_tensor_dict = {
+                'embedding': embedding,
                 'tensor_op': {
                     'accuracy': accuracy,
                     'loss': total_loss,
@@ -185,30 +186,29 @@ def main(**args_):
                 # train for one epoch
                 train(args, sess, epoch, train_dbase, index_dequeue_op, enqueue_op, placeholders, tensor_dict, train_summary, info)
 
+                # save variables and the meta graph if it doesn't exist already
+                facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
+
                 # perform validation
                 epoch1 = epoch + 1
                 if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
                     validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_dict, val_summary, info)
 
-                # save variables and the meta graph if it doesn't exist already
-                facenet.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
-
+    ioutils.write_elapsed_time(args.h5file, start_time)
     facenet.save_freeze_graph(model_dir=args.model.path)
 
     # perform validation
-    if args.validation:
-        config_ = args.validation
-        dbase = dataset.DBase(config_.dataset)
-        print(dbase)
-
-        emb = facenet.Embeddings(dbase, config_, model=args.model.path)
-        print(emb)
-
-        validation = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
-        validation.write_report(path=args.model.path, info=(str(dbase), str(emb)))
-        print(validation)
-
-        ioutils.elapsed_time(validation.report_file, start_time=start_time)
+    # if args.validation:
+    #     config_ = args.validation
+    #     dbase = dataset.DBase(config_.dataset)
+    #     print(dbase)
+    #
+    #emb = facenet.Embeddings(dbase, config_, model=args.model.path)
+    #     print(emb)
+    #
+    #     validation = statistics.Validation(emb.embeddings, dbase.labels, config_.validation)
+    #     validation.write_report(path=args.model.path, info=(str(dbase), str(emb)))
+    #     print(validation)
 
     print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
     print('Logs have been saved to the directory: {}'.format(args.logs))
@@ -285,6 +285,8 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     # dictionary with mean values of tensor output
     outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
 
+    embeddings = np.zeros((0, args.model.config.embedding_size))
+
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
             feed_dict = placeholders.run_feed_dict(batch_size)
@@ -293,12 +295,25 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
             for key, value in output['tensor_op'].items():
                 outputs[key] = (outputs[key]*i + value)/(i+1)
 
+            embeddings = np.concatenate((embeddings, output['embedding']), axis=0)
+
             bar.set_postfix_str(summary.get_info_str(outputs))
             bar.update()
 
     summary.write_tf_summary(outputs)
     summary.write_h5_summary(outputs)
     summary.write_elapsed_time(time.monotonic() - start_time)
+
+    validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validation)
+    outputs = validation.dictionary()
+
+    for key, dct in outputs.items():
+        summary.write_tf_summary(dct)
+
+    validation.write_h5file(args.h5file, tag=summary.tag)
+
+    if epoch+1 == args.train.epoch.nrof_epochs:
+        validation.write_report(args.report)
 
 
 if __name__ == '__main__':

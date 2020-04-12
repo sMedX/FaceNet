@@ -32,7 +32,7 @@ def main(**args_):
     emb = facenet.Embeddings(dbase, args)
     print(emb)
 
-    validation = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
+    validation = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, args.validation)
     validation.write_report(path=args.model, info=(dbase.__repr__(), emb.__repr__()))
     print(validation)
 
