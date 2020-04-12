@@ -244,7 +244,8 @@ class FaceToFaceValidation:
         ]
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
+            # print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds),
+            # end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
             calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
