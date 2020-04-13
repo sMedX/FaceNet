@@ -48,6 +48,18 @@ class YAMLConfig:
 
         return get_str(self)
 
+    @staticmethod
+    def check_item(s):
+        if not isinstance(s, str):
+            return s
+        if s.lower() == 'none':
+            return None
+        if s.lower() == 'false':
+            return False
+        if s.lower() == 'true':
+            return True
+        return s
+
     def update_from_dict(self, dct):
         """Update config from dict
 
@@ -57,7 +69,7 @@ class YAMLConfig:
             if isinstance(item, dict):
                 setattr(self, key, YAMLConfig(item))
             else:
-                setattr(self, key, item)
+                setattr(self, key, self.check_item(item))
 
     def update_from_file(self, path):
         """Update config from YAML file
