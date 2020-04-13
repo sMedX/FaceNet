@@ -24,7 +24,7 @@ class ImageClass:
                 h5file = Path(config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if config.nrof_images is not None:
+            if config.nrof_images:
                 if len(files) > config.nrof_images:
                     files = np.random.choice(files, size=config.nrof_images, replace=False)
 
