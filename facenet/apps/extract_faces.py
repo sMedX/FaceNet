@@ -29,7 +29,6 @@ def main(**args_):
     args.h5file = Path(args.h5file).expanduser()
 
     # store some git revision info in a text file in the log directory
-    ioutils.store_revision_info(Path(__file__).parent, args.outdir, ' '.join(sys.argv))
     ioutils.store_revision_info(args.outdir, sys.argv)
 
     # write arguments and store some git revision info in a text files in the log directory
