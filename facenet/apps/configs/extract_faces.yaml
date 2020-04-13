@@ -5,19 +5,15 @@ dataset:
   path:
   # Path to h5 file with information about valid images
   h5file:
-  # Number of images to download from data set
-  nrof_images: none
-  # Number of classes to download from data set
-  nrof_classes: none
 
 # Directory with extracted face thumbnails.
-outdir: none
+outdir:
 
 # Detector to extract faces, pypimtcnn or frcnnv3, default=frcnnv3
 detector: frcnnv3
 
 # Image size (height, width) in pixels, default=160
-image_size: 256
+image_size: 224
 
 # Margin for the crop around the bounding box (height, width) in pixels.', default=0.20
 margin: 0.20
@@ -26,4 +22,4 @@ margin: 0.20
 detect_multiple_faces: false
 
 # Path to h5 file to write information about extracted faces, default=None
-h5file: none
+h5file:
