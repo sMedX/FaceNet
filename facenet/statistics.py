@@ -234,14 +234,21 @@ class FaceToFaceValidation:
 
         self.thresholds = np.linspace(0, upper_threshold, 100)
 
+    def __repr__(self):
+        """Representation of the database"""
+        info = 'class {}\n'.format(self.__class__.__name__)
+        for r in self.reports:
+            info += str(r)
+        return info
+
     def evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
         indices = np.arange(len(self.labels))
 
-        self.reports = [
+        self.reports = (
             Report(criterion='MaximumAccuracy'),
             Report(criterion='FalseAlarmRate(FAR = {})'.format(self.config.far_target))
-        ]
+        )
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
             # print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds),
@@ -274,29 +281,20 @@ class FaceToFaceValidation:
         output = {r.criterion: r.dictionary() for r in self.reports}
         return output
 
-    def write_report(self, file, info=None):
+    def write_report(self, file, info=''):
         self.file = file
 
         with self.file.open('at') as f:
             f.write(64 * '-' + '\n')
-            f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
+            f.write('{} {} {}\n'.format(self.__class__.__name__, datetime.datetime.now(), info))
             f.write('git hash: {}\n'.format(utils.git_hash()))
             f.write('git diff: {}\n\n'.format(utils.git_diff()))
-            if info:
-                f.write('{}\n'.format(info))
             f.write('metric: {}\n\n'.format(self.config.metric))
             for r in self.reports:
                 f.write(str(r))
 
     def write_h5file(self, h5file, tag=None):
         h5utils.write_dict(h5file, self.dictionary, group=tag)
-
-    def __repr__(self):
-        """Representation of the database"""
-        info = 'class {}\n'.format(self.__class__.__name__)
-        for r in self.reports:
-            info += str(r)
-        return info
 
 
 class FalseExamples:
