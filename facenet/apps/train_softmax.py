@@ -25,6 +25,7 @@
 
 import click
 import time
+import math
 import numpy as np
 import importlib
 from tqdm import tqdm
@@ -260,9 +261,8 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     print('\nRunning forward pass on validation set', info)
     start_time = time.monotonic()
 
-    # evaluate batch size and number of batches
-    batch_size = min(args.batch_size, dbase.nrof_images)
-    nrof_batches = dbase.nrof_images // batch_size
+    # number of batches
+    nrof_batches = math.ceil(dbase.nrof_images / args.batch_size)
 
     # Enqueue one epoch of image paths and labels
     files = np.expand_dims(np.array(dbase.files), 1)
@@ -279,6 +279,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
 
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
+            batch_size = min(dbase.nrof_images - i*args.batch_size, args.batch_size)
             feed_dict = placeholders.run_feed_dict(batch_size)
             output = sess.run(tensor_dict, feed_dict=feed_dict)
 
