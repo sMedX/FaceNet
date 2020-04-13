@@ -48,6 +48,12 @@ class YAMLConfig:
 
         return get_str(self)
 
+    def __getattr__(self, name):
+        return self.__dict__.get(name, YAMLConfig({}))
+
+    def __bool__(self):
+        return bool(self.__dict__)
+
     @staticmethod
     def check_item(s):
         if not isinstance(s, str):
@@ -85,12 +91,6 @@ class YAMLConfig:
 
     def exists(self, name):
         return True if name in self.__dict__.keys() else False
-
-    def __getattr__(self, name):
-        return self.__dict__.get(name, YAMLConfig({}))
-
-    def __bool__(self):
-        return bool(self.__dict__)
 
 
 class TrainOptions(YAMLConfig):
