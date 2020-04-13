@@ -2,9 +2,9 @@
 
 dataset:
   # Directory with unaligned images.
-  path: none
+  path:
   # Path to h5 file with information about valid images
-  h5file: none
+  h5file:
   # Number of images to download from data set
   nrof_images: none
   # Number of classes to download from data set
