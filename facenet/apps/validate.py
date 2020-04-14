@@ -31,7 +31,6 @@ def main(**args_):
     print(embeddings)
 
     validate = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, args.validate)
-    validate.evaluate()
     validate.write_report(info=str(dbase) + str(embeddings))
     print(validate)
 

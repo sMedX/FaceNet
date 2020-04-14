@@ -217,6 +217,7 @@ class FaceToFaceValidation:
         :param embeddings:
         :param labels:
         """
+        self.elapsed_time = time.monotonic()
         self.bar = bar
         self.embeddings = embeddings
         self.labels = labels
@@ -234,14 +235,17 @@ class FaceToFaceValidation:
 
         self.thresholds = np.linspace(0, upper_threshold, 100)
 
+        self._evaluate()
+
     def __repr__(self):
         """Representation of the database"""
         info = 'class {}\n'.format(self.__class__.__name__)
         for r in self.reports:
             info += str(r)
+        info += 'elapsed_time: {}'.format(self.elapsed_time)
         return info
 
-    def evaluate(self):
+    def _evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
         indices = np.arange(len(self.labels))
 
@@ -276,6 +280,8 @@ class FaceToFaceValidation:
 
             self.reports[0].append_fold('test', ConfidenceMatrix(calculator, accuracy_threshold))
             self.reports[1].append_fold('test', ConfidenceMatrix(calculator, far_threshold))
+
+        self.elapsed_time = time.monotonic() - self.elapsed_time
 
     @property
     def dictionary(self):
