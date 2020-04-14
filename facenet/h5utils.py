@@ -50,7 +50,7 @@ def write(file, name, data, mode='a'):
 
     with h5py.File(file, mode=mode) as hf:
         if name in hf:
-            hf[name] = data
+            hf[name][...] = data
         else:
             hf.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
 
