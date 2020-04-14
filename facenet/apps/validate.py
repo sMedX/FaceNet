@@ -25,6 +25,8 @@ def main(**args_):
 
     args = config.YAMLConfig(args_['config'])
     np.random.seed(args.seed)
+    if not args.validate.file:
+        args.validate.file = Path(args.model).expanduser().joinpath('report.txt')
 
     dbase = dataset.DBase(args.dataset)
     print(dbase)
@@ -32,12 +34,12 @@ def main(**args_):
     emb = facenet.Embeddings(dbase, args)
     print(emb)
 
-    validate = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, args.validation)
+    validate = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, args.validate)
     validate.evaluate()
-    validate.write_report(args.report, info=dbase.__repr__() + emb.__repr__())
+    validate.write_report(info=dbase.__repr__() + emb.__repr__())
     print(validate)
 
-    ioutils.write_elapsed_time(validate.file, start_time)
+    ioutils.write_elapsed_time(args.validate.file, start_time)
 
 
 if __name__ == '__main__':

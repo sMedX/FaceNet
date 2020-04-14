@@ -212,12 +212,12 @@ class Report:
 
 
 class FaceToFaceValidation:
-    def __init__(self, embeddings, labels, config):
+    def __init__(self, embeddings, labels, config, bar=True):
         """
         :param embeddings:
         :param labels:
         """
-        self.file = None
+        self.bar = bar
         self.embeddings = embeddings
         self.labels = labels
         assert (embeddings.shape[0] == len(labels))
@@ -251,8 +251,8 @@ class FaceToFaceValidation:
         )
 
         for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            # print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds),
-            # end=utils.end(fold_idx, self.config.nrof_folds))
+            if self.bar:
+                print('\r{}/{}'.format(fold_idx+1, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
 
             # evaluations with train set and define the best threshold for the fold
             calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
@@ -281,10 +281,10 @@ class FaceToFaceValidation:
         output = {r.criterion: r.dictionary() for r in self.reports}
         return output
 
-    def write_report(self, file, info=''):
-        self.file = file
+    def write_report(self, info=''):
+        file = Path(self.config.file).expanduser()
 
-        with self.file.open('at') as f:
+        with file.open('at') as f:
             f.write(64 * '-' + '\n')
             f.write('{} {} {}\n'.format(self.__class__.__name__, datetime.datetime.now(), info))
             f.write('git hash: {}\n'.format(utils.git_hash()))
