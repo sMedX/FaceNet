@@ -92,16 +92,14 @@ def main(**args_):
                         h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
             bar.update()
 
-    inp_dir = dbase.__repr__()
-
     out_config = args.dataset
     out_config.path = args.outdir
-    out_dir = dataset.DBase(out_config).__repr__()
+    out_dir = str(dataset.DBase(out_config))
 
     report_file = args.outdir.joinpath('report.txt')
     with Path(report_file).open('w') as f:
         f.write('{}\n'.format(datetime.now()))
-        f.write('{}\n'.format(inp_dir))
+        f.write('{}\n'.format(str(dbase)))
         f.write('{}\n'.format(out_dir))
         f.write('\n')
         f.write('Number of files that cannot be read {}\n'.format(nrof_unread_files))
