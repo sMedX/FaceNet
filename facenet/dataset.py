@@ -33,7 +33,7 @@ class ImageClass:
         self.files.sort()
 
     def __repr__(self):
-        return '{} (name: {}, images: {})'.format(self.__class__.__name__, self.name, self.nrof_images)
+        return '{} ({}/{})'.format(self.__class__.__name__, self.name, self.nrof_images)
 
     def __bool__(self):
         return True if self.nrof_images > 1 else False
