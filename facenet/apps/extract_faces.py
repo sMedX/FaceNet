@@ -20,7 +20,7 @@ def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
     if not args.outdir:
-        args.outdir = '{}_{}extracted_{}'.format(Path(args.path), args.detector, args.image_size)
+        args.outdir = '{}_{}extracted_{}'.format(Path(args.dataset.path), args.detector, args.image_size)
     args.outdir = Path(args.outdir).expanduser()
     ioutils.makedirs(args.outdir)
 
@@ -35,7 +35,7 @@ def main(**args_):
     ioutils.write_arguments(args, args.outdir.joinpath('arguments.yaml'))
     ioutils.store_revision_info(args.outdir, sys.argv)
 
-    dbase = dataset.DBase(args)
+    dbase = dataset.DBase(args.dataset)
     print(dbase)
     print('output directory', args.outdir)
     print('output h5 file  ', args.h5file)

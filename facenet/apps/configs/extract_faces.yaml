@@ -1,7 +1,8 @@
 # coding:utf-8
 
 # Directory with unaligned images.
-path:
+dataset:
+  path:
 
 # Directory with extracted face thumbnails.
 outdir:
@@ -17,6 +18,3 @@ margin: [0.20, 0.10]
 
 # Detect and align multiple faces per image, default=False
 detect_multiple_faces: false
-
-# Path to h5 file to write information about extracted faces, default=None
-h5file:
