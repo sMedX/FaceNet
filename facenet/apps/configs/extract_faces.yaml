@@ -1,10 +1,7 @@
 # coding:utf-8
 
-dataset:
-  # Directory with unaligned images.
-  path:
-  # Path to h5 file with information about valid images
-  h5file:
+# Directory with unaligned images.
+path:
 
 # Directory with extracted face thumbnails.
 outdir:
@@ -13,10 +10,10 @@ outdir:
 detector: frcnnv3
 
 # Image size (height, width) in pixels, default=160
-image_size: 224
+image_size: 160
 
 # Margin for the crop around the bounding box (height, width) in pixels.', default=0.20
-margin: 0.20
+margin: [0.20, 0.10]
 
 # Detect and align multiple faces per image, default=False
 detect_multiple_faces: false

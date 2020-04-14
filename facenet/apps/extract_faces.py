@@ -19,12 +19,12 @@ from facenet import facenet, config
 def main(**args_):
     args = config.YAMLConfig(args_['config'])
 
-    if args.outdir is None:
-        args.outdir = '{}_{}_extracted_{}'.format(Path(args.dataset.path), args.detector, args.image_size)
+    if not args.outdir:
+        args.outdir = '{}_{}extracted_{}'.format(Path(args.path), args.detector, args.image_size)
     args.outdir = Path(args.outdir).expanduser()
     ioutils.makedirs(args.outdir)
 
-    if args.h5file is None:
+    if not args.h5file:
         args.h5file = args.outdir.joinpath('statistics.h5')
     args.h5file = Path(args.h5file).expanduser()
 
@@ -35,7 +35,7 @@ def main(**args_):
     ioutils.write_arguments(args, args.outdir.joinpath('arguments.yaml'))
     ioutils.store_revision_info(args.outdir, sys.argv)
 
-    dbase = dataset.DBase(args.dataset)
+    dbase = dataset.DBase(args)
     print(dbase)
     print('output directory', args.outdir)
     print('output h5 file  ', args.h5file)

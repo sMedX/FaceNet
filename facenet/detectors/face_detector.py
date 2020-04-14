@@ -3,21 +3,27 @@ __author__ = 'Ruslan N. Kosarev'
 
 import numpy as np
 from PIL import Image
+import math
 
 
-def image_processing(image, box, size, margin=0):
+def image_processing(image, box, size, margin=(0, 0)):
     if not isinstance(image, Image.Image):
         raise ValueError('Input must be PIL.Image')
 
+    margin_ = (1 + margin[0]) * (1 + margin[1]) - 1
+    w_margin = round(box.width * margin_)
+    h_margin = round(box.height * margin_)
+
+    cropped = image.crop((box.left - w_margin, box.top - h_margin, box.right + w_margin, box.bottom + h_margin))
+
+    # compute size of the output image
     if isinstance(size, int):
-        size = (size, size)
+        size = [size, size]
 
-    height_margin = round(box.height*margin)
-    width_margin = round(box.width*margin)
+    size[0] += 2*math.ceil(size[0] * margin[1])
+    size[1] += 2*math.ceil(size[1] * margin[1])
 
-    cropped = image.crop((box.left - width_margin, box.top - height_margin,
-                          box.right + width_margin, box.bottom + height_margin))
-
+    # resize input image
     resized = cropped.resize(size, Image.ANTIALIAS)
 
     return resized
