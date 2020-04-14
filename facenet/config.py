@@ -93,6 +93,20 @@ class YAMLConfig:
         return True if name in self.__dict__.keys() else False
 
 
+class Validate(YAMLConfig):
+    def __init__(self, args_):
+        YAMLConfig.__init__(self, args_['config'])
+        if not self.seed:
+            self.seed = 0
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+
+        if self.validate.file:
+            self.validate.file = Path(self.validate.file).expanduser()
+        else:
+            self.validate.file = Path(self.model).expanduser().joinpath('report.txt')
+
+
 class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])

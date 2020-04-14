@@ -23,20 +23,17 @@ DefaultConfig = config.DefaultConfig()
 def main(**args_):
     start_time = time.monotonic()
 
-    args = config.YAMLConfig(args_['config'])
-    np.random.seed(args.seed)
-    if not args.validate.file:
-        args.validate.file = Path(args.model).expanduser().joinpath('report.txt')
+    args = config.Validate(args_)
 
     dbase = dataset.DBase(args.dataset)
     print(dbase)
 
-    emb = facenet.Embeddings(dbase, args)
-    print(emb)
+    embeddings = facenet.Embeddings(dbase, args)
+    print(embeddings)
 
-    validate = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, args.validate)
+    validate = statistics.FaceToFaceValidation(embeddings.embeddings, dbase.labels, args.validate)
     validate.evaluate()
-    validate.write_report(info=dbase.__repr__() + emb.__repr__())
+    validate.write_report(info=str(dbase) + str(embeddings))
     print(validate)
 
     ioutils.write_elapsed_time(args.validate.file, start_time)
