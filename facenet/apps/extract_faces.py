@@ -7,6 +7,7 @@ import click
 from pathlib import Path
 import numpy as np
 from datetime import datetime
+from tqdm import tqdm
 
 from facenet import dataset, ioutils, h5utils
 from facenet.detectors.face_detector import image_processing, FaceDetector
@@ -47,47 +48,49 @@ def main(**args_):
     nrof_extracted_faces = 0
     nrof_unread_files = 0
 
-    for i, cls in enumerate(dbase.classes):
+    with tqdm(total=dbase.nrof_classes) as bar:
+        for i, cls in enumerate(dbase.classes):
 
-        # define output class directory
-        output_class_dir = args.outdir.joinpath(cls.name)
-        ioutils.makedirs(output_class_dir)
+            # define output class directory
+            output_class_dir = args.outdir.joinpath(cls.name)
+            ioutils.makedirs(output_class_dir)
 
-        for k, image_path in enumerate(cls.files):
-            print('{}/{} {}/{} {}'.format(i, dbase.nrof_classes, k, cls.nrof_images, image_path))
-            out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
+            for k, image_path in enumerate(cls.files):
+                bar.set_postfix_str('{}'.format('[{}/{}] {}'.format(k, cls.nrof_images, str(cls))))
+                out_filename = output_class_dir.joinpath(Path(image_path).stem + '.png')
 
-            try:
-                # this function returns PIL.Image object
-                img = ioutils.read_image(image_path)
-                img_array = ioutils.pil2array(img, mode=detector.mode)
-            except Exception as e:
-                nrof_unread_files += 1
-                print(e)
-            else:
-                boxes = detector.detect(img_array)
-                nrof_faces = len(boxes)
+                try:
+                    # this function returns PIL.Image object
+                    img = ioutils.read_image(image_path)
+                    img_array = ioutils.pil2array(img, mode=detector.mode)
+                except Exception as e:
+                    nrof_unread_files += 1
+                    # print(e)
+                else:
+                    boxes = detector.detect(img_array)
+                    nrof_faces = len(boxes)
 
-                if nrof_faces == 0:
-                    print('Unable to find face "{}"'.format(image_path))
-                    continue
+                    if nrof_faces == 0:
+                        # print('Unable to find face "{}"'.format(image_path))
+                        continue
 
-                if nrof_faces > 1 and args.detect_multiple_faces is False:
-                    print('The number of detected faces more than one "{}"'.format(image_path))
-                    continue
+                    if nrof_faces > 1 and args.detect_multiple_faces is False:
+                        # print('The number of detected faces more than one "{}"'.format(image_path))
+                        continue
 
-                nrof_extracted_faces += 1
+                    nrof_extracted_faces += 1
 
-                for n, box in enumerate(boxes):
-                    output = image_processing(img, box, args.image_size, margin=args.margin)
+                    for n, box in enumerate(boxes):
+                        output = image_processing(img, box, args.image_size, margin=args.margin)
 
-                    out_filename_n = out_filename
-                    if n > 0:
-                        out_filename_n = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, n, out_filename.suffix))
+                        out_filename_n = out_filename
+                        if n > 0:
+                            out_filename_n = out_filename.parent.joinpath('{}_{}{}'.format(out_filename.stem, n, out_filename.suffix))
 
-                    ioutils.write_image(output, out_filename_n)
-                    size = np.uint32((box.height, box.width))
-                    h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
+                        ioutils.write_image(output, out_filename_n)
+                        size = np.uint32((box.height, box.width))
+                        h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
+        bar.update()
 
     inp_dir = dbase.__repr__()
 
