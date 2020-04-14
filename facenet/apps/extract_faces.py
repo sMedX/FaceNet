@@ -90,7 +90,7 @@ def main(**args_):
                         ioutils.write_image(output, out_filename_n)
                         size = np.uint32((box.height, box.width))
                         h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
-        bar.update()
+            bar.update()
 
     inp_dir = dbase.__repr__()
 
