@@ -111,8 +111,10 @@ class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])
 
-        np.random.seed(self.seed)
+        if not self.seed:
+            self.seed = 0
         random.seed(self.seed)
+        np.random.seed(self.seed)
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
@@ -121,7 +123,6 @@ class TrainOptions(YAMLConfig):
 
         self.logs = self.model.path.joinpath('logs')
         self.h5file = self.logs.joinpath('statistics.h5')
-        self.report = self.model.path.joinpath('report.txt')
 
         if self.model.config is None:
             network = importlib.import_module(self.model.module)
@@ -134,11 +135,13 @@ class TrainOptions(YAMLConfig):
         if self.train.learning_rate.schedule:
             self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
-        if self.validation:
-            self.validation.batch_size = self.batch_size
-            self.validation.image.size = self.image.size
-            self.validation.image.standardization = self.image.standardization
-            self.validation.validation.file = None
+        if self.validate:
+            self.validate.batch_size = self.batch_size
+            self.validate.image.size = self.image.size
+            self.validate.image.standardization = self.image.standardization
+
+        if not self.validate.validate.file:
+            self.validate.validate.file = Path(self.model.path).expanduser().joinpath('report.txt')
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
