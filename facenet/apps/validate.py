@@ -9,7 +9,6 @@ in the same directory, and the metagraph should have the extension '.meta'.
 
 import click
 import time
-import numpy as np
 from pathlib import Path
 
 from facenet import dataset, config, statistics, facenet, ioutils
@@ -31,7 +30,7 @@ def main(**args_):
     embeddings = facenet.Embeddings(dbase, args)
     print(embeddings)
 
-    validate = statistics.FaceToFaceValidation(embeddings.embeddings, dbase.labels, args.validate)
+    validate = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, args.validate)
     validate.evaluate()
     validate.write_report(info=str(dbase) + str(embeddings))
     print(validate)

@@ -178,7 +178,7 @@ def main(**args_):
         emb.evaluate()
         print(emb)
 
-        stats = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, config_.validation)
+        stats = statistics.FaceToFaceValidation(emb.data, dbase.labels, config_.validation)
         stats.evaluate()
         stats.write_report(path=args.model.path, dbase_info=dbase.__repr__(), emb_info=emb.__repr__())
         print(stats)

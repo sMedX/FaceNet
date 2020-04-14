@@ -301,7 +301,7 @@ class FaceToFaceValidation:
 class FalseExamples:
     def __init__(self, dbase, tfrecord, threshold, metric=0, subtract_mean=False):
         self.dbase = dbase
-        self.embeddings = tfrecord.embeddings
+        self.embeddings = tfrecord.data
         self.threshold = threshold
         self.metric = metric
         self.subtract_mean = subtract_mean

@@ -734,7 +734,7 @@ class Embeddings:
     def __init__(self, dbase, config, model=None):
         self.config = config
         self.dbase = dbase
-        self.embeddings = None
+        self.data = None
         self.elapsed_time = None
 
         if model is not None:
@@ -825,14 +825,14 @@ class Embeddings:
 
         print('')
 
-        self.embeddings = np.zeros((self.dbase.nrof_images, embedding_size * nrof_flips))
+        self.data = np.zeros((self.dbase.nrof_images, embedding_size * nrof_flips))
 
         if self.config.image.use_flipped_images:
             # Concatenate embeddings for flipped and non flipped version of the images
-            self.embeddings[:, :embedding_size] = emb_array[0::2, :]
-            self.embeddings[:, embedding_size:] = emb_array[1::2, :]
+            self.data[:, :embedding_size] = emb_array[0::2, :]
+            self.data[:, embedding_size:] = emb_array[1::2, :]
         else:
-            self.embeddings = emb_array
+            self.data = emb_array
 
         assert np.array_equal(lab_array, np.arange(nrof_images)), \
             'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
@@ -840,9 +840,9 @@ class Embeddings:
     def __repr__(self):
         info = 'class {}\n'.format(self.__class__.__name__) + \
                'model: {}\n'.format(self.config.model) + \
-               'embedding size: {}\n'.format(self.embeddings.shape) + \
+               'embedding size: {}\n'.format(self.data.shape) + \
                'elapsed time  : {}\n'.format(self.elapsed_time) + \
-               'time per image: {}\n'.format(self.elapsed_time / self.embeddings.shape[0])
+               'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0])
         return info
 
 
