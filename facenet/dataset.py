@@ -1,6 +1,7 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
+from tqdm import tqdm
 from cached_property import cached_property
 import numpy as np
 from pathlib import Path
@@ -32,7 +33,7 @@ class ImageClass:
         self.files.sort()
 
     def __repr__(self):
-        return 'name: {}, images: {}'.format(self.name, self.nrof_images)
+        return '{} (name: {}, images: {})'.format(self.__class__.__name__, self.name, self.nrof_images)
 
     def __bool__(self):
         return True if self.nrof_images > 1 else False
@@ -78,12 +79,15 @@ class DBase:
 
             classes = []
 
-            for idx, path in enumerate(dirs):
-                config.path = path
-                images = ImageClass(config, ext=ext)
-                if images:
-                    classes.append(images)
-                    print('\r({}/{}) {}'.format(idx, len(dirs), str(images)), end=utils.end(idx, len(dirs)))
+            with tqdm(total=len(dirs)) as bar:
+                for idx, path in enumerate(dirs):
+                    config.path = path
+                    images = ImageClass(config, ext=ext)
+                    if images:
+                        classes.append(images)
+
+                    bar.set_postfix_str('{}'.format(str(images)))
+                    bar.update()
 
         self.classes = classes
 
