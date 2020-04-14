@@ -32,11 +32,12 @@ def main(**args_):
     emb = facenet.Embeddings(dbase, args)
     print(emb)
 
-    validation = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, args.validation)
-    validation.write_report(path=args.model, info=(dbase.__repr__(), emb.__repr__()))
-    print(validation)
+    validate = statistics.FaceToFaceValidation(emb.embeddings, dbase.labels, args.validation)
+    validate.evaluate()
+    validate.write_report(args.report, info=dbase.__repr__() + emb.__repr__())
+    print(validate)
 
-    ioutils.elapsed_time(validation.report_file, start_time)
+    ioutils.write_elapsed_time(validate.file, start_time)
 
 
 if __name__ == '__main__':
