@@ -7,6 +7,7 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import sys
+from tqdm import tqdm
 
 import time
 import datetime
@@ -212,13 +213,12 @@ class Report:
 
 
 class FaceToFaceValidation:
-    def __init__(self, embeddings, labels, config, bar=True):
+    def __init__(self, embeddings, labels, config):
         """
         :param embeddings:
         :param labels:
         """
         self.elapsed_time = time.monotonic()
-        self.bar = bar
         self.embeddings = embeddings
         self.labels = labels
         assert (embeddings.shape[0] == len(labels))
@@ -254,32 +254,32 @@ class FaceToFaceValidation:
             Report(criterion='FalseAlarmRate(FAR = {})'.format(self.config.far_target))
         )
 
-        for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            if self.bar:
-                print('\rvalidate {}/{}'.format(fold_idx+1, self.config.nrof_folds),
-                      end=utils.end(fold_idx, self.config.nrof_folds))
+        with tqdm(total=k_fold.n_splits) as bar:
+            for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+                # evaluations with train set and define the best threshold for the fold
+                calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
 
-            # evaluations with train set and define the best threshold for the fold
-            calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
+                matrix = ConfidenceMatrix(calculator, self.thresholds)
+                for i in range(len(self.reports)):
+                    self.reports[i].append_fold('train', matrix)
 
-            matrix = ConfidenceMatrix(calculator, self.thresholds)
-            for i in range(len(self.reports)):
-                self.reports[i].append_fold('train', matrix)
+                # find the threshold that gives maximal accuracy
+                accuracy_threshold = self.thresholds[np.argmax(matrix.accuracy)]
 
-            # find the threshold that gives maximal accuracy
-            accuracy_threshold = self.thresholds[np.argmax(matrix.accuracy)]
+                # find the threshold that gives FAR (FPR, 1-TNR) = far_target
+                far_threshold = 0
+                if np.max(matrix.fp_rates) >= self.config.far_target:
+                    f = interpolate.interp1d(matrix.fp_rates, self.thresholds, kind='slinear')
+                    far_threshold = f(self.config.far_target)
 
-            # find the threshold that gives FAR (FPR, 1-TNR) = far_target
-            far_threshold = 0
-            if np.max(matrix.fp_rates) >= self.config.far_target:
-                f = interpolate.interp1d(matrix.fp_rates, self.thresholds, kind='slinear')
-                far_threshold = f(self.config.far_target)
+                # evaluations with test set
+                calculator = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
 
-            # evaluations with test set
-            calculator = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
+                self.reports[0].append_fold('test', ConfidenceMatrix(calculator, accuracy_threshold))
+                self.reports[1].append_fold('test', ConfidenceMatrix(calculator, far_threshold))
 
-            self.reports[0].append_fold('test', ConfidenceMatrix(calculator, accuracy_threshold))
-            self.reports[1].append_fold('test', ConfidenceMatrix(calculator, far_threshold))
+                bar.set_postfix_str(self.__class__.__name__)
+                bar.update()
 
         self.elapsed_time = time.monotonic() - self.elapsed_time
 

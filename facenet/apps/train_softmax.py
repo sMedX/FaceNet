@@ -293,6 +293,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
 
     validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validate)
     validation.write_report(info)
+    print(validation)
 
     for key, item in validation.dictionary.items():
         outputs[key] = item
