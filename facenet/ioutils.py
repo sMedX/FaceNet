@@ -75,21 +75,12 @@ def store_revision_info(output_filename, arg_string, mode='w'):
         f.write('\n')
 
 
-def write_arguments(arguments, file):
+def write_arguments(args, file):
     file = Path(file).expanduser()
     makedirs(file.parent)
-    shift = 3 * ' '
 
     with file.open(mode='w') as f:
-        def write_to_file(dct, ident=''):
-            for key, item in dct.items():
-                if isinstance(item, config.YAMLConfig):
-                    f.write('{}{}: \n'.format(ident, key))
-                    write_to_file(item, ident=ident + shift)
-                else:
-                    f.write('{}{}: {}\n'.format(ident, key, str(item)))
-
-        write_to_file(arguments)
+        f.write('{}\n'.format(str(args)))
 
 
 def write_image(image, filename, prefix=None, mode='RGB'):
