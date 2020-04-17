@@ -847,16 +847,11 @@ class Embeddings:
 
 
 class Summary:
-    def __init__(self, summary_writer, h5file, tag=None):
+    def __init__(self, summary_writer, h5file, tag=''):
         self._summary_writer = summary_writer
         self._h5file = h5file
-        self._elapsed_time_count = 0
-        self._count = 0
+        self._counts = {}
         self._tag = tag
-
-    @property
-    def tag(self):
-        return self._tag
 
     @staticmethod
     def get_info_str(output):
@@ -869,14 +864,25 @@ class Summary:
 
         return info[1:]
 
-    def write_tf_summary(self, output):
-        self._count += 1
+    @property
+    def tag(self):
+        return self._tag
 
+    def _count(self, name):
+        if name not in self._counts.keys():
+            self._counts[name] = -1
+        self._counts[name] += 1
+        return self._counts[name]
+
+    def write_tf_summary(self, output, tag=None):
         if output.get('summary_op'):
-            self._summary_writer.add_summary(output['summary_op'], global_step=self._count - 1)
+            self._summary_writer.add_summary(output['summary_op'], global_step=self._count('summary_op'))
 
         if output.get('tensor_op'):
             output = output['tensor_op']
+
+        if tag is None:
+            tag = self.tag
 
         summary = tf.Summary()
 
@@ -888,20 +894,18 @@ class Summary:
                 else:
                     summary.value.add(tag=tag + key, simple_value=value)
 
-        add_summary(output, self.tag)
-        self._summary_writer.add_summary(summary, global_step=self._count - 1)
+        add_summary(output, tag)
+        self._summary_writer.add_summary(summary, global_step=self._count(tag))
 
     def write_h5_summary(self, output):
         h5utils.write_dict(self._h5file, output, group=self._tag)
 
     def write_elapsed_time(self, value):
-        self._elapsed_time_count += 1
-
-        tag = self._tag + '/time' if self._tag else 'time'
+        tag = self._tag + '/time' if self.tag else 'time'
 
         summary = tf.Summary()
         summary.value.add(tag=tag, simple_value=value)
-        self._summary_writer.add_summary(summary, global_step=self._elapsed_time_count - 1)
+        self._summary_writer.add_summary(summary, global_step=self._count('elapsed_time'))
 
-        h5utils.write_dict(self._h5file, {'time': value}, group=self._tag)
+        h5utils.write(self._h5file, tag, value)
 

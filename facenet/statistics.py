@@ -164,7 +164,7 @@ class Report:
         self.conf_matrix_test = []
 
     def __repr__(self):
-        dct = self.dictionary()
+        dct = self.dict
 
         info = self.criterion + '\n'
 
@@ -186,7 +186,8 @@ class Report:
         else:
             self.conf_matrix_test.append(conf_matrix)
 
-    def dictionary(self):
+    @property
+    def dict(self):
         tp_rates = np.mean(np.array([m.tp_rates for m in self.conf_matrix_train]), axis=0)
         tn_rates = np.mean(np.array([m.tn_rates for m in self.conf_matrix_train]), axis=0)
 
@@ -284,8 +285,8 @@ class FaceToFaceValidation:
         self.elapsed_time = time.monotonic() - self.elapsed_time
 
     @property
-    def dictionary(self):
-        output = {r.criterion: r.dictionary() for r in self.reports}
+    def dict(self):
+        output = {r.criterion: r.dict for r in self.reports}
         return output
 
     def write_report(self, info=''):
@@ -301,7 +302,7 @@ class FaceToFaceValidation:
                 f.write(str(r))
 
     def write_h5file(self, h5file, tag=None):
-        h5utils.write_dict(h5file, self.dictionary, group=tag)
+        h5utils.write_dict(h5file, self.dict, group=tag)
 
 
 class FalseExamples:

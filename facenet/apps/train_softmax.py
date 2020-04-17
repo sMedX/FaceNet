@@ -273,7 +273,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     sess.run(enqueue_op, feed_dict=feed_dict)
 
     # dictionary with mean values of tensor output
-    outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
+    # outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
 
     embeddings = np.zeros((0, args.model.config.embedding_size))
 
@@ -283,23 +283,24 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
             feed_dict = placeholders.run_feed_dict(batch_size)
             output = sess.run(tensor_dict, feed_dict=feed_dict)
 
-            for key, value in output['tensor_op'].items():
-                outputs[key] = (outputs[key]*i + value)/(i+1)
+            # for key, value in output['tensor_op'].items():
+            #     outputs[key] = (outputs[key]*i + value)/(i+1)
 
             embeddings = np.concatenate((embeddings, output['embedding']), axis=0)
 
-            bar.set_postfix_str(summary.get_info_str(outputs))
+            summary.write_tf_summary(output)
+
+            bar.set_postfix_str(summary.get_info_str(output))
             bar.update()
 
     validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validate)
     validation.write_report(info)
     print(validation)
 
-    for key, item in validation.dictionary.items():
-        outputs[key] = item
+    for key, value in validation.dict.items():
+        summary.write_tf_summary(value, tag='{}_{}'.format(summary.tag, key))
 
-    summary.write_tf_summary(outputs)
-    summary.write_h5_summary(outputs)
+    summary.write_h5_summary(validation.dict)
     summary.write_elapsed_time(time.monotonic() - start_time)
 
 
