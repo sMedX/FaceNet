@@ -53,10 +53,10 @@ def main(**args_):
     network = importlib.import_module(args.model.module)
 
     dbase = dataset.DBase(args.dataset)
-    if args.validate.dataset:
-        val_dbase = dataset.DBase(args.validate.dataset)
-    else:
+    if args.validate.dataset_split_ratio:
         dbase, val_dbase = dbase.random_split(args.validate.dataset_split_ratio)
+    else:
+        val_dbase = dataset.DBase(args.validate.dataset)
     print('train dbase:', dbase)
     print('validate dbase:', val_dbase)
 
@@ -273,7 +273,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     sess.run(enqueue_op, feed_dict=feed_dict)
 
     # dictionary with mean values of tensor output
-    # outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
+    outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
 
     embeddings = np.zeros((0, args.model.config.embedding_size))
 
@@ -283,15 +283,16 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
             feed_dict = placeholders.run_feed_dict(batch_size)
             output = sess.run(tensor_dict, feed_dict=feed_dict)
 
-            # for key, value in output['tensor_op'].items():
-            #     outputs[key] = (outputs[key]*i + value)/(i+1)
+            for key, value in output['tensor_op'].items():
+                outputs[key] = (outputs[key]*i + value)/(i+1)
 
             embeddings = np.concatenate((embeddings, output['embedding']), axis=0)
 
-            summary.write_tf_summary(output)
-
-            bar.set_postfix_str(summary.get_info_str(output))
+            bar.set_postfix_str(summary.get_info_str(outputs))
             bar.update()
+
+    summary.write_tf_summary(outputs)
+    summary.write_h5_summary(outputs)
 
     validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validate)
     validation.write_report(info)
