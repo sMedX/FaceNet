@@ -52,10 +52,10 @@ class ImageClass:
             files = np.random.choice(files, size=nrof_images, replace=False)
         return ImageClass(self, files=files)
 
-    def random_split(self, config):
-        index = round(self.nrof_images * config.split_ratio)
-        if config.nrof_images:
-            index = min(index, config.nrof_images)
+    def random_split(self, split_ratio=0.05, nrof_images=None):
+        index = round(self.nrof_images * split_ratio)
+        if nrof_images:
+            index = min(index, nrof_images)
 
         files = np.random.permutation(self.files)
 
@@ -178,7 +178,7 @@ class DBase:
         test = []
 
         for cls in self.classes:
-            train_, test_ = cls.random_split(config)
+            train_, test_ = cls.random_split(config.split_ratio, config.nrof_images)
             train.append(train_)
             test.append(test_)
 
