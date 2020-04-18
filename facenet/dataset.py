@@ -178,7 +178,7 @@ class DBase:
         test = []
 
         for cls in self.classes:
-            train_, test_ = cls.random_split(config.split_ratio, config.nrof_images)
+            train_, test_ = cls.random_split(config.split_ratio, nrof_images=config.nrof_images)
             train.append(train_)
             test.append(test_)
 
