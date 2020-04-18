@@ -53,13 +53,13 @@ class ImageClass:
         return ImageClass(self, files=files)
 
     def random_split(self, config):
-        index = round(self.nrof_images * (1 - config.split_ratio))
+        index = round(self.nrof_images * config.split_ratio)
         if config.nrof_images:
             index = min(index, config.nrof_images)
 
         files = np.random.permutation(self.files)
 
-        return ImageClass(self, files=files[:index]), ImageClass(self, files=files[index:])
+        return ImageClass(self, files=files[index:]), ImageClass(self, files=files[:index])
 
 
 class DBase:
