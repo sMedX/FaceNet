@@ -52,9 +52,14 @@ class ImageClass:
             files = np.random.choice(files, size=nrof_images, replace=False)
         return ImageClass(self, files=files)
 
-    def random_split(self, split_ratio=0.05):
-        index = round(self.nrof_images * (1-split_ratio))
-        return ImageClass(self, files=self.files[:index]), ImageClass(self, files=self.files[index:])
+    def random_split(self, config):
+        index = round(self.nrof_images * (1 - config.split_ratio))
+        if config.nrof_images:
+            index = min(index, config.nrof_images)
+
+        files = np.random.permutation(self.files)
+
+        return ImageClass(self, files=files[:index]), ImageClass(self, files=files[index:])
 
 
 class DBase:
@@ -168,12 +173,12 @@ class DBase:
 
         return DBase(self, classes=classes)
 
-    def random_split(self, split_ratio=0.05):
+    def random_split(self, config):
         train = []
         test = []
 
         for cls in self.classes:
-            train_, test_ = cls.random_split(split_ratio=split_ratio)
+            train_, test_ = cls.random_split(config)
             train.append(train_)
             test.append(test_)
 

@@ -53,8 +53,8 @@ def main(**args_):
     network = importlib.import_module(args.model.module)
 
     dbase = dataset.DBase(args.dataset)
-    if args.validate.dataset_split_ratio:
-        dbase, val_dbase = dbase.random_split(args.validate.dataset_split_ratio)
+    if args.validate.dataset.split_ratio:
+        dbase, val_dbase = dbase.random_split(args.validate.dataset)
     else:
         val_dbase = dataset.DBase(args.validate.dataset)
     print('train dbase:', dbase)
