@@ -53,10 +53,7 @@ def main(**args_):
     network = importlib.import_module(args.model.module)
 
     dbase = dataset.DBase(args.dataset)
-    if args.validate.dataset.split_ratio:
-        dbase, val_dbase = dbase.random_split(args.validate.dataset)
-    else:
-        val_dbase = dataset.DBase(args.validate.dataset)
+    dbase, val_dbase = dbase.random_split(args.validate)
     print('train dbase:', dbase)
     print('validate dbase:', val_dbase)
 
@@ -201,6 +198,21 @@ def main(**args_):
     ioutils.write_elapsed_time([args.h5file, args.validate.validate.file], start_time)
     facenet.save_freeze_graph(model_dir=args.model.path)
 
+    # perform validation
+    if args.validate:
+        conf = args.validate
+        dbase = dataset.DBase(conf.dataset)
+        print(dbase)
+
+        embeddings = facenet.Embeddings(dbase, conf, model=args.model.path)
+        print(embeddings)
+
+        validation = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, conf.validate)
+        validation.write_report(info=(str(dbase), str(embeddings)))
+        print(validation)
+
+        ioutils.write_elapsed_time(conf.validate.file, start_time)
+
     print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
     print('Logs have been saved to the directory: {}'.format(args.logs))
     print('Model has been saved to the directory: {}'.format(args.model.path))
@@ -264,7 +276,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     # number of batches
     nrof_batches = math.ceil(dbase.nrof_images / args.batch_size)
 
-    # Enqueue one epoch of image paths and labels
+    # enqueue one epoch of image paths and labels
     files = np.expand_dims(np.array(dbase.files), 1)
     labels = np.expand_dims(np.array(dbase.labels), 1)
     control = np.ones_like(labels, np.int32) * facenet.FIXED_STANDARDIZATION * args.image.standardization
@@ -275,7 +287,7 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
     # dictionary with mean values of tensor output
     outputs = {key: 0 for key in tensor_dict['tensor_op'].keys()}
 
-    embeddings = np.zeros((0, args.model.config.embedding_size))
+    # embeddings = np.zeros((0, args.model.config.embedding_size))
 
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
@@ -286,23 +298,23 @@ def validate(args, sess, epoch, dbase, enqueue_op, placeholders, tensor_dict, su
             for key, value in output['tensor_op'].items():
                 outputs[key] = (outputs[key]*i + value)/(i+1)
 
-            embeddings = np.concatenate((embeddings, output['embedding']), axis=0)
+            # embeddings = np.concatenate((embeddings, output['embedding']), axis=0)
 
             bar.set_postfix_str(summary.get_info_str(outputs))
             bar.update()
 
     summary.write_tf_summary(outputs)
     summary.write_h5_summary(outputs)
-
-    validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validate)
-    validation.write_report(info)
-    print(validation)
-
-    for key, value in validation.dict.items():
-        summary.write_tf_summary(value, tag='{}_{}'.format(summary.tag, key))
-
-    summary.write_h5_summary(validation.dict)
     summary.write_elapsed_time(time.monotonic() - start_time)
+
+    # validation = statistics.FaceToFaceValidation(embeddings, dbase.labels, args.validate.validate)
+    # validation.write_report(info)
+    # print(validation)
+    #
+    # for key, value in validation.dict.items():
+    #     summary.write_tf_summary(value, tag='{}_{}'.format(summary.tag, key))
+    #
+    # summary.write_h5_summary(validation.dict)
 
 
 if __name__ == '__main__':
