@@ -81,9 +81,10 @@ validate:
   # Number of epoch between validation
   every_n_epochs: 10
 
+  # Split validate data set from train data set
+  split_ratio: 0.05
+
   dataset:
-    # split ratio to extract validate data set
-    split_ratio: 0.05
     # Path to the data directory containing aligned face patches
     path:
     # Path to h5 file with information about valid images
@@ -94,12 +95,14 @@ validate:
     nrof_images: 50
 
   validate:
-    # Number of folds to use for cross validation. Mainly used for testing
-    nrof_folds: 10
     # Distance metric  0: euclidean, 1: cosine similarity
     metric: 1
+    # Number of folds to use for cross validation. Mainly used for testing
+    nrof_folds: 10
     # Target false alarm rate (face pairs that was incorrectly classified as the same)
     far_target: 0.001
+    # File to write statistical report
+    file:
 
   image:
     # Concatenates embeddings for the image and its horizontally flipped counterpart
