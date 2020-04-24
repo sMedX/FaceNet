@@ -98,7 +98,8 @@ class DBase:
 
     def __repr__(self):
         """Representation of the database"""
-        return ('{}({})\n'.format(self.__class__.__name__, self.path) +
+        info = ('{}\n'.format(self.__class__.__name__) +
+                '{}\n'.format(self.path) +
                 'h5 file to filter images {}\n'.format(self.h5file) +
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
@@ -106,7 +107,8 @@ class DBase:
                 'Number of positive pairs {} \n'.format(self.nrof_positive_pairs) +
                 'Number of negative pairs {} \n'.format(self.nrof_negative_pairs) +
                 'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
-                'Maximal number of images in class {}\n'.format(self.max_nrof_images))
+                'Maximal number of images in class {}\n'.format(self.max_nrof_images) + '\n')
+        return info
 
     def __bool__(self):
         return True if self.nrof_classes > 1 else False

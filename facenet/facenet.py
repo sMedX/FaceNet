@@ -838,11 +838,11 @@ class Embeddings:
             'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
 
     def __repr__(self):
-        info = 'class {}\n'.format(self.__class__.__name__) + \
-               'model: {}\n'.format(self.config.model) + \
-               'embedding size: {}\n'.format(self.data.shape) + \
-               'elapsed time  : {}\n'.format(self.elapsed_time) + \
-               'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0])
+        info = ('{}\n'.format(self.__class__.__name__) +
+                'model: {}\n'.format(self.config.model) +
+                'embedding size: {}\n'.format(self.data.shape) +
+                'elapsed time  : {}\n'.format(self.elapsed_time) +
+                'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0]))
         return info
 
 
