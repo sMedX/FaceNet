@@ -106,6 +106,9 @@ class Validate(YAMLConfig):
         else:
             self.validate.file = Path(self.model).expanduser().joinpath('report.txt')
 
+        if not self.batch_size:
+            self.batch_size = DefaultConfig().batch_size
+
 
 class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
@@ -155,3 +158,6 @@ class DefaultConfig:
 
         # image size (height, width) in pixels
         self.image_size = 160
+
+        # batch size (number of images to process in a batch
+        self.batch_size = 100
