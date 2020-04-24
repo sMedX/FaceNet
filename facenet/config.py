@@ -8,7 +8,7 @@ from datetime import datetime
 import importlib
 import numpy as np
 import random
-from facenet import ioutils, facenet
+from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 file_extension = '.png'
@@ -101,10 +101,13 @@ class Validate(YAMLConfig):
         random.seed(self.seed)
         np.random.seed(self.seed)
 
-        if self.validate.file:
-            self.validate.file = Path(self.validate.file).expanduser()
-        else:
+        if not self.model:
+            self.model = DefaultConfig().model
+
+        if not self.validate.file:
             self.validate.file = Path(self.model).expanduser().joinpath('report.txt')
+        else:
+            self.validate.file = Path(self.validate.file).expanduser()
 
         if not self.batch_size:
             self.batch_size = DefaultConfig().batch_size
