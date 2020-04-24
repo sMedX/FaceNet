@@ -12,6 +12,7 @@ from tqdm import tqdm
 import time
 import datetime
 import numpy as np
+from collections import Iterable
 import sklearn
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
@@ -292,10 +293,16 @@ class FaceToFaceValidation:
     def write_report(self, info=''):
         file = Path(self.config.file).expanduser()
 
+        info_as_str = info
+        if isinstance(info, Iterable):
+            info_as_str = ''
+            for i in info:
+                info_as_str += i + '\n'
+
         with file.open('at') as f:
             f.write(64 * '-' + '\n')
             f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
-            f.write('{}\n'.format(info))
+            f.write('{}\n'.format(info_as_str))
             f.write('metric: {}\n\n'.format(self.config.metric))
             for r in self.reports:
                 f.write(str(r))

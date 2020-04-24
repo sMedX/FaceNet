@@ -107,7 +107,7 @@ class DBase:
                 'Number of positive pairs {} \n'.format(self.nrof_positive_pairs) +
                 'Number of negative pairs {} \n'.format(self.nrof_negative_pairs) +
                 'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
-                'Maximal number of images in class {}\n'.format(self.max_nrof_images) + '\n')
+                'Maximal number of images in class {}\n'.format(self.max_nrof_images))
         return info
 
     def __bool__(self):
