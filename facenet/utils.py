@@ -75,36 +75,6 @@ def end(start, stop):
     return '\n' if (start+1) == stop else ''
 
 
-def git_hash():
-    src_path, _ = os.path.split(os.path.realpath(__file__))
-
-    try:
-        # Get git hash
-        cmd = ['git', 'rev-parse', 'HEAD']
-        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
-        (stdout, _) = gitproc.communicate()
-        info = stdout.strip()
-    except OSError as e:
-        info = ' '.join(cmd) + ': ' + e.strerror
-
-    return info
-
-
-def git_diff():
-    src_path, _ = os.path.split(os.path.realpath(__file__))
-
-    try:
-        # Get local changes
-        cmd = ['git', 'diff', 'HEAD']
-        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
-        (stdout, _) = gitproc.communicate()
-        info = stdout.strip()
-    except OSError as e:
-        info = ' '.join(cmd) + ': ' + e.strerror
-
-    return info
-
-
 def int64_feature(value):
     """Wrapper for insert int64 feature into Example proto."""
     if not isinstance(value, list):

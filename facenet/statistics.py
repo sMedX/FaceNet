@@ -295,8 +295,6 @@ class FaceToFaceValidation:
         with file.open('at') as f:
             f.write(64 * '-' + '\n')
             f.write('{} {} {}\n'.format(self.__class__.__name__, datetime.datetime.now(), info))
-            f.write('git hash: {}\n'.format(utils.git_hash()))
-            f.write('git diff: {}\n\n'.format(utils.git_diff()))
             f.write('metric: {}\n\n'.format(self.config.metric))
             for r in self.reports:
                 f.write(str(r))

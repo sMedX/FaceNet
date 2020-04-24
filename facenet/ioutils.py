@@ -37,7 +37,7 @@ def write_elapsed_time(files, start_time):
                 f.write('elapsed time: {:.3f}\n'.format(elapsed_time))
 
 
-def store_revision_info(output_filename, arg_string, mode='w'):
+def store_revision_info(output_filename, arg_string, mode='a'):
     output_filename = Path(output_filename)
 
     if output_filename.is_dir():
@@ -45,41 +45,62 @@ def store_revision_info(output_filename, arg_string, mode='w'):
 
     arg_string = ' '.join(arg_string)
 
-    # Get git hash
-    cmd = ['git', 'rev-parse', 'HEAD']
-    try:
-        gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
-        (stdout, _) = gitproc.communicate()
-        git_hash = stdout.strip()
-    except OSError as e:
-        git_hash = ' '.join(cmd) + ': ' + e.strerror
-
-    # Get local changes
-    cmd = ['git', 'diff', 'HEAD']
-    try:
-        gitproc = Popen(cmd, stdout=PIPE, cwd=str(config.src_dir))
-        (stdout, _) = gitproc.communicate()
-        git_diff = stdout.strip()
-    except OSError as e:
-        git_diff = ' '.join(cmd) + ': ' + e.strerror
+    git_hash_ = git_hash()
+    git_diff_ = git_diff()
 
     # Store a text file in the log directory
     with open(str(output_filename), mode) as f:
-        f.write('{}\n'.format(datetime.datetime.now()))
+        f.write(64 * '-' + '\n')
+        f.write('{} {}\n'.format('store_revision_info', datetime.datetime.now()))
         f.write('release version: {}\n'.format(platform.version()))
         f.write('python version: {}\n'.format(sys.version))
-        f.write('arguments: {}\n'.format(arg_string))
         f.write('tensorflow version: {}\n'.format(tf.__version__))
-        f.write('git hash: {}\n'.format(git_hash))
-        f.write('git diff: {}\n'.format(git_diff))
+        f.write('arguments: {}\n'.format(arg_string))
+        f.write('git hash: {}\n'.format(git_hash_))
+        f.write('git diff: {}\n'.format(git_diff_))
         f.write('\n')
 
 
-def write_arguments(args, file):
-    file = Path(file).expanduser()
-    makedirs(file.parent)
+def git_hash():
+    src_path, _ = os.path.split(os.path.realpath(__file__))
 
-    with file.open(mode='w') as f:
+    try:
+        # Get git hash
+        cmd = ['git', 'rev-parse', 'HEAD']
+        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        (stdout, _) = gitproc.communicate()
+        info = stdout.strip()
+    except OSError as e:
+        info = ' '.join(cmd) + ': ' + e.strerror
+
+    return info
+
+
+def git_diff():
+    src_path, _ = os.path.split(os.path.realpath(__file__))
+
+    try:
+        # Get local changes
+        cmd = ['git', 'diff', 'HEAD']
+        gitproc = Popen(cmd, stdout=PIPE, cwd=src_path)
+        (stdout, _) = gitproc.communicate()
+        info = stdout.strip()
+    except OSError as e:
+        info = ' '.join(cmd) + ': ' + e.strerror
+
+    return info
+
+
+def write_arguments(args, p, mode='a'):
+    p = Path(p).expanduser()
+
+    if p.is_dir():
+        app = Path(sys.argv[0]).stem
+        p = Path(p).joinpath(app + '_arguments.yaml')
+
+    makedirs(p.parent)
+
+    with p.open(mode=mode) as f:
         f.write('{}\n'.format(str(args)))
 
 

@@ -112,6 +112,10 @@ class Validate(YAMLConfig):
         if not self.batch_size:
             self.batch_size = DefaultConfig().batch_size
 
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.validate.file.parent)
+        ioutils.store_revision_info(self.validate.file, sys.argv)
+
 
 class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
