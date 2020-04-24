@@ -842,7 +842,7 @@ class Embeddings:
                 'model: {}\n'.format(self.config.model) +
                 'embedding size: {}\n'.format(self.data.shape) +
                 'elapsed time  : {}\n'.format(self.elapsed_time) +
-                'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0]))
+                'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0]) + '\n')
         return info
 
 

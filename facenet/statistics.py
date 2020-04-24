@@ -294,7 +294,8 @@ class FaceToFaceValidation:
 
         with file.open('at') as f:
             f.write(64 * '-' + '\n')
-            f.write('{} {} {}\n'.format(self.__class__.__name__, datetime.datetime.now(), info))
+            f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
+            f.write('{}\n'.format(info))
             f.write('metric: {}\n\n'.format(self.config.metric))
             for r in self.reports:
                 f.write(str(r))
