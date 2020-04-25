@@ -150,8 +150,8 @@ class TrainOptions(YAMLConfig):
             self.validate.image.size = self.image.size
             self.validate.image.standardization = self.image.standardization
 
-        if not self.validate.validate.file:
-            self.validate.validate.file = Path(self.model.path).expanduser().joinpath('report.txt')
+        if not self.validate.file:
+            self.validate.file = Path(self.model.path).expanduser().joinpath('report.txt')
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
