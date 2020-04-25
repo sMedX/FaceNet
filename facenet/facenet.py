@@ -38,7 +38,7 @@ from tensorflow.python.ops import data_flow_ops
 import math
 from pathlib import Path
 
-from facenet import utils, h5utils
+from facenet import utils, ioutils, h5utils
 
 
 class Placeholders:
@@ -844,6 +844,10 @@ class Embeddings:
                 'elapsed time  : {}\n'.format(self.elapsed_time) +
                 'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0]))
         return info
+
+    def write_report(self, file):
+        info = 64 * '-' + '\n' + str(self)
+        ioutils.write_to_file(file, info, mode='a')
 
 
 class Summary:

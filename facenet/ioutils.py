@@ -198,3 +198,8 @@ def array2pil(image, mode='RGB'):
 
     return output
 
+
+def write_to_file(file, s, mode='w'):
+    file = Path(file).expanduser()
+    with file.open(mode=mode) as f:
+        f.write(s)

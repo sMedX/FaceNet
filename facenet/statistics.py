@@ -241,7 +241,8 @@ class FaceToFaceValidation:
 
     def __repr__(self):
         """Representation of the database"""
-        info = 'class {}\n'.format(self.__class__.__name__)
+        info = ('{}\n'.format(self.__class__.__name__) +
+                'metric: {}\n\n'.format(self.config.metric))
         for r in self.reports:
             info += str(r)
         info += 'elapsed_time: {}'.format(self.elapsed_time)
@@ -290,19 +291,12 @@ class FaceToFaceValidation:
         output = {r.criterion: r.dict for r in self.reports}
         return output
 
-    def write_report(self, info=''):
-        file = Path(self.config.file).expanduser()
-
-        info_as_str = info
-        if isinstance(info, Iterable):
-            info_as_str = ''
-            for i in info:
-                info_as_str += i + '\n'
+    def write_report(self, file):
+        file = Path(file).expanduser()
 
         with file.open('at') as f:
             f.write(64 * '-' + '\n')
             f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
-            f.write('{}\n'.format(info_as_str))
             f.write('metric: {}\n\n'.format(self.config.metric))
             for r in self.reports:
                 f.write(str(r))

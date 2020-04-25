@@ -208,7 +208,7 @@ def main(**args_):
         print(embeddings)
 
         validation = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, conf.validate)
-        validation.write_report(info=(str(dbase), str(embeddings)))
+        validation.write_report(conf.file)
         print(validation)
 
         ioutils.write_elapsed_time(conf.validate.file, start_time)

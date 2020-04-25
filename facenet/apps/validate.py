@@ -25,16 +25,19 @@ def main(**args_):
     args = config.Validate(args_)
 
     dbase = dataset.DBase(args.dataset)
+    dbase.write_report(args.file)
     print(dbase)
 
     embeddings = facenet.Embeddings(dbase, args)
+    embeddings.write_report(args.file)
     print(embeddings)
 
     validate = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, args.validate)
-    validate.write_report(info=(str(dbase), str(embeddings)))
+    validate.write_report(args.file)
     print(validate)
 
     ioutils.write_elapsed_time(args.validate.file, start_time)
+    print('Report has been written to teh file', args.validate.file)
 
 
 if __name__ == '__main__':

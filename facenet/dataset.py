@@ -6,7 +6,7 @@ from cached_property import cached_property
 import numpy as np
 from pathlib import Path
 
-from facenet import utils, h5utils
+from facenet import ioutils, h5utils
 
 
 class ImageClass:
@@ -185,6 +185,10 @@ class DBase:
             test.append(test_)
 
         return DBase(self, classes=train), DBase(self, classes=test)
+
+    def write_report(self, file):
+        info = 64 * '-' + '\n' + str(self)
+        ioutils.write_to_file(file, info)
 
     # def extract_data(self, folder_idx, embeddings=None):
     #     indices = np.where(self.labels == folder_idx)[0]

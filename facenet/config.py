@@ -104,17 +104,17 @@ class Validate(YAMLConfig):
         if not self.model:
             self.model = DefaultConfig().model
 
-        if not self.validate.file:
-            self.validate.file = Path(self.model).expanduser().joinpath('report.txt')
+        if not self.file:
+            self.file = Path(self.model).expanduser().joinpath('report.txt')
         else:
-            self.validate.file = Path(self.validate.file).expanduser()
+            self.file = Path(self.file).expanduser()
 
         if not self.batch_size:
             self.batch_size = DefaultConfig().batch_size
 
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.validate.file.parent)
-        ioutils.store_revision_info(self.validate.file, sys.argv)
+        ioutils.write_arguments(self, self.file.parent)
+        ioutils.store_revision_info(self.file, sys.argv)
 
 
 class TrainOptions(YAMLConfig):
