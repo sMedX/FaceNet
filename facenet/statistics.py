@@ -245,7 +245,7 @@ class FaceToFaceValidation:
                 'metric: {}\n\n'.format(self.config.metric))
         for r in self.reports:
             info += str(r)
-        info += 'elapsed_time: {}'.format(self.elapsed_time)
+        info += 'elapsed_time: {}\n'.format(self.elapsed_time)
         return info
 
     def _evaluate(self):
