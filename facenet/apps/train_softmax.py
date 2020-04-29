@@ -53,9 +53,15 @@ def main(**args_):
     network = importlib.import_module(args.model.module)
 
     dbase = dataset.DBase(args.dataset)
-    dbase, val_dbase = dbase.random_split(args.validate)
+    dbase, dbase_val = dbase.random_split(args.validate)
+    ioutils.write_text_log(args.txtfile, str(dbase))
+    ioutils.write_text_log(args.txtfile, str(dbase_val))
     print('train dbase:', dbase)
-    print('validate dbase:', val_dbase)
+    print('validate dbase:', dbase_val)
+
+    dbase_emb = dataset.DBase(args.validate.dataset)
+    ioutils.write_text_log(args.txtfile, str(dbase_emb))
+    print(dbase)
 
     tf.reset_default_graph()
     tf.Graph().as_default()
@@ -193,25 +199,21 @@ def main(**args_):
                 # perform validation
                 epoch1 = epoch + 1
                 if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
-                    validate(args, sess, epoch, val_dbase, enqueue_op, placeholders, val_tensor_dict, val_summary, info)
+                    validate(args, sess, epoch, dbase_val, enqueue_op, placeholders, val_tensor_dict, val_summary, info)
 
-    facenet.save_freeze_graph(model_dir=args.model.path)
+                    # perform face-to-face validation
+                    pbfile = facenet.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch))
+                    embeddings = facenet.Embeddings(dbase_emb, args.validate, model=pbfile)
+                    ioutils.write_text_log(args.txtfile, str(embeddings))
+                    print(embeddings)
+
+                    validation = statistics.FaceToFaceValidation(embeddings.data, dbase_emb.labels, args.validate.validate)
+                    ioutils.write_text_log(args.txtfile, str(validation))
+                    h5utils.write_dict(args.h5file, validation.dict, group='validate')
+                    print(validation)
+
     ioutils.write_elapsed_time(args.h5file, start_time)
-
-    # perform validation
-    if args.validate:
-        conf = args.validate
-        dbase = dataset.DBase(conf.dataset)
-        dbase.write_report(conf.file)
-        print(dbase)
-
-        embeddings = facenet.Embeddings(dbase, conf, model=args.model.path)
-        embeddings.write_report(conf.file)
-        print(embeddings)
-
-        validation = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, conf.validate)
-        validation.write_report(conf.file)
-        print(validation)
+    ioutils.write_elapsed_time(args.txtfile, start_time)
 
     print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
     print('Logs have been saved to the directory: {}'.format(args.logs))
