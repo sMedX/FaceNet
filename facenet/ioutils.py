@@ -203,3 +203,10 @@ def write_to_file(file, s, mode='w'):
     file = Path(file).expanduser()
     with file.open(mode=mode) as f:
         f.write(s)
+
+
+def write_text_log(file, info):
+    info = 64 * '-' + '\n' + info
+
+    with file.open(mode='a') as f:
+        f.write(info)
