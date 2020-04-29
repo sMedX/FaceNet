@@ -686,9 +686,9 @@ def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
         print('saving meta graph:', metagraph_filename)
 
 
-def save_freeze_graph(model_dir, output_file=None):
+def save_freeze_graph(model_dir, output_file=None, suffix=''):
     if output_file is None:
-        output_file = model_dir.joinpath(model_dir.name + '.pb')
+        output_file = model_dir.joinpath(model_dir.name + suffix + '.pb')
     else:
         output_file = output_file.expanduser()
 
@@ -716,6 +716,8 @@ def save_freeze_graph(model_dir, output_file=None):
         with tf.gfile.GFile(str(output_file), 'wb') as f:
             f.write(output_graph_def.SerializeToString())
         print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
+
+    return output_file
 
 
 def learning_rate_value(epoch, config):
