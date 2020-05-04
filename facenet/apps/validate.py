@@ -37,7 +37,7 @@ def main(**args_):
     print(validate)
 
     ioutils.write_elapsed_time(args.file, start_time)
-    print('Report has been written to teh file', args.validate.file)
+    print('Report has been written to teh file', args.file)
 
 
 if __name__ == '__main__':
