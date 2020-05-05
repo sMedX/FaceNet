@@ -17,8 +17,7 @@ config:
   embedding_size: 512
 
 # Keep probability of dropout for the fully connected layer(s).
-  keep_probability: 1.0
+  keep_probability: 0.4
 
 # L2 weight regularization.
-  weight_decay: 0.0
-
+  weight_decay: 0.0005
