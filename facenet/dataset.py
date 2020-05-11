@@ -1,11 +1,12 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
+from tqdm import tqdm
 from cached_property import cached_property
 import numpy as np
 from pathlib import Path
 
-from facenet import utils, h5utils
+from facenet import ioutils, h5utils
 
 
 class ImageClass:
@@ -24,7 +25,7 @@ class ImageClass:
                 h5file = Path(config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if config.nrof_images is not None:
+            if config.nrof_images:
                 if len(files) > config.nrof_images:
                     files = np.random.choice(files, size=config.nrof_images, replace=False)
 
@@ -32,7 +33,7 @@ class ImageClass:
         self.files.sort()
 
     def __repr__(self):
-        return 'name: {}, images: {}'.format(self.name, self.nrof_images)
+        return '{} ({}/{})'.format(self.__class__.__name__, self.name, self.nrof_images)
 
     def __bool__(self):
         return True if self.nrof_images > 1 else False
@@ -51,9 +52,14 @@ class ImageClass:
             files = np.random.choice(files, size=nrof_images, replace=False)
         return ImageClass(self, files=files)
 
-    def random_split(self, split_ratio=0.05):
-        index = round(self.nrof_images * (1-split_ratio))
-        return ImageClass(self, files=self.files[:index]), ImageClass(self, files=self.files[index:])
+    def random_split(self, split_ratio=0.05, nrof_images=None):
+        index = round(self.nrof_images * split_ratio)
+        if nrof_images:
+            index = min(index, nrof_images)
+
+        files = np.random.permutation(self.files)
+
+        return ImageClass(self, files=files[index:]), ImageClass(self, files=files[:index])
 
 
 class DBase:
@@ -72,24 +78,28 @@ class DBase:
                 self.h5file = Path(self.h5file).expanduser()
 
             dirs = [p for p in self.path.glob('*') if p.is_dir()]
-            if config.nrof_classes is not None:
+            if config.nrof_classes:
                 dirs = np.random.choice(dirs, size=config.nrof_classes, replace=False)
             dirs.sort()
 
             classes = []
 
-            for idx, path in enumerate(dirs):
-                config.path = path
-                images = ImageClass(config, ext=ext)
-                if images:
-                    classes.append(images)
-                    print('\r({}/{}) {}'.format(idx, len(dirs), str(images)), end=utils.end(idx, len(dirs)))
+            with tqdm(total=len(dirs)) as bar:
+                for idx, path in enumerate(dirs):
+                    config.path = path
+                    images = ImageClass(config, ext=ext)
+                    if images:
+                        classes.append(images)
+
+                    bar.set_postfix_str('{}'.format(str(images)))
+                    bar.update()
 
         self.classes = classes
 
     def __repr__(self):
         """Representation of the database"""
-        return ('{}({})\n'.format(self.__class__.__name__, self.path) +
+        info = ('{}\n'.format(self.__class__.__name__) +
+                '{}\n'.format(self.path) +
                 'h5 file to filter images {}\n'.format(self.h5file) +
                 'Number of classes {} \n'.format(self.nrof_classes) +
                 'Number of images {}\n'.format(self.nrof_images) +
@@ -98,6 +108,7 @@ class DBase:
                 'Number of negative pairs {} \n'.format(self.nrof_negative_pairs) +
                 'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
                 'Maximal number of images in class {}\n'.format(self.max_nrof_images))
+        return info
 
     def __bool__(self):
         return True if self.nrof_classes > 1 else False
@@ -164,16 +175,20 @@ class DBase:
 
         return DBase(self, classes=classes)
 
-    def random_split(self, split_ratio=0.05):
+    def random_split(self, config):
         train = []
         test = []
 
         for cls in self.classes:
-            train_, test_ = cls.random_split(split_ratio=split_ratio)
+            train_, test_ = cls.random_split(config.split_ratio, nrof_images=config.nrof_images)
             train.append(train_)
             test.append(test_)
 
         return DBase(self, classes=train), DBase(self, classes=test)
+
+    def write_report(self, file):
+        info = 64 * '-' + '\n' + str(self)
+        ioutils.write_to_file(file, info)
 
     # def extract_data(self, folder_idx, embeddings=None):
     #     indices = np.where(self.labels == folder_idx)[0]

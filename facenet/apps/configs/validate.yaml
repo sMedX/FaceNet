@@ -18,15 +18,15 @@ dataset:
   # Maximal number of images to download from class
   nrof_images: none
 
-validation:
+validate:
+  # File to write statistical report
+  file: none
   # Number of folds to use for cross validation. Mainly used for testing
   nrof_folds: 10
   # Distance metric  0: euclidean, 1: cosine similarity
   metric: 1
   # Target false alarm rate (face pairs that was incorrectly classified as the same)
   far_target: 0.001
-  # File to write statistical report
-  file: none
 
 image:
   # Performs standardization of images

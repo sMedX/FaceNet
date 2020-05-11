@@ -38,7 +38,7 @@ from tensorflow.python.ops import data_flow_ops
 import math
 from pathlib import Path
 
-from facenet import utils, h5utils
+from facenet import utils, ioutils, h5utils
 
 
 class Placeholders:
@@ -346,7 +346,7 @@ def load_model(model, input_map=None):
     else:
         pb_file = model_exp.joinpath(model_exp.name + '.pb')
 
-        if pb_file.is_file():
+        if pb_file.exists():
             load_model(pb_file, input_map=input_map)
         else:
             print('Model directory: {}'.format(model_exp))
@@ -686,9 +686,9 @@ def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
         print('saving meta graph:', metagraph_filename)
 
 
-def save_freeze_graph(model_dir, output_file=None):
+def save_freeze_graph(model_dir, output_file=None, suffix=''):
     if output_file is None:
-        output_file = model_dir.joinpath(model_dir.name + '.pb')
+        output_file = model_dir.joinpath(model_dir.name + suffix + '.pb')
     else:
         output_file = output_file.expanduser()
 
@@ -717,6 +717,8 @@ def save_freeze_graph(model_dir, output_file=None):
             f.write(output_graph_def.SerializeToString())
         print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
 
+    return output_file
+
 
 def learning_rate_value(epoch, config):
     if config.value is not None:
@@ -734,7 +736,7 @@ class Embeddings:
     def __init__(self, dbase, config, model=None):
         self.config = config
         self.dbase = dbase
-        self.embeddings = None
+        self.data = None
         self.elapsed_time = None
 
         if model is not None:
@@ -825,34 +827,37 @@ class Embeddings:
 
         print('')
 
-        self.embeddings = np.zeros((self.dbase.nrof_images, embedding_size * nrof_flips))
+        self.data = np.zeros((self.dbase.nrof_images, embedding_size * nrof_flips))
 
         if self.config.image.use_flipped_images:
             # Concatenate embeddings for flipped and non flipped version of the images
-            self.embeddings[:, :embedding_size] = emb_array[0::2, :]
-            self.embeddings[:, embedding_size:] = emb_array[1::2, :]
+            self.data[:, :embedding_size] = emb_array[0::2, :]
+            self.data[:, embedding_size:] = emb_array[1::2, :]
         else:
-            self.embeddings = emb_array
+            self.data = emb_array
 
         assert np.array_equal(lab_array, np.arange(nrof_images)), \
             'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
 
     def __repr__(self):
-        info = 'class {}\n'.format(self.__class__.__name__) + \
-               'model: {}\n'.format(self.config.model) + \
-               'embedding size: {}\n'.format(self.embeddings.shape) + \
-               'elapsed time  : {}\n'.format(self.elapsed_time) + \
-               'time per image: {}\n'.format(self.elapsed_time / self.embeddings.shape[0])
+        info = ('{}\n'.format(self.__class__.__name__) +
+                'model: {}\n'.format(self.config.model) +
+                'embedding size: {}\n'.format(self.data.shape) +
+                'elapsed time  : {}\n'.format(self.elapsed_time) +
+                'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0]))
         return info
+
+    def write_report(self, file):
+        info = 64 * '-' + '\n' + str(self)
+        ioutils.write_to_file(file, info, mode='a')
 
 
 class Summary:
-    def __init__(self, summary_writer, h5file, tag=None):
+    def __init__(self, summary_writer, h5file, tag=''):
         self._summary_writer = summary_writer
         self._h5file = h5file
+        self._counts = {}
         self._tag = tag
-        self._elapsed_time_count = 0
-        self._count = 0
 
     @staticmethod
     def get_info_str(output):
@@ -865,33 +870,48 @@ class Summary:
 
         return info[1:]
 
-    def write_tf_summary(self, output):
-        self._count += 1
+    @property
+    def tag(self):
+        return self._tag
 
+    def _count(self, name):
+        if name not in self._counts.keys():
+            self._counts[name] = -1
+        self._counts[name] += 1
+        return self._counts[name]
+
+    def write_tf_summary(self, output, tag=None):
         if output.get('summary_op'):
-            self._summary_writer.add_summary(output['summary_op'], global_step=self._count - 1)
+            self._summary_writer.add_summary(output['summary_op'], global_step=self._count('summary_op'))
 
         if output.get('tensor_op'):
             output = output['tensor_op']
 
-        tag = self._tag + '/' if self._tag else ''
+        if tag is None:
+            tag = self.tag
+
         summary = tf.Summary()
 
-        for key, value in output.items():
-            summary.value.add(tag=tag + key, simple_value=value)
-        self._summary_writer.add_summary(summary, global_step=self._count - 1)
+        def add_summary(dct, tag):
+            tag = tag + '/' if tag else ''
+            for key, value in dct.items():
+                if isinstance(value, dict):
+                    add_summary(value, tag + key)
+                else:
+                    summary.value.add(tag=tag + key, simple_value=value)
+
+        add_summary(output, tag)
+        self._summary_writer.add_summary(summary, global_step=self._count(tag))
 
     def write_h5_summary(self, output):
         h5utils.write_dict(self._h5file, output, group=self._tag)
 
     def write_elapsed_time(self, value):
-        self._elapsed_time_count += 1
-
-        tag = self._tag + '/time' if self._tag else 'time'
+        tag = self._tag + '/time' if self.tag else 'time'
 
         summary = tf.Summary()
         summary.value.add(tag=tag, simple_value=value)
-        self._summary_writer.add_summary(summary, global_step=self._elapsed_time_count - 1)
+        self._summary_writer.add_summary(summary, global_step=self._count('elapsed_time'))
 
-        h5utils.write_dict(self._h5file, {'time': value}, group=self._tag)
+        h5utils.write(self._h5file, tag, value)
 

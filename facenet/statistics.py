@@ -7,17 +7,19 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import sys
+from tqdm import tqdm
 
 import time
 import datetime
 import numpy as np
+from collections import Iterable
 import sklearn
 from sklearn.model_selection import KFold
 from scipy import spatial, interpolate
 from scipy.optimize import brentq
 from pathlib import Path
 
-from facenet import utils, ioutils
+from facenet import utils, ioutils, h5utils
 
 
 def pairwise_similarities(xa, xb=None, metric=0, atol=1.e-5):
@@ -162,65 +164,69 @@ class Report:
         self.conf_matrix_train = []
         self.conf_matrix_test = []
 
+    def __repr__(self):
+        dct = self.dict
+
+        info = self.criterion + '\n'
+
+        info += ('Area under curve (AUC): {:1.5f}\n'.format(dct['auc']) +
+                 'Equal error rate (EER): {:1.5f}\n'.format(dct['eer']) + '\n'
+                 )
+
+        info += ('Accuracy:  {:2.5f}+-{:2.5f}\n'.format(dct['accuracy'], dct['accuracy_std']) +
+                 'Precision: {:2.5f}+-{:2.5f}\n'.format(dct['precision'], std(dct['precision_std'])) +
+                 'Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.format(dct['tp_rates'], dct['tp_rates_std']) +
+                 'Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.format(dct['tn_rates'], dct['tn_rates_std']) +
+                 'Threshold: {:2.5f}+-{:2.5f}\n'.format(dct['threshold'], dct['threshold_std']) + '\n'
+                 )
+        return info
+
     def append_fold(self, name, conf_matrix):
         if name == 'train':
             self.conf_matrix_train.append(conf_matrix)
         else:
             self.conf_matrix_test.append(conf_matrix)
 
-    def __repr__(self):
+    @property
+    def dict(self):
+        tp_rates = np.mean(np.array([m.tp_rates for m in self.conf_matrix_train]), axis=0)
+        tn_rates = np.mean(np.array([m.tn_rates for m in self.conf_matrix_train]), axis=0)
 
-        tp_rates = [m.tp_rates for m in self.conf_matrix_train]
-        tn_rates = [m.tn_rates for m in self.conf_matrix_train]
-
-        tp_rates = np.mean(np.array(tp_rates), axis=0)
-        tn_rates = np.mean(np.array(tn_rates), axis=0)
+        dct = {'auc': -1, 'eer': -1}
+        try:
+            dct['auc'] = sklearn.metrics.auc(1 - tn_rates, tp_rates)
+        except:
+            pass
 
         try:
-            auc = sklearn.metrics.auc(1 - tn_rates, tp_rates)
+            dct['eer'] = brentq(lambda x: 1. - x - interpolate.interp1d(1 - tn_rates, tp_rates)(x), 0., 1.)
         except:
-            auc = -1
+            pass
 
-        try:
-            eer = brentq(lambda x: 1. - x - interpolate.interp1d(1 - tn_rates, tp_rates)(x), 0., 1.)
-        except:
-            eer = -1
+        def get(name):
+            return [m.__getattribute__(name) for m in self.conf_matrix_test]
 
-        info = 'Area under curve (AUC): {:1.5f}\n'.format(auc) + \
-               'Equal error rate (EER): {:1.5f}\n'.format(eer) + '\n'
+        for key in ('accuracy', 'precision', 'tp_rates', 'tn_rates', 'threshold'):
+            x = get(key)
+            dct[key] = np.mean(x)
+            dct[key + '_std'] = np.std(x)
 
-        for i, criterion in enumerate(self.criterion):
-
-            accuracy = [m.accuracy[i] for m in self.conf_matrix_test]
-            precision = [m.precision[i] for m in self.conf_matrix_test]
-            tp_rates = [m.tp_rates[i] for m in self.conf_matrix_test]
-            tn_rates = [m.tn_rates[i] for m in self.conf_matrix_test]
-            threshold = [m.threshold[i] for m in self.conf_matrix_test]
-
-            info += criterion + '\n' \
-                'Accuracy:  {:2.5f}+-{:2.5f}\n'.format(mean(accuracy), std(accuracy)) + \
-                'Precision: {:2.5f}+-{:2.5f}\n'.format(mean(precision), std(precision)) + \
-                'Sensitivity (TPR, 1-a type 1 error): {:2.5f}+-{:2.5f}\n'.format(mean(tp_rates), std(tp_rates)) + \
-                'Specificity (TNR, 1-b type 2 error): {:2.5f}+-{:2.5f}\n'.format(mean(tn_rates), std(tn_rates)) + \
-                'Threshold: {:2.5f}+-{:2.5f}\n'.format(mean(threshold), std(threshold)) + \
-                '\n'
-
-        return info
+        return dct
 
 
-class Validation:
+class FaceToFaceValidation:
     def __init__(self, embeddings, labels, config):
         """
         :param embeddings:
         :param labels:
         """
-        self.report_file = None
+        self.elapsed_time = time.monotonic()
         self.embeddings = embeddings
         self.labels = labels
         assert (embeddings.shape[0] == len(labels))
 
-        self.report = None
         self.config = config
+        self.reports = None
 
         if self.config.metric == 0:
             upper_threshold = 4
@@ -231,75 +237,78 @@ class Validation:
 
         self.thresholds = np.linspace(0, upper_threshold, 100)
 
-        self.start_time = time.monotonic()
-        self.elapsed_time = None
-
         self._evaluate()
+
+    def __repr__(self):
+        """Representation of the database"""
+        info = ('{}\n'.format(self.__class__.__name__) +
+                'metric: {}\n\n'.format(self.config.metric))
+        for r in self.reports:
+            info += str(r)
+        info += 'elapsed_time: {}\n'.format(self.elapsed_time)
+        return info
 
     def _evaluate(self):
         k_fold = KFold(n_splits=self.config.nrof_folds, shuffle=True, random_state=0)
         indices = np.arange(len(self.labels))
 
-        criterion = ('Maximum accuracy criterion',
-                     'False alarm rate target criterion (FAR = {})'.format(self.config.far_target))
-        self.report = Report(criterion=criterion)
+        self.reports = (
+            Report(criterion='MaximumAccuracy'),
+            Report(criterion='FalseAlarmRate(FAR = {})'.format(self.config.far_target))
+        )
 
-        for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-            print('\rvalidation {}/{}'.format(fold_idx+1, self.config.nrof_folds), end=utils.end(fold_idx, self.config.nrof_folds))
+        with tqdm(total=k_fold.n_splits) as bar:
+            for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+                # evaluations with train set and define the best threshold for the fold
+                calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
 
-            # evaluations with train set and define the best threshold for the fold
-            calculator = SimilarityCalculator(self.embeddings[train_set], self.labels[train_set], metric=self.config.metric)
+                matrix = ConfidenceMatrix(calculator, self.thresholds)
+                for i in range(len(self.reports)):
+                    self.reports[i].append_fold('train', matrix)
 
-            matrix = ConfidenceMatrix(calculator, self.thresholds)
-            self.report.append_fold('train', matrix)
+                # find the threshold that gives maximal accuracy
+                accuracy_threshold = self.thresholds[np.argmax(matrix.accuracy)]
 
-            # find the threshold that gives maximal accuracy
-            accuracy_threshold = self.thresholds[np.argmax(matrix.accuracy)]
+                # find the threshold that gives FAR (FPR, 1-TNR) = far_target
+                far_threshold = 0
+                if np.max(matrix.fp_rates) >= self.config.far_target:
+                    f = interpolate.interp1d(matrix.fp_rates, self.thresholds, kind='slinear')
+                    far_threshold = f(self.config.far_target)
 
-            # find the threshold that gives FAR (FPR, 1-TNR) = far_target
-            far_threshold = 0
-            if np.max(matrix.fp_rates) >= self.config.far_target:
-                f = interpolate.interp1d(matrix.fp_rates, self.thresholds, kind='slinear')
-                far_threshold = f(self.config.far_target)
+                # evaluations with test set
+                calculator = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
 
-            # evaluations with test set
-            calculator = SimilarityCalculator(self.embeddings[test_set], self.labels[test_set], metric=self.config.metric)
+                self.reports[0].append_fold('test', ConfidenceMatrix(calculator, accuracy_threshold))
+                self.reports[1].append_fold('test', ConfidenceMatrix(calculator, far_threshold))
 
-            matrix = ConfidenceMatrix(calculator, [accuracy_threshold, far_threshold])
-            self.report.append_fold('test', matrix)
+                bar.set_postfix_str(self.__class__.__name__)
+                bar.update()
 
-        self.elapsed_time = time.monotonic() - self.start_time
+        self.elapsed_time = time.monotonic() - self.elapsed_time
 
-    def write_report(self, path=None, info=None):
-        if self.config.file is None:
-            self.report_file = Path(path).expanduser().joinpath('report.txt')
-        else:
-            self.report_file = Path(self.config.file).expanduser()
+    @property
+    def dict(self):
+        output = {r.criterion: r.dict for r in self.reports}
+        return output
 
-        with self.report_file.open('at') as f:
-            f.write(''.join(['-'] * 64) + '\n')
+    def write_report(self, file):
+        file = Path(file).expanduser()
+
+        with file.open('at') as f:
+            f.write(64 * '-' + '\n')
             f.write('{} {}\n'.format(self.__class__.__name__, datetime.datetime.now()))
-            f.write('elapsed time: {:.3f}\n'.format(time.monotonic() - self.start_time))
-            f.write('git hash: {}\n'.format(utils.git_hash()))
-            f.write('git diff: {}\n\n'.format(utils.git_diff()))
-            if info is not None:
-                for s in info:
-                    f.write('{}\n'.format(s))
             f.write('metric: {}\n\n'.format(self.config.metric))
-            f.write(self.report.__repr__())
+            for r in self.reports:
+                f.write(str(r))
 
-    def __repr__(self):
-        """Representation of the database"""
-        info = ('class {}\n'.format(self.__class__.__name__) +
-                self.report.__repr__() +
-                'Report has been written to the file: {}\n'.format(self.report_file))
-        return info
+    def write_h5file(self, h5file, tag=None):
+        h5utils.write_dict(h5file, self.dict, group=tag)
 
 
 class FalseExamples:
     def __init__(self, dbase, tfrecord, threshold, metric=0, subtract_mean=False):
         self.dbase = dbase
-        self.embeddings = tfrecord.embeddings
+        self.embeddings = tfrecord.data
         self.threshold = threshold
         self.metric = metric
         self.subtract_mean = subtract_mean

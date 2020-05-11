@@ -8,7 +8,7 @@ from datetime import datetime
 import importlib
 import numpy as np
 import random
-from facenet import ioutils, facenet
+from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 file_extension = '.png'
@@ -48,6 +48,24 @@ class YAMLConfig:
 
         return get_str(self)
 
+    def __getattr__(self, name):
+        return self.__dict__.get(name, YAMLConfig({}))
+
+    def __bool__(self):
+        return bool(self.__dict__)
+
+    @staticmethod
+    def check_item(s):
+        if not isinstance(s, str):
+            return s
+        if s.lower() == 'none':
+            return None
+        if s.lower() == 'false':
+            return False
+        if s.lower() == 'true':
+            return True
+        return s
+
     def update_from_dict(self, dct):
         """Update config from dict
 
@@ -57,7 +75,7 @@ class YAMLConfig:
             if isinstance(item, dict):
                 setattr(self, key, YAMLConfig(item))
             else:
-                setattr(self, key, item)
+                setattr(self, key, self.check_item(item))
 
     def update_from_file(self, path):
         """Update config from YAML file
@@ -74,19 +92,39 @@ class YAMLConfig:
     def exists(self, name):
         return True if name in self.__dict__.keys() else False
 
-    def __getattr__(self, name):
-        return self.__dict__.get(name, YAMLConfig({}))
 
-    def __bool__(self):
-        return bool(self.__dict__)
+class Validate(YAMLConfig):
+    def __init__(self, args_):
+        YAMLConfig.__init__(self, args_['config'])
+        if not self.seed:
+            self.seed = 0
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+
+        if not self.model:
+            self.model = DefaultConfig().model
+
+        if not self.file:
+            self.file = Path(self.model).expanduser().joinpath('report.txt')
+        else:
+            self.file = Path(self.file).expanduser()
+
+        if not self.batch_size:
+            self.batch_size = DefaultConfig().batch_size
+
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.file.parent)
+        ioutils.store_revision_info(self.file, sys.argv)
 
 
 class TrainOptions(YAMLConfig):
     def __init__(self, args_, subdir=None):
         YAMLConfig.__init__(self, args_['config'])
 
-        np.random.seed(self.seed)
+        if not self.seed:
+            self.seed = 0
         random.seed(self.seed)
+        np.random.seed(self.seed)
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
@@ -94,7 +132,8 @@ class TrainOptions(YAMLConfig):
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
 
         self.logs = self.model.path.joinpath('logs')
-        self.h5file = self.logs.joinpath('statistics.h5')
+        self.h5file = self.logs.joinpath('report.h5')
+        self.txtfile = self.logs.joinpath('report.txt')
 
         if self.model.config is None:
             network = importlib.import_module(self.model.module)
@@ -107,11 +146,13 @@ class TrainOptions(YAMLConfig):
         if self.train.learning_rate.schedule:
             self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
-        if self.validation:
-            self.validation.batch_size = self.batch_size
-            self.validation.image.size = self.image.size
-            self.validation.image.standardization = self.image.standardization
-            self.validation.validation.file = None
+        if self.validate:
+            self.validate.batch_size = self.batch_size
+            self.validate.image.size = self.image.size
+            self.validate.image.standardization = self.image.standardization
+
+        if not self.validate.file:
+            self.validate.file = Path(self.model.path).expanduser().joinpath('report.txt')
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
@@ -125,3 +166,6 @@ class DefaultConfig:
 
         # image size (height, width) in pixels
         self.image_size = 160
+
+        # batch size (number of images to process in a batch
+        self.batch_size = 100

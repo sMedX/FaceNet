@@ -9,7 +9,6 @@ in the same directory, and the metagraph should have the extension '.meta'.
 
 import click
 import time
-import numpy as np
 from pathlib import Path
 
 from facenet import dataset, config, statistics, facenet, ioutils
@@ -23,20 +22,22 @@ DefaultConfig = config.DefaultConfig()
 def main(**args_):
     start_time = time.monotonic()
 
-    args = config.YAMLConfig(args_['config'])
-    np.random.seed(args.seed)
+    args = config.Validate(args_)
 
     dbase = dataset.DBase(args.dataset)
+    dbase.write_report(args.file)
     print(dbase)
 
-    emb = facenet.Embeddings(dbase, args)
-    print(emb)
+    embeddings = facenet.Embeddings(dbase, args)
+    embeddings.write_report(args.file)
+    print(embeddings)
 
-    validation = statistics.Validation(emb.embeddings, dbase.labels, args.validation)
-    validation.write_report(path=args.model, info=(dbase.__repr__(), emb.__repr__()))
-    print(validation)
+    validate = statistics.FaceToFaceValidation(embeddings.data, dbase.labels, args.validate)
+    validate.write_report(args.file)
+    print(validate)
 
-    ioutils.elapsed_time(validation.report_file, start_time)
+    ioutils.write_elapsed_time(args.file, start_time)
+    print('Report has been written to teh file', args.file)
 
 
 if __name__ == '__main__':

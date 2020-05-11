@@ -1,25 +1,29 @@
 # coding:utf-8
 __author__ = 'Ruslan N. Kosarev'
 
-import os
 import numpy as np
 import h5py
 from pathlib import Path
 
 
 def write_dict(file, dct, group=None):
-    group = group + '/' if group else ''
-
     with h5py.File(str(file), mode='a') as hf:
-        for key, data in dct.items():
-            name = group + key
-            data = np.atleast_1d(data)
+        def _write(dct, group=None):
+            group = group + '/' if group else ''
 
-            if name in hf:
-                hf[name].resize(hf[name].shape[0] + data.shape[0], axis=0)
-                hf[name][-data.shape[0]:] = data
-            else:
-                hf.create_dataset(name, data=data, maxshape=(None,), compression='gzip', dtype=data.dtype)
+            for key, item in dct.items():
+                name = group + key
+                if isinstance(item, dict):
+                    _write(item, name)
+                else:
+                    data = np.atleast_1d(item)
+                    if name in hf:
+                        hf[name].resize(hf[name].shape[0] + data.shape[0], axis=0)
+                        hf[name][-data.shape[0]:] = data
+                    else:
+                        hf.create_dataset(name, data=data, maxshape=(None,), compression='gzip', dtype=data.dtype)
+
+        _write(dct, group=group)
 
 
 def filename2key(filename, key):
@@ -39,22 +43,16 @@ def write_image(hf, name, image, mode='a', check_name=True):
             hf.create_dataset(name=name, data=image, dtype='uint8', compression='gzip', compression_opts=9)
 
 
-def write(filename, name, data, mode='a'):
-    filename = os.path.expanduser(str(filename))
+def write(file, name, data, mode='a'):
+    file = Path(file).expanduser()
     name = str(name)
+    data = np.atleast_1d(data)
 
-    with h5py.File(filename, mode=mode) as hf:
+    with h5py.File(file, mode=mode) as hf:
         if name in hf:
-            del hf[name]
-
-        data = np.atleast_1d(data)
-
-        hf.create_dataset(name,
-                          data=data,
-                          compression='gzip',
-                          dtype=data.dtype)
-
-    # print('dataset \'{}\' has been written to the file {} (length {})'.format(name, filename, len(data)))
+            hf[name][...] = data
+        else:
+            hf.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
 
 
 def read(file, name, default=None):
