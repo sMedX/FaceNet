@@ -202,7 +202,7 @@ def main(**args_):
                     validate(args, sess, epoch, dbase_val, enqueue_op, placeholders, val_tensor_dict, val_summary, info)
 
                     # perform face-to-face validation
-                    pbfile = facenet.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch1))
+                    pbfile = facenet.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch))
                     embeddings = facenet.Embeddings(dbase_emb, args.validate, model=pbfile)
                     ioutils.write_text_log(args.txtfile, str(embeddings))
                     print(embeddings)
