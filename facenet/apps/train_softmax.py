@@ -210,6 +210,9 @@ def main(**args_):
                     validation = statistics.FaceToFaceValidation(embeddings.data, dbase_emb.labels, args.validate.validate)
                     ioutils.write_text_log(args.txtfile, str(validation))
                     h5utils.write_dict(args.h5file, validation.dict, group='validate')
+                    for key, value in validation.dict.items():
+                        val_summary.write_tf_summary(value, tag='{}_{}'.format('validate', key))
+
                     print(validation)
 
     ioutils.write_elapsed_time(args.h5file, start_time)
