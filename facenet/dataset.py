@@ -9,6 +9,17 @@ from pathlib import Path
 from facenet import ioutils, h5utils
 
 
+class Config:
+    def __init_(self, path, h5file=None, nrof_classes=None, nrof_images=None):
+        self.path = path
+        # Path to h5 file with information about valid images.
+        self.h5file = h5file
+        # Number of classes to download from data set
+        self.nrof_classes = nrof_classes
+        # Maximal number of images to download from class
+        self.nrof_images = nrof_images
+
+
 class ImageClass:
     """
     Stores the paths to images for a given class
