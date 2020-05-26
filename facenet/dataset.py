@@ -10,7 +10,7 @@ from facenet import ioutils, h5utils
 
 
 class Config:
-    def __init_(self, path, h5file=None, nrof_classes=None, nrof_images=None):
+    def __init__(self, path, h5file=None, nrof_classes=None, nrof_images=None):
         self.path = path
         # Path to h5 file with information about valid images.
         self.h5file = h5file
