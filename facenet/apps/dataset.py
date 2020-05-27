@@ -12,7 +12,7 @@ from facenet import dataset
 
 @click.command()
 @click.option('--path', type=Path,
-              help='Path to yaml config file with used options of the application.')
+              help='Path to data set directory.')
 def main(**args):
     config = dataset.Config(args['path'])
     dbase = dataset.DBase(config)
