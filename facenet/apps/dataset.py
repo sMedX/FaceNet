@@ -3,7 +3,7 @@
 """
 # MIT License
 # 
-# Copyright (c) 2019 sMedX
+# Copyright (c) 2020 sMedX
 # 
 import click
 from pathlib import Path
