@@ -11,6 +11,8 @@ import random
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
+default_model = src_dir.joinpath('models', '20200520-001709')
+
 file_extension = '.png'
 
 
