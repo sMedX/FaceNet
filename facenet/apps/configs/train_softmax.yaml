@@ -12,8 +12,10 @@ dataset:
   h5file:
   # Number of classes to download from data set
   nrof_classes:
-  # Maximal number of images to download from class
-  nrof_images:
+  # Minimal number of images per class to download from class
+  min_nrof_images:
+  # Maximal number of images per class to download from class
+  max_nrof_images:
 
 # Model definition
 model:
@@ -91,8 +93,10 @@ validate:
     h5file:
     # Number of classes to download from data set
     nrof_classes:
-    # Maximal number of images to download from class
-    nrof_images: 50
+    # Minimal number of images per class to download from class
+    min_nrof_images:
+    # Maximal number of images per class to download from class
+    max_nrof_images: 50
 
   validate:
     # Distance metric  0: euclidean, 1: cosine similarity

@@ -10,14 +10,16 @@ from facenet import ioutils, h5utils
 
 
 class Config:
-    def __init__(self, path, h5file=None, nrof_classes=None, nrof_images=None):
+    def __init__(self, path, h5file=None, nrof_classes=None, min_nrof_images=1, max_nrof_images=None):
         self.path = path
         # Path to h5 file with information about valid images.
         self.h5file = h5file
         # Number of classes to download from data set
         self.nrof_classes = nrof_classes
+        # Minimal number of images to download from class
+        self.min_nrof_images = min_nrof_images
         # Maximal number of images to download from class
-        self.nrof_images = nrof_images
+        self.max_nrof_images = max_nrof_images
 
 
 class ImageClass:
@@ -26,6 +28,7 @@ class ImageClass:
     """
 
     def __init__(self, config, files=None, ext=''):
+        self.config = config
         self.path = Path(config.path).expanduser()
         self.name = self.path.stem
 
@@ -36,9 +39,9 @@ class ImageClass:
                 h5file = Path(config.h5file).expanduser()
                 files = [f for f in files if h5utils.read(h5file, h5utils.filename2key(f, 'is_valid'), default=True)]
 
-            if config.nrof_images:
-                if len(files) > config.nrof_images:
-                    files = np.random.choice(files, size=config.nrof_images, replace=False)
+            if config.max_nrof_images:
+                if len(files) > config.max_nrof_images:
+                    files = np.random.choice(files, size=config.max_nrof_images, replace=False)
 
         self.files = [str(f) for f in files]
         self.files.sort()
@@ -47,7 +50,7 @@ class ImageClass:
         return '{} ({}/{})'.format(self.__class__.__name__, self.name, self.nrof_images)
 
     def __bool__(self):
-        return True if self.nrof_images > 1 else False
+        return True if self.nrof_images > self.config.min_nrof_images else False
 
     @property
     def nrof_images(self):

@@ -133,6 +133,12 @@ class TrainOptions(YAMLConfig):
         else:
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
 
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
+
+        if not self.validate.dataset.min_nrof_images:
+            self.validate.dataset.min_nrof_images = 1
+
         self.logs = self.model.path.joinpath('logs')
         self.h5file = self.logs.joinpath('report.h5')
         self.txtfile = self.logs.joinpath('report.txt')
