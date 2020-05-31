@@ -96,19 +96,17 @@ class DBase:
                 dirs = np.random.choice(dirs, size=config.nrof_classes, replace=False)
             dirs.sort()
 
-            classes = []
+            self.classes = []
 
             with tqdm(total=len(dirs)) as bar:
                 for idx, path in enumerate(dirs):
                     config.path = path
                     images = ImageClass(config, ext=ext)
                     if images:
-                        classes.append(images)
+                        self.classes.append(images)
 
                     bar.set_postfix_str('{}'.format(str(images)))
                     bar.update()
-
-        self.classes = classes
 
     def __repr__(self):
         """Representation of the database"""
