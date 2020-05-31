@@ -104,9 +104,8 @@ class DBase:
                     images = ImageClass(config, ext=ext)
                     if images:
                         self.classes.append(images)
-
-                    bar.set_postfix_str('{}'.format(str(images)))
-                    bar.update()
+                        bar.set_postfix_str('{}'.format(str(images)))
+                        bar.update()
 
     def __repr__(self):
         """Representation of the database"""
