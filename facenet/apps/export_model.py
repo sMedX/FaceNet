@@ -3,11 +3,11 @@ and exports the model as a graphdef protobuf
 """
 # MIT License
 # 
-# Copyright (c) 2019 sMedX
+# Copyright (c) 2020 sMedX
 
 import click
 import pathlib
-from facenet import tfutils, config, facenet
+from facenet import tfutils, config
 
 
 @click.command()
