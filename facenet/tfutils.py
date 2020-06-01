@@ -75,10 +75,11 @@ def load_model(path, input_map=None):
             load_model(pb_file, input_map=input_map)
         else:
             print('Model directory: {}'.format(path))
-            meta_file, ckpt_file = get_model_filenames(str(path))
+            meta_file, ckpt_file = get_model_filenames(path)
 
             print('Metagraph file : {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
 
             saver = tf.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
-            saver.restore(tf.get_default_session(), str(path.joinpath(ckpt_file)))
+            with tf.Session() as sess:
+                saver.restore(sess, str(path.joinpath(ckpt_file)))
