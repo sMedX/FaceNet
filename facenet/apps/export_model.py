@@ -7,15 +7,15 @@ and exports the model as a graphdef protobuf
 
 import click
 import pathlib
-from facenet import facenet
+from facenet import tfutils, config, facenet
 
 
 @click.command()
-@click.option('--model_dir', type=pathlib.Path,
+@click.option('--model_dir', default=config.default_model, type=pathlib.Path,
               help='Directory with the meta graph and checkpoint files containing model parameters')
 def main(**args):
     model_dir = args['model_dir'].expanduser()
-    facenet.save_freeze_graph(model_dir=model_dir)
+    tfutils.save_freeze_graph(model_dir=model_dir)
 
 
 if __name__ == '__main__':
