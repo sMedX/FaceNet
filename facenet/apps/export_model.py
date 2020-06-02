@@ -2,7 +2,6 @@
 and exports the model as a graphdef protobuf
 """
 # MIT License
-# 
 # Copyright (c) 2020 sMedX
 
 import click
@@ -12,10 +11,11 @@ from facenet import tfutils, config
 
 @click.command()
 @click.option('--model_dir', default=config.default_model, type=pathlib.Path,
-              help='Directory with the meta graph and checkpoint files containing model parameters')
+              help='Directory with the meta graph and checkpoint files containing model parameters.')
+@click.option('--as_text', default=0, type=int,
+              help='If `True`, writes the graph as an ASCII proto.')
 def main(**args):
-    model_dir = args['model_dir'].expanduser()
-    tfutils.save_freeze_graph(model_dir=model_dir)
+    tfutils.save_freeze_graph(args['model_dir'], as_text=args['as_text'])
 
 
 if __name__ == '__main__':

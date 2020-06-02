@@ -66,14 +66,15 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_freeze_graph(model_dir, output_file=None, suffix=''):
+def save_freeze_graph(model_dir, output_file=None, as_text=False):
+
+    ext = '.pbtxt' if as_text else '.pb'
+
     if output_file is None:
-        output_file = model_dir.joinpath(model_dir.name + suffix + '.pb')
-    else:
-        output_file = output_file.expanduser()
+        output_file = model_dir.joinpath(model_dir.name + ext)
 
     with tf.Graph().as_default():
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             # Load the model metagraph and checkpoint
             print('Model directory: {}'.format(model_dir))
             meta_file, ckpt_file = get_model_filenames(model_dir)
@@ -81,7 +82,7 @@ def save_freeze_graph(model_dir, output_file=None, suffix=''):
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
 
-            saver = tf.train.import_meta_graph(str(model_dir.joinpath(meta_file)), clear_devices=True)
+            saver = tf.compat.v1.train.import_meta_graph(str(model_dir.joinpath(meta_file)), clear_devices=True)
             sess.run(tf.compat.v1.global_variables_initializer())
             sess.run(tf.compat.v1.local_variables_initializer())
             saver.restore(sess, str(model_dir.joinpath(ckpt_file)))
@@ -89,15 +90,13 @@ def save_freeze_graph(model_dir, output_file=None, suffix=''):
             # Retrieve the protobuf graph definition and fix the batch norm nodes
             input_graph_def = sess.graph.as_graph_def()
 
-            output_graph_def = freeze_graph_def(sess, input_graph_def, ['embeddings'])
-
-            # dest_nodes = ['input:0', 'embeddings:0']
+            # dest_nodes = ['input', 'embeddings']
             # output_graph_def = tf.compat.v1.graph_util.extract_sub_graph(input_graph_def, dest_nodes)
 
-        # Serialize and dump the output graph to the filesystem
-        with tf.io.gfile.GFile(str(output_file), 'wb') as f:
-            f.write(output_graph_def.SerializeToString())
-        print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
+            output_graph_def = freeze_graph_def(sess, input_graph_def, ['embeddings'])
+
+        tf.io.write_graph(output_graph_def, str(model_dir), output_file.name, as_text=as_text)
+        print('{} ops in the final graph: {}'.format(len(output_graph_def.node), output_file))
 
     return output_file
 
@@ -128,5 +127,5 @@ def load_model(path, input_map=None):
             print('Checkpoint file: {}'.format(ckpt_file))
 
             saver = tf.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
-            with tf.Session() as sess:
+            with tf.compat.v1.Session() as sess:
                 saver.restore(sess, str(path.joinpath(ckpt_file)))
