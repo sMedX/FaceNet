@@ -104,7 +104,7 @@ class Validate(YAMLConfig):
         np.random.seed(self.seed)
 
         if not self.model:
-            self.model = DefaultConfig().model
+            self.model = default_model
 
         if not self.file:
             self.file = Path(self.model).expanduser().joinpath('report.txt')
