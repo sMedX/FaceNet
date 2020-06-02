@@ -21,6 +21,37 @@ def get_model_filenames(model_dir):
     return meta_file, ckpt_file
 
 
+def freeze_graph_def(sess, input_graph_def, output_node_names):
+    for node in input_graph_def.node:
+        if node.op == 'RefSwitch':
+            node.op = 'Switch'
+            for index in range(len(node.input)):
+                if 'moving_' in node.input[index]:
+                    node.input[index] = node.input[index] + '/read'
+        elif node.op == 'AssignSub':
+            node.op = 'Sub'
+            if 'use_locking' in node.attr:
+                del node.attr['use_locking']
+        elif node.op == 'AssignAdd':
+            node.op = 'Add'
+            if 'use_locking' in node.attr:
+                del node.attr['use_locking']
+
+    # Get the list of important nodes
+    whitelist_names = []
+    for node in input_graph_def.node:
+        if (node.name.startswith('InceptionResnet') or node.name.startswith('embeddings') or
+                node.name.startswith('image_batch') or node.name.startswith('phase_train')):
+            whitelist_names.append(node.name)
+
+    # Replace all the variables in the graph with constants of the same values
+    output_graph_def = tf.compat.v1.graph_util.convert_variables_to_constants(sess,
+                                                                              input_graph_def,
+                                                                              output_node_names,
+                                                                              variable_names_whitelist=whitelist_names)
+    return output_graph_def
+
+
 def save_freeze_graph(model_dir, output_file=None, suffix=''):
     if output_file is None:
         output_file = model_dir.joinpath(model_dir.name + suffix + '.pb')
@@ -44,8 +75,10 @@ def save_freeze_graph(model_dir, output_file=None, suffix=''):
             # Retrieve the protobuf graph definition and fix the batch norm nodes
             input_graph_def = sess.graph.as_graph_def()
 
-            dest_nodes = ['input', 'embeddings']
-            output_graph_def = tf.compat.v1.graph_util.extract_sub_graph(input_graph_def, dest_nodes)
+            output_graph_def = freeze_graph_def(sess, input_graph_def, ['embeddings'])
+
+            # dest_nodes = ['input:0', 'embeddings:0']
+            # output_graph_def = tf.compat.v1.graph_util.extract_sub_graph(input_graph_def, dest_nodes)
 
         # Serialize and dump the output graph to the filesystem
         with tf.io.gfile.GFile(str(output_file), 'wb') as f:
