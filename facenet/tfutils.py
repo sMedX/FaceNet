@@ -39,9 +39,10 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
 
     # Get the list of important nodes
     whitelist_names = []
+    prefixes = ('InceptionResnet', )  # 'embeddings', 'image_batch', 'phase_train')
+
     for node in input_graph_def.node:
-        if (node.name.startswith('InceptionResnet') or node.name.startswith('embeddings') or
-                node.name.startswith('image_batch') or node.name.startswith('phase_train')):
+        if node.name.startswith(prefixes):
             whitelist_names.append(node.name)
 
     # Replace all the variables in the graph with constants of the same values
