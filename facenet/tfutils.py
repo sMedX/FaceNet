@@ -5,6 +5,19 @@ from pathlib import Path
 import tensorflow as tf
 
 
+def get_pb_model_filename(model_dir):
+    model_dir = Path(model_dir).expanduser()
+    pb_files = list(model_dir.glob('*.pb'))
+
+    if len(pb_files) == 0:
+        raise ValueError('No pb file found in the model directory {}.'.format(model_dir))
+
+    if len(pb_files) > 1:
+        raise ValueError('There should not be more than one pb file in the model directory {}.'.format(model_dir))
+
+    return pb_files[0]
+
+
 def get_model_filenames(model_dir):
     files = model_dir.glob('*')
     meta_files = [s for s in files if str(s).endswith('.meta')]
