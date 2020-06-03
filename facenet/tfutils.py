@@ -66,12 +66,9 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_freeze_graph(model_dir, output_file=None, as_text=False):
+def save_freeze_graph(model_dir, output_file=None, suffix='', as_text=False):
 
     ext = '.pbtxt' if as_text else '.pb'
-
-    if output_file is None:
-        output_file = model_dir.joinpath(model_dir.name + ext)
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
@@ -95,8 +92,12 @@ def save_freeze_graph(model_dir, output_file=None, as_text=False):
 
             output_graph_def = freeze_graph_def(sess, input_graph_def, ['embeddings'])
 
-        tf.io.write_graph(output_graph_def, str(model_dir), output_file.name, as_text=as_text)
-        print('{} ops in the final graph: {}'.format(len(output_graph_def.node), output_file))
+            if output_file is None:
+                output_file = model_dir.joinpath(meta_file.stem + suffix + ext)
+
+            tf.io.write_graph(output_graph_def, str(output_file.parent), output_file.name, as_text=as_text)
+
+    print('{} ops in the final graph: {}'.format(len(output_graph_def.node), output_file))
 
     return output_file
 
