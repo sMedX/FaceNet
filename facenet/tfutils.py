@@ -19,8 +19,8 @@ def get_pb_model_filename(model_dir):
 
 
 def get_model_filenames(model_dir):
-    files = model_dir.glob('*')
-    meta_files = [s for s in files if str(s).endswith('.meta')]
+    model_dir = Path(model_dir).expanduser()
+    meta_files = list(model_dir.glob('*.meta'))
 
     if len(meta_files) == 0:
         raise ValueError('No meta file found in the model directory {}.'.format(model_dir))
