@@ -3,6 +3,8 @@ __author__ = 'Ruslan N. Kosarev'
 
 from pathlib import Path
 import tensorflow as tf
+from tensorflow.python.tools.strip_unused_lib import strip_unused
+from tensorflow.python.framework import dtypes
 
 
 def get_pb_model_filename(model_dir):
@@ -66,15 +68,23 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_freeze_graph(model_dir, output_file=None, suffix='', as_text=False):
+def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, as_text=False):
 
     ext = '.pbtxt' if as_text else '.pb'
+
+    input_node_names = ['input']
+    output_node_names = ['embeddings']
+
+    input_node_types = [dtypes.float32.as_datatype_enum]
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
             # Load the model metagraph and checkpoint
             print('Model directory: {}'.format(model_dir))
             meta_file, ckpt_file = get_model_filenames(model_dir)
+
+            if output_file is None:
+                output_file = model_dir.joinpath(meta_file.stem + suffix + ext)
 
             print('Metagraph file: {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
@@ -90,10 +100,10 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', as_text=False):
             # dest_nodes = ['input', 'embeddings']
             # output_graph_def = tf.compat.v1.graph_util.extract_sub_graph(input_graph_def, dest_nodes)
 
-            output_graph_def = freeze_graph_def(sess, input_graph_def, ['embeddings'])
+            output_graph_def = freeze_graph_def(sess, input_graph_def, output_node_names)
 
-            if output_file is None:
-                output_file = model_dir.joinpath(meta_file.stem + suffix + ext)
+            if strip:
+                output_graph_def = strip_unused(output_graph_def, input_node_names, output_node_names, input_node_types)
 
             tf.io.write_graph(output_graph_def, str(output_file.parent), output_file.name, as_text=as_text)
 
