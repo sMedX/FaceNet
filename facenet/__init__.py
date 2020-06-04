@@ -11,10 +11,13 @@ from typing import Iterable
 from facenet import tfutils
 
 
-class FaceNetEmbedding:
+class FaceNet:
     def __init__(self, model):
         """
-        facenet = FaceNetEmbedding(pb_file)
+        import numpy as np
+        from facenet import FaceNet
+
+        facenet = FaceNet(pb_file)
         emb = facenet.image_to_embedding(np.zeros([160, 160, 3]))
         print(emb)
         """
