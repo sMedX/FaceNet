@@ -125,7 +125,6 @@ def load_model(path, input_map=None):
     # if it is a protobuf file with a frozen graph
 
     path = Path(path).expanduser()
-    print('load model: {}'.format(path))
 
     if path.is_file():
         print('Model filename: {}'.format(path))
@@ -134,10 +133,10 @@ def load_model(path, input_map=None):
             graph_def.ParseFromString(f.read())
             tf.import_graph_def(graph_def, input_map=input_map, name='')
     else:
-        pb_file = path.joinpath(path.name + '.pb')
+        pb_files = list(path.glob('*.pb'))
 
-        if pb_file.exists():
-            load_model(pb_file, input_map=input_map)
+        if len(pb_files) == 1:
+            load_model(pb_files[0], input_map=input_map)
         else:
             print('Model directory: {}'.format(path))
             meta_file, ckpt_file = get_model_filenames(path)
