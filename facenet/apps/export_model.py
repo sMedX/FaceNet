@@ -16,8 +16,13 @@ from facenet import tfutils, config
               help='Writes the graph as an ASCII proto.')
 @click.option('--strip', default=1, type=int,
               help='Removes unused nodes from a graph file.')
+@click.option('--optimize', default=1, type=int,
+              help='Applies optimize_for_inference for exported graph.')
 def main(**args):
-    pb_file = tfutils.save_freeze_graph(args['model_dir'], strip=args['strip'], as_text=args['as_text'])
+    pb_file = tfutils.save_freeze_graph(args['model_dir'],
+                                        strip=args['strip'],
+                                        optimize=args['optimize'],
+                                        as_text=args['as_text'])
 
 
 if __name__ == '__main__':
