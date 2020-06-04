@@ -144,6 +144,6 @@ def load_model(path, input_map=None):
             print('Metagraph file : {}'.format(meta_file))
             print('Checkpoint file: {}'.format(ckpt_file))
 
-            saver = tf.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
+            saver = tf.compat.v1.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
             with tf.compat.v1.Session() as sess:
                 saver.restore(sess, str(path.joinpath(ckpt_file)))
