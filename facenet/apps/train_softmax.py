@@ -61,7 +61,7 @@ def main(**args_):
 
     dbase_emb = dataset.DBase(args.validate.dataset)
     ioutils.write_text_log(args.txtfile, str(dbase_emb))
-    print(dbase)
+    print(dbase_emb)
 
     tf.reset_default_graph()
     tf.Graph().as_default()

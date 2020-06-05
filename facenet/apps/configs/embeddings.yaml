@@ -1,23 +1,23 @@
 # coding:utf-8
 
 # Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-model: None
+model:
 
 # Number of images to process in a batch
 batch_size: 100
 
 # Path to output tf record file
-tfrecord: None
+tfrecord:
 
 dataset:
   # Path to the data directory containing aligned face patches
-  path: None
+  path:
   # Path to h5 file with information about valid images
-  h5file: None
-  # Number of images to download from data set
-  nrof_images: None
-  # Number of classes to download from data set
-  nrof_classes: None
+  h5file:
+  # Minimal number of classes per class to download from data set
+  min_nrof_images:
+  # Maximal number of classes per class to download from data set
+  max_nrof_classes:
 
 image:
   # Image size (height, width) in pixels.

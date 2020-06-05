@@ -11,6 +11,8 @@ import random
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
+default_model = src_dir.joinpath('models', '20200520-001709')
+
 file_extension = '.png'
 
 
@@ -102,7 +104,7 @@ class Validate(YAMLConfig):
         np.random.seed(self.seed)
 
         if not self.model:
-            self.model = DefaultConfig().model
+            self.model = default_model
 
         if not self.file:
             self.file = Path(self.model).expanduser().joinpath('report.txt')
@@ -130,6 +132,12 @@ class TrainOptions(YAMLConfig):
             self.model.path = Path(self.model.path).expanduser()
         else:
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
+
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
+
+        if not self.validate.dataset.min_nrof_images:
+            self.validate.dataset.min_nrof_images = 1
 
         self.logs = self.model.path.joinpath('logs')
         self.h5file = self.logs.joinpath('report.h5')
