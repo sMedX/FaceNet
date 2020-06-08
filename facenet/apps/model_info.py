@@ -13,7 +13,6 @@ import numpy as np
 from facenet import tfutils, config
 
 path = Path('facenet/models/configs/inception_resnet_v1.yaml')
-path = config.default_model
 
 
 @click.command()
