@@ -8,6 +8,15 @@ from tensorflow.python.tools import optimize_for_inference_lib
 from tensorflow.python.framework import dtypes
 
 
+def tensor_by_name_exist(tensor_name):
+    tensor_names = [t.name for op in tf.get_default_graph().get_operations() for t in op.values()]
+
+    if tensor_name in tensor_names:
+        return True
+    else:
+        return False
+
+
 def get_pb_model_filename(model_dir):
     model_dir = Path(model_dir).expanduser()
     pb_files = list(model_dir.glob('*.pb'))
