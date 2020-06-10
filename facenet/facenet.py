@@ -753,10 +753,9 @@ class EvaluationOfEmbeddings:
             self.embeddings[i:i + self.config.batch_size, :] = facenet.image_to_embedding(image_batch)
 
     def __repr__(self):
-        info = ('{}\n'.format(self.__class__.__name__) +
+        return ('{}\n'.format(self.__class__.__name__) +
                 'model: {}\n'.format(self.config.model) +
                 'embedding size: {}\n'.format(self.embeddings.shape))
-        return info
 
     def write_report(self, file):
         info = 64 * '-' + '\n' + str(self)
