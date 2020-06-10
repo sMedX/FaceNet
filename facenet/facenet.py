@@ -750,7 +750,7 @@ class EvaluationOfEmbeddings:
                 img = image_processing(img, config.image)
                 image_batch.append(img)
 
-            self.embeddings[i:i + config.batch_size, :] = facenet.image_to_embedding(image_batch)
+            self.embeddings[i:i + self.config.batch_size, :] = facenet.image_to_embedding(image_batch)
 
     def __repr__(self):
         info = ('{}\n'.format(self.__class__.__name__) +
