@@ -114,6 +114,9 @@ class Validate(YAMLConfig):
         if not self.batch_size:
             self.batch_size = DefaultConfig().batch_size
 
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
+
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.file.parent)
         ioutils.store_revision_info(self.file, sys.argv)

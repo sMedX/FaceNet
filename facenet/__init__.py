@@ -8,7 +8,7 @@ import tensorflow as tf
 import numpy as np
 from typing import Iterable
 
-from facenet import tfutils
+from facenet import tfutils, ioutils
 
 
 class FaceNet:
@@ -36,6 +36,10 @@ class FaceNet:
             self._phase_train_placeholder: False
         }
 
+    @property
+    def embedding_size(self):
+        return self._embeddings.shape[1]
+
     def evaluate(self, images):
         # Run forward pass to calculate embeddings
         self._feed_dict[self._image_placeholder] = images
@@ -48,24 +52,11 @@ class FaceNet:
 
         return self.evaluate(image_arrays)
 
-    # def prepare_image(self, image: np.ndarray):
-    #     """
-    #     Make a good RGB numpy array compatible with method @prepare_batch
-    #     if image not RGB yet.
-    #     :param image: Image (gray or RGB)
-    #     :return: RGB Image
-    #     """
-    #     # remove dim of 1, if image is greyscale
-    #     image = np.squeeze(image)
-    #
-    #     if image.ndim not in (2, 3):
-    #         raise ValueError('Invalid input dimension {}'.format(image.shape))
-    #
-    #     image = ioutils.resize(image, self._image_size)
-    #     image = (image - 127.5) / 128.0
-    #
-    #     # transform greyscale image to rgb image
-    #     if image.ndim == 2:
-    #         image = ioutils.gray_to_rgb(image)
-    #
-    #     return image
+
+def image_processing(img, config):
+    img = ioutils.pil2array(img)
+
+    if config.standardization:
+        img = (img - 127.5)/128.0
+
+    return img

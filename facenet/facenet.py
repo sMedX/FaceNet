@@ -22,8 +22,7 @@
 
 import os
 import sys
-import time
-from subprocess import Popen, PIPE
+from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
 from skimage import io, transform
@@ -34,11 +33,10 @@ from tensorflow.compat.v1 import graph_util
 import random
 import re
 from tensorflow.python.platform import gfile
-from tensorflow.python.ops import data_flow_ops
 import math
 from pathlib import Path
 
-from facenet import utils, ioutils, h5utils
+from facenet import utils, ioutils, h5utils, FaceNet, image_processing
 
 
 class Placeholders:
@@ -732,119 +730,32 @@ def learning_rate_value(epoch, config):
             return lr_
 
 
-class Embeddings:
-    def __init__(self, dbase, config, model=None):
+class EvaluationOfEmbeddings:
+    def __init__(self, dbase, config):
         self.config = config
         self.dbase = dbase
-        self.data = None
-        self.elapsed_time = None
 
-        if model is not None:
-            self.config.model = model
+        facenet = FaceNet(self.config.model)
 
-        image_size = (config.image.size, config.image.size)
+        self.embeddings = np.zeros([dbase.nrof_images, facenet.embedding_size])
 
-        with tf.Graph().as_default():
-            self.sess = tf.Session()
-
-            self.image_paths_placeholder = tf.placeholder(tf.string, shape=(None, 1), name='image_paths')
-            self.labels_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='labels')
-            self.batch_size_placeholder = tf.placeholder(tf.int32, name='batch_size')
-            self.control_placeholder = tf.placeholder(tf.int32, shape=(None, 1), name='control')
-            self.phase_train_placeholder = tf.placeholder(tf.bool, name='phase_train')
-
-            eval_input_queue = data_flow_ops.FIFOQueue(capacity=dbase.nrof_images,
-                                                       dtypes=[tf.string, tf.int32, tf.int32],
-                                                       shapes=[(1,), (1,), (1,)],
-                                                       shared_name=None, name=None)
-
-            self.enqueue_op = eval_input_queue.enqueue_many([self.image_paths_placeholder,
-                                                             self.labels_placeholder,
-                                                             self.control_placeholder], name='eval_enqueue_op')
-
-            self.image_batch, self.label_batch = create_input_pipeline(eval_input_queue, image_size,
-                                                                       self.batch_size_placeholder)
-
-            # load the model to validate
-            input_map = {'image_batch': self.image_batch,
-                         'label_batch': self.label_batch,
-                         'phase_train': self.phase_train_placeholder}
-
-            load_model(config.model, input_map=input_map)
-
-            self.tensor_embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-
-            tf.train.start_queue_runners(coord=tf.train.Coordinator(), sess=self.sess)
-
-        self._evaluate()
-
-    def _evaluate(self):
-        # Run forward pass to calculate embeddings
         print('Running forward pass on images')
 
-        nrof_flips = 2 if self.config.image.use_flipped_images else 1
-        nrof_images = self.dbase.nrof_images * nrof_flips
+        for i in tqdm(range(0, self.dbase.nrof_images, self.config.batch_size)):
+            files = self.dbase.files[i:i + self.config.batch_size]
+            image_batch = []
 
-        labels_array = np.expand_dims(np.arange(0, nrof_images), 1)
-        image_paths_array = np.expand_dims(np.repeat(np.array(self.dbase.files), nrof_flips), 1)
-        control_array = np.zeros_like(labels_array, np.int32)
+            for file in files:
+                img = ioutils.read_image(file)
+                img = image_processing(img, config.image)
+                image_batch.append(img)
 
-        if self.config.image.standardization:
-            control_array += np.ones_like(labels_array) * FIXED_STANDARDIZATION
-
-        # Flip every second image
-        if self.config.image.use_flipped_images:
-            control_array += (labels_array % 2) * FLIP
-
-        self.sess.run(self.enqueue_op, {self.image_paths_placeholder: image_paths_array,
-                                        self.labels_placeholder: labels_array,
-                                        self.control_placeholder: control_array})
-
-        embedding_size = int(self.tensor_embeddings.get_shape()[1])
-
-        batch_size = self.config.batch_size
-        nrof_batches = math.ceil(nrof_images / self.config.batch_size)
-
-        emb_array = np.zeros((nrof_images, embedding_size))
-        lab_array = np.zeros((nrof_images,))
-        self.elapsed_time = 0
-
-        for i in range(nrof_batches):
-            print('\rEvaluate embeddings {}/{}'.format(i, nrof_batches), end='')
-
-            if (i + 1) == nrof_batches:
-                batch_size = nrof_images % self.config.batch_size
-                if batch_size == 0:
-                    batch_size = self.config.batch_size
-
-            feed_dict = {self.phase_train_placeholder: False, self.batch_size_placeholder: batch_size}
-
-            start = time.monotonic()
-            emb, lab = self.sess.run([self.tensor_embeddings, self.label_batch], feed_dict=feed_dict)
-            self.elapsed_time += time.monotonic() - start
-            lab_array[lab] = lab
-            emb_array[lab, :] = emb
-
-        print('')
-
-        self.data = np.zeros((self.dbase.nrof_images, embedding_size * nrof_flips))
-
-        if self.config.image.use_flipped_images:
-            # Concatenate embeddings for flipped and non flipped version of the images
-            self.data[:, :embedding_size] = emb_array[0::2, :]
-            self.data[:, embedding_size:] = emb_array[1::2, :]
-        else:
-            self.data = emb_array
-
-        assert np.array_equal(lab_array, np.arange(nrof_images)), \
-            'Wrong labels used for evaluation, possibly caused by training examples left in the input pipeline'
+            self.embeddings[i:i + config.batch_size, :] = facenet.image_to_embedding(image_batch)
 
     def __repr__(self):
         info = ('{}\n'.format(self.__class__.__name__) +
                 'model: {}\n'.format(self.config.model) +
-                'embedding size: {}\n'.format(self.data.shape) +
-                'elapsed time  : {}\n'.format(self.elapsed_time) +
-                'time per image: {}\n'.format(self.elapsed_time / self.data.shape[0]))
+                'embedding size: {}\n'.format(self.embeddings.shape))
         return info
 
     def write_report(self, file):
