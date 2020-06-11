@@ -22,6 +22,10 @@ def end(start, stop):
     return '\n' if (start+1) == stop else ''
 
 
+def get_time():
+    return time.monotonic()
+
+
 def write_elapsed_time(files, start_time):
     if not isinstance(files, list):
         files = [files]
