@@ -2,6 +2,7 @@
 __author__ = 'Ruslan N. Kosarev'
 
 from pathlib import Path
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.tools import strip_unused_lib
 from tensorflow.python.tools import optimize_for_inference_lib
@@ -156,3 +157,41 @@ def load_model(path, input_map=None):
             saver = tf.compat.v1.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
             with tf.compat.v1.Session() as sess:
                 saver.restore(sess, str(path.joinpath(ckpt_file)))
+
+
+def int64_feature(value):
+    """Wrapper for insert int64 feature into Example proto."""
+    if not isinstance(value, list):
+        value = [value]
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+
+
+def float_feature(value):
+    """Wrapper for insert float features into Example proto."""
+    if not isinstance(value, list):
+        value = [value]
+    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
+
+
+def bytes_feature(value):
+    """Wrapper for insert bytes features into Example proto."""
+    if not isinstance(value, list):
+        value = [value]
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
+
+
+def dict_to_example(dct):
+
+    for key, item in dct.items():
+        if isinstance(item, str):
+            dct[key] = bytes_feature(item.encode())
+        elif isinstance(item, np.int64):
+            dct[key] = int64_feature(item)
+        elif isinstance(item, np.ndarray):
+            dct[key] = float_feature(item.tolist())
+        else:
+            raise TypeError('Invalid item type {}'.format(type(item)))
+
+    features = tf.train.Features(feature=dct)
+
+    return tf.train.Example(features=features)

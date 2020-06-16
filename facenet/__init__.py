@@ -4,7 +4,7 @@
 # MIT License
 # Copyright (c) 2020 sMedX
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import numpy as np
 from typing import Iterable
 
@@ -25,7 +25,7 @@ class FaceNet:
         tfutils.load_model(model)
 
         # Get input and output tensors
-        graph = tf.compat.v1.get_default_graph()
+        graph = tf.get_default_graph()
         self._embeddings = graph.get_tensor_by_name("embeddings:0")
 
         self._image_placeholder = graph.get_tensor_by_name("input:0")

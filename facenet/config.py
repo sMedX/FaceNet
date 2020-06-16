@@ -12,6 +12,7 @@ from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 default_model = src_dir.joinpath('models', '20200520-001709')
+default_batch_size = 100
 
 file_extension = '.png'
 
@@ -93,6 +94,36 @@ class YAMLConfig:
 
     def exists(self, name):
         return True if name in self.__dict__.keys() else False
+
+
+class Embeddings(YAMLConfig):
+    def __init__(self, args_):
+        YAMLConfig.__init__(self, args_['config'])
+        if not self.seed:
+            self.seed = 0
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+
+        if not self.model:
+            self.model = default_model
+
+        if not self.tfrecord:
+            self.tfrecord = Path(self.dataset.path + self.model.stem + '.tfrecord')
+        self.tfrecord = Path(self.tfrecord).expanduser()
+
+        if not self.file:
+            self.file = self.tfrecord.with_suffix('.txt')
+        self.file = Path(self.file).expanduser()
+
+        if not self.batch_size:
+            self.batch_size = default_batch_size
+
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
+
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.file.parent)
+        ioutils.store_revision_info(self.file, sys.argv)
 
 
 class Validate(YAMLConfig):
