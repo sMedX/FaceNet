@@ -27,11 +27,12 @@ def main(**args_):
 
     with tf.io.TFRecordWriter(str(args.tfrecord)) as writer:
         for embedding, label, file in zip(embeddings.embeddings, dbase.labels, dbase.files):
-            example = tfutils.dict_to_example({
-                'embedding': embedding,
-                'label': label,
-                'file': file
-                })
+            feature = {
+                'embedding': tfutils.float_feature(embedding.tolist()),
+                'label': tfutils.int64_feature(label),
+                # 'file': tfutils.bytes_feature(file.encode())
+                }
+            example = tf.train.Example(features=tf.train.Features(feature=feature))
             writer.write(example.SerializeToString())
 
     print('file of TFRecords: {}'.format(args.tfrecord))
