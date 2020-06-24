@@ -73,7 +73,7 @@ class Placeholders:
 
 
 def make_train_batch_iterator(ds, args, map_func=None):
-    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func)
+    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func, num_parallel_calls=os.cpu_count())
     labels = tf.data.Dataset.from_tensor_slices(ds.labels)
 
     ds = tf.data.Dataset.zip((images, labels))
@@ -82,7 +82,7 @@ def make_train_batch_iterator(ds, args, map_func=None):
 
 
 def make_validate_dataset(ds, args, map_func):
-    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func)
+    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func, num_parallel_calls=os.cpu_count())
     labels = tf.data.Dataset.from_tensor_slices(ds.labels)
 
     return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
