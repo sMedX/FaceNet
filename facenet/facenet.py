@@ -23,7 +23,7 @@
 import os
 import sys
 from tqdm import tqdm
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import numpy as np
 from skimage import io, transform
 from sklearn.model_selection import KFold
@@ -40,27 +40,67 @@ from facenet import utils, ioutils, h5utils, FaceNet, image_processing
 
 
 class Placeholders:
-    batch_size = None
-    phase_train = None
-    files = None
-    labels = None
-    control = None
-    learning_rate = None
+    def __init__(self, image_size):
+        self.image_batch = tf.placeholder(tf.float32, shape=[None, image_size, image_size, 3], name='image_batch')
+        self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
+        self.batch_size = tf.placeholder(tf.int32, name='batch_size')
+        self.phase_train = tf.placeholder(tf.bool, name='phase_train')
+        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
-    def train_feed_dict(self, learning_rate, phase_train, batch_size):
-        dct = {self.learning_rate: learning_rate,
-               self.phase_train: phase_train,
-               self.batch_size: batch_size}
-        return dct
+    def train_feed_dict(self, image_batch, label_batch, learning_rate):
+        return {
+            self.image_batch: image_batch,
+            self.label_batch: label_batch,
+            self.learning_rate: learning_rate,
+            self.phase_train: True,
+            self.batch_size: image_batch.shape[0]
+        }
 
-    def run_feed_dict(self, batch_size):
-        dct = {self.phase_train: False,
-               self.batch_size: batch_size}
-        return dct
+    def validate_feed_dict(self, image_batch, label_batch):
+        return {
+            self.image_batch: image_batch,
+            self.label_batch: label_batch,
+            self.phase_train: False,
+            self.batch_size: image_batch.shape[0]
+        }
 
-    def enqueue_feed_dict(self, files, labels, control):
-        feed_dict = {self.files: files, self.labels: labels, self.control: control}
-        return feed_dict
+    def embedding_feed_dict(self, image_batch):
+        return {
+            self.image_batch: image_batch,
+            self.phase_train: False,
+            self.batch_size: image_batch.shape[0]
+        }
+
+
+def make_train_batch_iterator(ds, args, map_func=None):
+    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func)
+    labels = tf.data.Dataset.from_tensor_slices(ds.labels)
+
+    ds = tf.data.Dataset.zip((images, labels))
+    ds = ds.shuffle(buffer_size=1000 * args.batch_size).batch(batch_size=args.batch_size).repeat()
+    return ds.make_one_shot_iterator().get_next()
+
+
+def make_validate_dataset(ds, args, map_func):
+    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func)
+    labels = tf.data.Dataset.from_tensor_slices(ds.labels)
+
+    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
+
+
+def evaluate_embeddings(sess, embedding, dataset, placeholders):
+    embeddings = []
+    labels = []
+
+    nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
+    iterator = dataset.make_one_shot_iterator().get_next()
+
+    for i in range(nrof_batches):
+        image_batch, label_batch = sess.run(iterator)
+        embeddings.append(sess.run(embedding, feed_dict=placeholders.embedding_feed_dict(image_batch)))
+        labels.append(label_batch)
+
+    return np.concatenate(embeddings), np.concatenate(labels)
 
 
 def triplet_loss(anchor, positive, negative, alpha):
@@ -731,11 +771,11 @@ def learning_rate_value(epoch, config):
 
 
 class EvaluationOfEmbeddings:
-    def __init__(self, dbase, config):
+    def __init__(self, dbase, config, graph=None):
         self.config = config
         self.dbase = dbase
 
-        facenet = FaceNet(self.config.model)
+        facenet = FaceNet(self.config.model, graph=graph)
 
         self.embeddings = np.zeros([dbase.nrof_images, facenet.embedding_size])
 
