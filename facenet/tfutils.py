@@ -12,10 +12,7 @@ from tensorflow.python.framework import dtypes
 def tensor_by_name_exist(tensor_name):
     tensor_names = [t.name for op in tf.get_default_graph().get_operations() for t in op.values()]
 
-    if tensor_name in tensor_names:
-        return True
-    else:
-        return False
+    return True if tensor_name in tensor_names else False
 
 
 def get_pb_model_filename(model_dir):
@@ -84,7 +81,7 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
     ext = '.pbtxt' if as_text else '.pb'
 
     input_node_names = ['input']
-    output_node_names = ['embeddings']
+    output_node_names = ['embedding']
 
     input_node_types = [dtypes.float32.as_datatype_enum]
 
@@ -128,6 +125,25 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
     print('{} ops in the final graph: {}'.format(len(graph_def.node), output_file))
 
     return output_file
+
+
+def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
+
+    if model_name is None:
+        model_name = model_dir.stem
+
+    # save the model checkpoint
+    # start_time = time.time()
+    checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
+    saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
+    # save_time_variables = time.time() - start_time
+    print('saving checkpoint: {}-{}'.format(checkpoint_path, step))
+
+    metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
+
+    if not metagraph_filename.exists():
+        saver.export_meta_graph(str(metagraph_filename))
+        print('saving meta graph:', metagraph_filename)
 
 
 def load_model(path, input_map=None):
