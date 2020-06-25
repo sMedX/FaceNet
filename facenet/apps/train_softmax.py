@@ -220,7 +220,8 @@ def train(args, sess, epoch, tensor_dict, summary, info, placeholders, ds):
 
     outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
-    nrof_batches = sess.run(tf.data.experimental.cardinality(ds))
+    # nrof_batches = sess.run(tf.data.experimental.cardinality(ds))
+    nrof_batches = args.train.epoch.size
 
     iterator = ds.make_one_shot_iterator().get_next()
 
