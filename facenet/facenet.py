@@ -72,16 +72,18 @@ class Placeholders:
         }
 
 
-def make_train_batch_iterator(ds, args, map_func=None):
-    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func, num_parallel_calls=os.cpu_count())
-    labels = tf.data.Dataset.from_tensor_slices(ds.labels)
+def make_train_dataset(ds, map_func, args):
+    data = list(zip(ds.files, ds.labels))
+    np.random.shuffle(data)
+    files, labels = map(list, zip(*data))
 
-    ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=1000 * args.batch_size).batch(batch_size=args.batch_size).repeat()
-    return ds.make_one_shot_iterator().get_next()
+    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=os.cpu_count())
+    labels = tf.data.Dataset.from_tensor_slices(labels)
+
+    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
 
 
-def make_validate_dataset(ds, args, map_func):
+def make_validate_dataset(ds, map_func, args):
     images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func, num_parallel_calls=os.cpu_count())
     labels = tf.data.Dataset.from_tensor_slices(ds.labels)
 

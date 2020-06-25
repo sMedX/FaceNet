@@ -8,6 +8,8 @@ from datetime import datetime
 import importlib
 import numpy as np
 import random
+import tensorflow as tf
+
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
@@ -161,6 +163,7 @@ class TrainOptions(YAMLConfig):
             self.seed = 0
         random.seed(self.seed)
         np.random.seed(self.seed)
+        tf.set_random_seed(self.seed)
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
