@@ -185,9 +185,6 @@ class TrainOptions(YAMLConfig):
             self.model.update_from_file(network.config_file)
 
         # learning rate options
-        if args_['learning_rate'] is not None:
-            self.train.learning_rate.value = args_['learning_rate']
-
         if self.train.learning_rate.schedule:
             self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
