@@ -25,8 +25,6 @@
 
 import click
 import time
-import math
-import numpy as np
 import importlib
 from tqdm import tqdm
 from functools import partial
@@ -69,133 +67,132 @@ def main(**args_):
     print(dbase_emb)
 
     # ------------------------------------------------------------------------------------------------------------------
-    with tf.Graph().as_default():
-        map_func = partial(load_images, image_size=args.image.size)
-        ds_validate = {
-            'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
-            'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
-        }
+    map_func = partial(load_images, image_size=args.image.size)
+    ds_validate = {
+        'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
+        'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
+    }
 
-        global_step = tf.Variable(0, trainable=False, name='global_step')
+    global_step = tf.Variable(0, trainable=False, name='global_step')
 
-        placeholders = facenet.Placeholders(args.image.size)
+    placeholders = facenet.Placeholders(args.image.size)
 
-        print('Building training graph')
-        prelogits, _ = network.inference(tf.identity(placeholders.image_batch, 'input'),
-                                         config=args.model.config,
-                                         phase_train=placeholders.phase_train)
+    print('Building training graph')
+    prelogits, _ = network.inference(tf.identity(placeholders.image_batch, 'input'),
+                                     config=args.model.config,
+                                     phase_train=placeholders.phase_train)
 
-        logits = slim.fully_connected(prelogits, dbase.nrof_classes, activation_fn=None,
-                                      weights_initializer=slim.initializers.xavier_initializer(),
-                                      weights_regularizer=slim.l2_regularizer(args.model.config.weight_decay),
-                                      scope='Logits', reuse=False)
+    logits = slim.fully_connected(prelogits, dbase.nrof_classes, activation_fn=None,
+                                  weights_initializer=slim.initializers.xavier_initializer(),
+                                  weights_regularizer=slim.l2_regularizer(args.model.config.weight_decay),
+                                  scope='Logits', reuse=False)
 
-        embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
+    embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
 
-        # Norm for the prelogits
-        eps = 1e-4
-        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=args.loss.prelogits_norm_p, axis=1))
-        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.loss.prelogits_norm_factor)
+    # Norm for the prelogits
+    eps = 1e-4
+    prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=args.loss.prelogits_norm_p, axis=1))
+    tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * args.loss.prelogits_norm_factor)
 
-        # Add center loss
-        prelogits_center_loss, _ = facenet.center_loss(prelogits, placeholders.label_batch, args.loss.center_alfa,
-                                                       dbase.nrof_classes)
-        tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.loss.center_factor)
+    # Add center loss
+    prelogits_center_loss, _ = facenet.center_loss(prelogits, placeholders.label_batch, args.loss.center_alfa,
+                                                   dbase.nrof_classes)
+    tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * args.loss.center_factor)
 
-        # define learning rate tensor
-        learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
-                                                   args.train.learning_rate.decay_epochs * args.train.epoch.size,
-                                                   args.train.learning_rate.decay_factor, staircase=True)
+    # define learning rate tensor
+    learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
+                                               args.train.learning_rate.decay_epochs * args.train.epoch.size,
+                                               args.train.learning_rate.decay_factor, staircase=True)
 
-        # Calculate the average cross entropy loss across the batch
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=placeholders.label_batch,
-                                                                       logits=logits, name='cross_entropy_per_example')
-        cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
-        tf.add_to_collection('losses', cross_entropy_mean)
+    # Calculate the average cross entropy loss across the batch
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=placeholders.label_batch,
+                                                                   logits=logits, name='cross_entropy_per_example')
+    cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+    tf.add_to_collection('losses', cross_entropy_mean)
 
-        correct_prediction = tf.cast(tf.equal(tf.argmax(logits, 1), tf.cast(placeholders.label_batch, tf.int64)), tf.float32)
-        accuracy = tf.reduce_mean(correct_prediction)
+    correct_prediction = tf.cast(tf.equal(tf.argmax(logits, 1), tf.cast(placeholders.label_batch, tf.int64)), tf.float32)
+    accuracy = tf.reduce_mean(correct_prediction)
 
-        # Calculate the total losses
-        regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-        total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
+    # Calculate the total losses
+    regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
 
-        # Build a Graph that trains the model with one batch of examples and updates the model parameters
-        train_op = facenet.train_op(args.train, total_loss, global_step, learning_rate, tf.global_variables())
+    # Build a Graph that trains the model with one batch of examples and updates the model parameters
+    train_op = facenet.train_op(args.train, total_loss, global_step, learning_rate, tf.global_variables())
 
-        # Create a saver
-        saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
+    # Create a saver
+    saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
 
-        # Build the summary operation based on the TF collection of Summaries.
-        summary_op = tf.summary.merge_all()
+    # Build the summary operation based on the TF collection of Summaries.
+    summary_op = tf.summary.merge_all()
 
-        # Start running operations on the Graph.
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
-        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False)) as sess:
-            sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-            summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
+    # Start running operations on the Graph.
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
+    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False)) as sess:
+        sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+        summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
 
-            facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
-            tf.train.global_step(sess, global_step)
-            sess.run(global_step.initializer)
+        facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
+        tf.train.global_step(sess, global_step)
+        sess.run(global_step.initializer)
 
-            tensor_dict = {
-                'train': {
-                    'train_op': train_op,
-                    'summary_op': summary_op,
-                    'tensor_op': {
-                        'accuracy': accuracy,
-                        'loss': total_loss,
-                        'xent': cross_entropy_mean,
-                        'center_loss': prelogits_center_loss,
-                        'prelogits_norm': prelogits_norm,
-                        'learning_rate': learning_rate
-                    }
-                },
-                'validate': {
-                    'embedding': embedding,
-                    'tensor_op': {
-                        'accuracy': accuracy,
-                        'loss': total_loss,
-                        'xent': cross_entropy_mean
-                    }
+        tensor_dict = {
+            'train': {
+                'train_op': train_op,
+                'summary_op': summary_op,
+                'tensor_op': {
+                    'accuracy': accuracy,
+                    'loss': total_loss,
+                    'xent': cross_entropy_mean,
+                    'center_loss': prelogits_center_loss,
+                    'prelogits_norm': prelogits_norm,
+                    'learning_rate': learning_rate
+                }
+            },
+            'validate': {
+                'embedding': embedding,
+                'tensor_op': {
+                    'accuracy': accuracy,
+                    'loss': total_loss,
+                    'xent': cross_entropy_mean
                 }
             }
+        }
 
-            summary = {
-                'train': facenet.Summary(summary_writer, args.h5file, tag='train'),
-                'validate': facenet.Summary(summary_writer, args.h5file, tag='validate')
-            }
+        summary = {
+            'train': facenet.Summary(summary_writer, args.h5file, tag='train'),
+            'validate': facenet.Summary(summary_writer, args.h5file, tag='validate')
+        }
 
-            # Training and validation loop
-            for epoch in range(args.train.epoch.nrof_epochs):
-                info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
+        # Training and validation loop
+        for epoch in range(args.train.epoch.nrof_epochs):
+            info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
-                # train for one epoch
-                ds_train = facenet.make_train_dataset(sess, dbase, map_func, args)
-                train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds_train)
+            # train for one epoch
+            ds_train = facenet.make_train_dataset(sess, dbase, map_func, args)
+            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds_train)
 
-                # save variables and the meta graph if it doesn't exist already
-                tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
+            # save variables and the meta graph if it doesn't exist already
+            tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
 
-                # perform validation
-                epoch1 = epoch + 1
-                if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
-                    validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
+            # perform validation
+            epoch1 = epoch + 1
+            if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
+                validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
 
-                    # perform face-to-face validation
-                    tfutils.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch))
-                    embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds_validate['embedding'], placeholders)
+                # perform face-to-face validation
+                tfutils.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch), optimize=False)
+                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds_validate['embedding'], placeholders)
 
-                    validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)
+                validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)
 
-                    ioutils.write_text_log(args.txtfile, str(validation))
-                    h5utils.write_dict(args.h5file, validation.dict, group='validate')
+                ioutils.write_text_log(args.txtfile, str(validation))
+                h5utils.write_dict(args.h5file, validation.dict, group='validate')
 
-                    for key, value in validation.dict.items():
-                        summary['validate'].write_tf_summary(value, tag='{}_{}'.format('validate', key))
+                for key, value in validation.dict.items():
+                    summary['validate'].write_tf_summary(value, tag='{}_{}'.format('validate', key))
 
-                    print(validation)
+                print(validation)
 
     ioutils.write_elapsed_time(args.h5file, start_time)
     ioutils.write_elapsed_time(args.txtfile, start_time)
