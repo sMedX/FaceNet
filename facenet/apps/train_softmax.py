@@ -48,8 +48,6 @@ def load_images(path, image_size):
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options of the application.')
-@click.option('--learning_rate', default=None, type=float,
-              help='Learning rate value')
 def main(**args_):
     start_time = time.monotonic()
     args = config.TrainOptions(args_, subdir=config.subdir())
@@ -71,9 +69,6 @@ def main(**args_):
     print(dbase_emb)
 
     # ------------------------------------------------------------------------------------------------------------------
-    tf.reset_default_graph()
-    tf.Graph().as_default()
-
     with tf.Graph().as_default():
         map_func = partial(load_images, image_size=args.image.size)
         ds_validate = {
@@ -136,11 +131,10 @@ def main(**args_):
 
         # Start running operations on the Graph.
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
-        sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
-        sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-        summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False)) as sess:
+            sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
+            summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
 
-        with sess.as_default():
             facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
             tf.train.global_step(sess, global_step)
             sess.run(global_step.initializer)
