@@ -77,8 +77,8 @@ def main(**args_):
     with tf.Graph().as_default():
         map_func = partial(load_images, image_size=args.image.size)
         ds_validate = {
-            'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
-            'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
+            'validate': facenet.make_dataset(dbase_val, map_func, args),
+            'embedding': facenet.make_dataset(dbase_emb, map_func, args)
         }
 
         global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -176,7 +176,7 @@ def main(**args_):
                 info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
                 # train for one epoch
-                ds_train = facenet.make_train_dataset(dbase, map_func, args)
+                ds_train = facenet.make_dataset(dbase, map_func, args)
                 train(args, sess, epoch, tensor_dict, train_summary, info, placeholders, ds_train)
 
                 # save variables and the meta graph if it doesn't exist already

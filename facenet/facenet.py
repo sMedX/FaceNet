@@ -72,22 +72,15 @@ class Placeholders:
         }
 
 
-def make_train_dataset(ds, map_func, args):
+def make_dataset(ds, map_func, args):
     data = list(zip(ds.files, ds.labels))
     np.random.shuffle(data)
     files, labels = map(list, zip(*data))
 
-    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=os.cpu_count())
+    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
-    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
-
-
-def make_validate_dataset(ds, map_func, args):
-    images = tf.data.Dataset.from_tensor_slices(ds.files).map(map_func, num_parallel_calls=os.cpu_count())
-    labels = tf.data.Dataset.from_tensor_slices(ds.labels)
-
-    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
+    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size).prefetch()
 
 
 def evaluate_embeddings(sess, embedding, dataset, placeholders):
