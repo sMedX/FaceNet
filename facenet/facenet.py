@@ -72,7 +72,27 @@ class Placeholders:
         }
 
 
-def make_dataset(ds, map_func, args):
+def make_train_dataset(sess, dbase, map_func, args):
+    data = list(zip(dbase.files, dbase.labels))
+    np.random.shuffle(data)
+    files, labels = map(list, zip(*data))
+
+    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    labels = tf.data.Dataset.from_tensor_slices(labels)
+    ds = tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size, drop_remainder=True)
+
+    nrof_batches = sess.run(tf.data.experimental.cardinality(ds))
+    epoch_size = args.train.epoch.size
+
+    count = math.ceil(epoch_size/nrof_batches)
+    ds = ds.repeat(count=count)
+
+    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+    return ds
+
+
+def make_validate_dataset(ds, map_func, args):
     data = list(zip(ds.files, ds.labels))
     np.random.shuffle(data)
     files, labels = map(list, zip(*data))
@@ -80,7 +100,10 @@ def make_dataset(ds, map_func, args):
     images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
-    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+    ds = tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
+    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+    return ds
 
 
 def evaluate_embeddings(sess, embedding, dataset, placeholders):

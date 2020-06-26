@@ -77,8 +77,8 @@ def main(**args_):
     with tf.Graph().as_default():
         map_func = partial(load_images, image_size=args.image.size)
         ds_validate = {
-            'validate': facenet.make_dataset(dbase_val, map_func, args),
-            'embedding': facenet.make_dataset(dbase_emb, map_func, args)
+            'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
+            'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
         }
 
         global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -146,38 +146,40 @@ def main(**args_):
             sess.run(global_step.initializer)
 
             tensor_dict = {
-                'train_op': train_op,
-                'summary_op': summary_op,
-                'tensor_op': {
-                    'accuracy': accuracy,
-                    'loss': total_loss,
-                    'xent': cross_entropy_mean,
-                    'center_loss': prelogits_center_loss,
-                    'prelogits_norm': prelogits_norm,
-                    'learning_rate': learning_rate
+                'train': {
+                    'train_op': train_op,
+                    'summary_op': summary_op,
+                    'tensor_op': {
+                        'accuracy': accuracy,
+                        'loss': total_loss,
+                        'xent': cross_entropy_mean,
+                        'center_loss': prelogits_center_loss,
+                        'prelogits_norm': prelogits_norm,
+                        'learning_rate': learning_rate
+                    }
+                },
+                'validate': {
+                    'embedding': embedding,
+                    'tensor_op': {
+                        'accuracy': accuracy,
+                        'loss': total_loss,
+                        'xent': cross_entropy_mean
+                    }
                 }
             }
 
-            train_summary = facenet.Summary(summary_writer, args.h5file, tag='train')
-
-            val_tensor_dict = {
-                'embedding': embedding,
-                'tensor_op': {
-                    'accuracy': accuracy,
-                    'loss': total_loss,
-                    'xent': cross_entropy_mean
-                }
+            summary = {
+                'train': facenet.Summary(summary_writer, args.h5file, tag='train'),
+                'validate': facenet.Summary(summary_writer, args.h5file, tag='validate')
             }
-
-            val_summary = facenet.Summary(summary_writer, args.h5file, tag='validate')
 
             # Training and validation loop
             for epoch in range(args.train.epoch.nrof_epochs):
                 info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
                 # train for one epoch
-                ds_train = facenet.make_dataset(dbase, map_func, args)
-                train(args, sess, epoch, tensor_dict, train_summary, info, placeholders, ds_train)
+                ds_train = facenet.make_train_dataset(sess, dbase, map_func, args)
+                train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds_train)
 
                 # save variables and the meta graph if it doesn't exist already
                 tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
@@ -185,7 +187,7 @@ def main(**args_):
                 # perform validation
                 epoch1 = epoch + 1
                 if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
-                    validate(sess, ds_validate['validate'], placeholders, val_tensor_dict, val_summary, info)
+                    validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
 
                     # perform face-to-face validation
                     tfutils.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch))
@@ -195,8 +197,9 @@ def main(**args_):
 
                     ioutils.write_text_log(args.txtfile, str(validation))
                     h5utils.write_dict(args.h5file, validation.dict, group='validate')
+
                     for key, value in validation.dict.items():
-                        val_summary.write_tf_summary(value, tag='{}_{}'.format('validate', key))
+                        summary['validate'].write_tf_summary(value, tag='{}_{}'.format('validate', key))
 
                     print(validation)
 
@@ -220,13 +223,12 @@ def train(args, sess, epoch, tensor_dict, summary, info, placeholders, ds):
 
     outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
-    # nrof_batches = sess.run(tf.data.experimental.cardinality(ds))
-    nrof_batches = args.train.epoch.size
-
     iterator = ds.make_one_shot_iterator().get_next()
 
-    with tqdm(total=nrof_batches) as bar:
-        for batch_number in range(nrof_batches):
+    epoch_size = args.train.epoch.size
+
+    with tqdm(total=epoch_size) as bar:
+        for batch_number in range(epoch_size):
             image_batch, label_batch = sess.run(iterator)
 
             feed_dict = placeholders.train_feed_dict(image_batch, label_batch, learning_rate)
