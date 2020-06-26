@@ -80,7 +80,7 @@ def make_dataset(ds, map_func, args):
     images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
-    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size).prefetch()
+    return tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
 
 def evaluate_embeddings(sess, embedding, dataset, placeholders):
