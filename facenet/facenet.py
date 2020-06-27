@@ -184,41 +184,41 @@ FIXED_STANDARDIZATION = 8
 FLIP = 16
 
 
-def create_input_pipeline(input_queue, image_size, batch_size_placeholder, nrof_preprocess_threads=4):
-    images_and_labels_list = []
-    for _ in range(nrof_preprocess_threads):
-        filenames, label, control = input_queue.dequeue()
-        images = []
-        for filename in tf.unstack(filenames):
-            file_contents = tf.read_file(filename)
-            image = tf.image.decode_image(file_contents, 3)
-            image = tf.cond(get_control_flag(control[0], RANDOM_ROTATE),
-                            lambda: tf.py_func(random_rotate_image, [image], tf.uint8),
-                            lambda: tf.identity(image))
-            image = tf.cond(get_control_flag(control[0], RANDOM_CROP), 
-                            lambda: tf.random_crop(image, image_size + (3,)),
-                            lambda: tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
-            image = tf.cond(get_control_flag(control[0], RANDOM_FLIP),
-                            lambda: tf.image.random_flip_left_right(image),
-                            lambda: tf.identity(image))
-            image = tf.cond(get_control_flag(control[0], FIXED_STANDARDIZATION),
-                            lambda: (tf.cast(image, tf.float32) - 127.5)/128.0,
-                            lambda: tf.image.per_image_standardization(image))
-            image = tf.cond(get_control_flag(control[0], FLIP),
-                            lambda: tf.image.flip_left_right(image),
-                            lambda: tf.identity(image))
-            #pylint: disable=no-member
-            image.set_shape(image_size + (3,))
-            images.append(image)
-        images_and_labels_list.append([images, label])
-
-    image_batch, label_batch = tf.train.batch_join(
-        images_and_labels_list, batch_size=batch_size_placeholder, 
-        shapes=[image_size + (3,), ()], enqueue_many=True,
-        capacity=4 * nrof_preprocess_threads * 100,
-        allow_smaller_final_batch=True)
-    
-    return image_batch, label_batch
+# def create_input_pipeline(input_queue, image_size, batch_size_placeholder, nrof_preprocess_threads=4):
+#     images_and_labels_list = []
+#     for _ in range(nrof_preprocess_threads):
+#         filenames, label, control = input_queue.dequeue()
+#         images = []
+#         for filename in tf.unstack(filenames):
+#             file_contents = tf.read_file(filename)
+#             image = tf.image.decode_image(file_contents, 3)
+#             image = tf.cond(get_control_flag(control[0], RANDOM_ROTATE),
+#                             lambda: tf.py_func(random_rotate_image, [image], tf.uint8),
+#                             lambda: tf.identity(image))
+#             image = tf.cond(get_control_flag(control[0], RANDOM_CROP),
+#                             lambda: tf.random_crop(image, image_size + (3,)),
+#                             lambda: tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
+#             image = tf.cond(get_control_flag(control[0], RANDOM_FLIP),
+#                             lambda: tf.image.random_flip_left_right(image),
+#                             lambda: tf.identity(image))
+#             image = tf.cond(get_control_flag(control[0], FIXED_STANDARDIZATION),
+#                             lambda: (tf.cast(image, tf.float32) - 127.5)/128.0,
+#                             lambda: tf.image.per_image_standardization(image))
+#             image = tf.cond(get_control_flag(control[0], FLIP),
+#                             lambda: tf.image.flip_left_right(image),
+#                             lambda: tf.identity(image))
+#             #pylint: disable=no-member
+#             image.set_shape(image_size + (3,))
+#             images.append(image)
+#         images_and_labels_list.append([images, label])
+#
+#     image_batch, label_batch = tf.train.batch_join(
+#         images_and_labels_list, batch_size=batch_size_placeholder,
+#         shapes=[image_size + (3,), ()], enqueue_many=True,
+#         capacity=4 * nrof_preprocess_threads * 100,
+#         allow_smaller_final_batch=True)
+#
+#     return image_batch, label_batch
 
 def get_control_flag(control, field):
     return tf.equal(tf.mod(tf.floor_div(control, field), 2), 1)
@@ -295,55 +295,6 @@ def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars)
     return train_op
 
 
-def prewhiten(x):
-    mean = np.mean(x)
-    std = np.std(x)
-    std_adj = np.maximum(std, 1.0/np.sqrt(x.size))
-    y = np.multiply(np.subtract(x, mean), 1/std_adj)
-    return y  
-
-
-def crop(image, random_crop, image_size):
-    if image.shape[1]>image_size:
-        sz1 = int(image.shape[1]//2)
-        sz2 = int(image_size//2)
-        if random_crop:
-            diff = sz1-sz2
-            (h, v) = (np.random.randint(-diff, diff+1), np.random.randint(-diff, diff+1))
-        else:
-            (h, v) = (0,0)
-        image = image[(sz1-sz2+v):(sz1+sz2+v),(sz1-sz2+h):(sz1+sz2+h),:]
-    return image
-  
-
-def flip(image, random_flip):
-    if random_flip and np.random.choice([True, False]):
-        image = np.fliplr(image)
-    return image
-
-
-def to_rgb(img):
-    w, h = img.shape
-    ret = np.empty((w, h, 3), dtype=np.uint8)
-    ret[:, :, 0] = ret[:, :, 1] = ret[:, :, 2] = img
-    return ret
-  
-
-def load_data(image_paths, do_random_crop, do_random_flip, image_size, do_prewhiten=True):
-    nrof_samples = len(image_paths)
-    images = np.zeros((nrof_samples, image_size, image_size, 3))
-    for i in range(nrof_samples):
-        img = io.imread(image_paths[i])
-        if img.ndim == 2:
-            img = to_rgb(img)
-        if do_prewhiten:
-            img = prewhiten(img)
-        img = crop(img, do_random_crop, image_size)
-        img = flip(img, do_random_flip)
-        images[i,:,:,:] = img
-    return images
-
-
 def get_label_batch(label_data, batch_size, batch_index):
     nrof_examples = np.size(label_data, 0)
     j = batch_index*batch_size % nrof_examples
@@ -386,291 +337,6 @@ def restore_checkpoint(saver, session, path):
         saver.restore(session, str(path))
 
 
-def load_model(model, input_map=None):
-    # Check if the model is a model directory (containing a metagraph and a checkpoint file) or
-    # if it is a protobuf file with a frozen graph
-
-    model_exp = Path(model).expanduser()
-    print('load model: {}'.format(model))
-
-    if model_exp.is_file():
-        print('Model filename: {}'.format(model_exp))
-        with gfile.FastGFile(str(model_exp), 'rb') as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString(f.read())
-            tf.import_graph_def(graph_def, input_map=input_map, name='')
-    else:
-        pb_file = model_exp.joinpath(model_exp.name + '.pb')
-
-        if pb_file.exists():
-            load_model(pb_file, input_map=input_map)
-        else:
-            print('Model directory: {}'.format(model_exp))
-            meta_file, ckpt_file = get_model_filenames(str(model_exp))
-        
-            print('Metagraph file: {}'.format(meta_file))
-            print('Checkpoint file: {}'.format(ckpt_file))
-      
-            saver = tf.train.import_meta_graph(str(model_exp.joinpath(meta_file)), input_map=input_map)
-            saver.restore(tf.get_default_session(), str(model_exp.joinpath(ckpt_file)))
-
-
-def get_model_filenames(model_dir):
-    model_dir = str(model_dir)
-    files = os.listdir(model_dir)
-    meta_files = [s for s in files if s.endswith('.meta')]
-    if len(meta_files)==0:
-        raise ValueError('No meta file found in the model directory (%s)' % model_dir)
-    elif len(meta_files)>1:
-        raise ValueError('There should not be more than one meta file in the model directory (%s)' % model_dir)
-    meta_file = meta_files[0]
-    ckpt = tf.train.get_checkpoint_state(model_dir)
-    if ckpt and ckpt.model_checkpoint_path:
-        ckpt_file = os.path.basename(ckpt.model_checkpoint_path)
-        return meta_file, ckpt_file
-
-    meta_files = [s for s in files if '.ckpt' in s]
-    max_step = -1
-    for f in files:
-        step_str = re.match(r'(^model-[\w\- ]+.ckpt-(\d+))', f)
-        if step_str is not None and len(step_str.groups())>=2:
-            step = int(step_str.groups()[1])
-            if step > max_step:
-                max_step = step
-                ckpt_file = step_str.groups()[0]
-    return meta_file, ckpt_file
-
-
-def distance(embeddings1, embeddings2, distance_metric=0):
-    if distance_metric==0:
-        # Euclidian distance
-        diff = np.subtract(embeddings1, embeddings2)
-        dist = np.sum(np.square(diff),1)
-    elif distance_metric==1:
-        # Distance based on cosine similarity
-        dot = np.sum(np.multiply(embeddings1, embeddings2), axis=1)
-        norm = np.linalg.norm(embeddings1, axis=1) * np.linalg.norm(embeddings2, axis=1)
-        similarity = dot / norm
-        dist = np.arccos(similarity) / math.pi
-    else:
-        raise 'Undefined distance metric %d' % distance_metric 
-        
-    return dist
-
-
-def distance_matrix(embeddings, distance_metric=0):
-    if distance_metric == 0:
-        # squared Euclidian distance
-        dist = spatial.distance.pdist(embeddings, metric='sqeuclidean')
-        # diff = np.subtract(embeddings1, embeddings2)
-        # dist = np.sum(np.square(diff), 1)
-    elif distance_metric == 1:
-        # Distance based on cosine similarity
-        dist = 1 - spatial.distance.pdist(embeddings, metric='cosine')
-        dist = np.arccos(dist) / math.pi
-    else:
-        raise 'Undefined distance metric %d' % distance_metric
-
-    return dist
-
-
-def roc(thresholds, embeddings, labels, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert (embeddings.shape[0] == len(labels))
-
-    nrof_thresholds = len(thresholds)
-
-    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
-
-    tprs = np.zeros((nrof_folds, nrof_thresholds))
-    fprs = np.zeros((nrof_folds, nrof_thresholds))
-    accuracy = np.zeros(nrof_folds)
-
-    indices = np.arange(embeddings.shape[0])
-
-    # compute label matrix
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('\rROC {}/{}'.format(fold_idx,nrof_folds), end='')
-        sys.stdout.flush()
-
-        if subtract_mean:
-            mean = np.mean(embeddings[train_set], axis=0)
-        else:
-            mean = 0.0
-
-        dist_train = distance_matrix(embeddings[train_set] - mean, distance_metric)
-        actual_issame_train = utils.label_array(labels[train_set])
-        # actual_issame_train = spatial.distance.squareform(actual_issame[np.ix_(train_set, train_set)])
-
-        dist_test = distance_matrix(embeddings[test_set] - mean, distance_metric)
-        actual_issame_test = utils.label_array(labels[test_set])
-        # actual_issame_test = spatial.distance.squareform(actual_issame[np.ix_(test_set, test_set)])
-
-        # Find the best threshold for the fold
-        acc_train = np.zeros(nrof_thresholds)
-        for idx, threshold in enumerate(thresholds):
-            _, _, acc_train[idx] = calculate_accuracy(threshold, dist_train, actual_issame_train)
-
-        best_threshold_index = np.argmax(acc_train)
-
-        for idx, threshold in enumerate(thresholds):
-            tprs[fold_idx, idx], fprs[fold_idx, idx], _ = calculate_accuracy(threshold, dist_test, actual_issame_test)
-
-        _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist_test, actual_issame_test)
-
-    print()
-
-    tpr = np.mean(tprs, 0)
-    fpr = np.mean(fprs, 0)
-
-    return tpr, fpr, accuracy
-
-
-def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert(embeddings1.shape[0] == embeddings2.shape[0])
-    assert(embeddings1.shape[1] == embeddings2.shape[1])
-    nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
-    nrof_thresholds = len(thresholds)
-    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
-    
-    tprs = np.zeros((nrof_folds,nrof_thresholds))
-    fprs = np.zeros((nrof_folds,nrof_thresholds))
-    accuracy = np.zeros((nrof_folds))
-    
-    indices = np.arange(nrof_pairs)
-    
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        if subtract_mean:
-            mean = np.mean(np.concatenate([embeddings1[train_set], embeddings2[train_set]]), axis=0)
-        else:
-          mean = 0.0
-        dist = distance(embeddings1-mean, embeddings2-mean, distance_metric)
-        
-        # Find the best threshold for the fold
-        acc_train = np.zeros((nrof_thresholds))
-        for threshold_idx, threshold in enumerate(thresholds):
-            _, _, acc_train[threshold_idx] = calculate_accuracy(threshold, dist[train_set], actual_issame[train_set])
-        best_threshold_index = np.argmax(acc_train)
-        for threshold_idx, threshold in enumerate(thresholds):
-            tprs[fold_idx,threshold_idx], fprs[fold_idx,threshold_idx], _ = calculate_accuracy(threshold, dist[test_set], actual_issame[test_set])
-        _, _, accuracy[fold_idx] = calculate_accuracy(thresholds[best_threshold_index], dist[test_set], actual_issame[test_set])
-          
-        tpr = np.mean(tprs,0)
-        fpr = np.mean(fprs,0)
-    return tpr, fpr, accuracy
-
-
-def calculate_accuracy(threshold, dist, actual_issame):
-    predict_issame = np.less(dist, threshold)
-    tp = np.sum(np.logical_and(predict_issame, actual_issame))
-    fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
-    tn = np.sum(np.logical_and(np.logical_not(predict_issame), np.logical_not(actual_issame)))
-    fn = np.sum(np.logical_and(np.logical_not(predict_issame), actual_issame))
-  
-    tpr = 0 if (tp+fn==0) else float(tp) / float(tp+fn)
-    fpr = 0 if (fp+tn==0) else float(fp) / float(fp+tn)
-    acc = float(tp+tn)/dist.size
-    return tpr, fpr, acc
-
-
-def val(thresholds, embeddings, labels, far_target=1e-3, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert (embeddings.shape[0] == len(labels))
-
-    nrof_thresholds = len(thresholds)
-    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
-
-    val = np.zeros(nrof_folds)
-    far = np.zeros(nrof_folds)
-
-    indices = np.arange(embeddings.shape[0])
-
-    # compute label matrix
-    # actual_issame = utils.label_matrix(image_paths, diagonal=False)
-
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        print('\rVAL {}/{}'.format(fold_idx, nrof_folds), end='')
-        sys.stdout.flush()
-
-        if subtract_mean:
-            mean = np.mean(embeddings[train_set], axis=0)
-        else:
-            mean = 0.0
-
-        dist_train = distance_matrix(embeddings[train_set] - mean, distance_metric)
-        actual_issame_train = utils.label_array(labels[train_set])
-
-        dist_test = distance_matrix(embeddings[test_set] - mean, distance_metric)
-        actual_issame_test = utils.label_array(labels[test_set])
-
-        # Find the threshold that gives FAR = far_target
-        far_train = np.zeros(nrof_thresholds)
-        for idx, threshold in enumerate(thresholds):
-            _, far_train[idx] = calculate_val_far(threshold, dist_train, actual_issame_train)
-
-        if np.max(far_train) >= far_target:
-            f = interpolate.interp1d(far_train, thresholds, kind='slinear')
-            threshold = f(far_target)
-        else:
-            threshold = 0.0
-
-        val[fold_idx], far[fold_idx] = calculate_val_far(threshold, dist_test, actual_issame_test)
-
-    print()
-
-    val_mean = np.mean(val)
-    far_mean = np.mean(far)
-    val_std = np.std(val)
-
-    return val_mean, val_std, far_mean
-
-
-def calculate_val(thresholds, embeddings1, embeddings2, actual_issame, far_target, nrof_folds=10, distance_metric=0, subtract_mean=False):
-    assert(embeddings1.shape[0] == embeddings2.shape[0])
-    assert(embeddings1.shape[1] == embeddings2.shape[1])
-    nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
-    nrof_thresholds = len(thresholds)
-    k_fold = KFold(n_splits=nrof_folds, shuffle=False)
-    
-    val = np.zeros(nrof_folds)
-    far = np.zeros(nrof_folds)
-    
-    indices = np.arange(nrof_pairs)
-    
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
-        if subtract_mean:
-            mean = np.mean(np.concatenate([embeddings1[train_set], embeddings2[train_set]]), axis=0)
-        else:
-          mean = 0.0
-        dist = distance(embeddings1-mean, embeddings2-mean, distance_metric)
-      
-        # Find the threshold that gives FAR = far_target
-        far_train = np.zeros(nrof_thresholds)
-        for threshold_idx, threshold in enumerate(thresholds):
-            _, far_train[threshold_idx] = calculate_val_far(threshold, dist[train_set], actual_issame[train_set])
-        if np.max(far_train)>=far_target:
-            f = interpolate.interp1d(far_train, thresholds, kind='slinear')
-            threshold = f(far_target)
-        else:
-            threshold = 0.0
-    
-        val[fold_idx], far[fold_idx] = calculate_val_far(threshold, dist[test_set], actual_issame[test_set])
-  
-    val_mean = np.mean(val)
-    far_mean = np.mean(far)
-    val_std = np.std(val)
-    return val_mean, val_std, far_mean
-
-
-def calculate_val_far(threshold, dist, actual_issame):
-    predict_issame = np.less(dist, threshold)
-    true_accept = np.sum(np.logical_and(predict_issame, actual_issame))
-    false_accept = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
-    n_same = np.sum(actual_issame)
-    n_diff = np.sum(np.logical_not(actual_issame))
-    val = 1 if n_same == 0 else float(true_accept) / float(n_same)
-    far = 1 if n_diff == 0 else float(false_accept) / float(n_diff)
-    return val, far
-
-
 def list_variables(filename):
     reader = training.NewCheckpointReader(filename)
     variable_map = reader.get_variable_to_shape_map()
@@ -696,86 +362,6 @@ def put_images_on_grid(images, shape=(16,8)):
     return img
 
 
-def freeze_graph_def(sess, input_graph_def, output_node_names):
-    for node in input_graph_def.node:
-        if node.op == 'RefSwitch':
-            node.op = 'Switch'
-            for index in range(len(node.input)):
-                if 'moving_' in node.input[index]:
-                    node.input[index] = node.input[index] + '/read'
-        elif node.op == 'AssignSub':
-            node.op = 'Sub'
-            if 'use_locking' in node.attr: del node.attr['use_locking']
-        elif node.op == 'AssignAdd':
-            node.op = 'Add'
-            if 'use_locking' in node.attr: del node.attr['use_locking']
-
-    # Get the list of important nodes
-    whitelist_names = []
-    for node in input_graph_def.node:
-        if (node.name.startswith('InceptionResnet') or node.name.startswith('embeddings') or
-                node.name.startswith('image_batch') or node.name.startswith('label_batch') or
-                node.name.startswith('phase_train') or node.name.startswith('Logits')):
-            whitelist_names.append(node.name)
-
-    # Replace all the variables in the graph with constants of the same values
-    output_graph_def = graph_util.convert_variables_to_constants(sess, input_graph_def, output_node_names.split(","), variable_names_whitelist=whitelist_names)
-    return output_graph_def
-
-
-def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
-
-    if model_name is None:
-        model_name = model_dir.stem
-
-    # save the model checkpoint
-    # start_time = time.time()
-    checkpoint_path = model_dir.joinpath('model-{}.ckpt'.format(model_name))
-    saver.save(sess, str(checkpoint_path), global_step=step, write_meta_graph=False)
-    # save_time_variables = time.time() - start_time
-    print('saving checkpoint: {}-{}'.format(checkpoint_path, step))
-
-    metagraph_filename = model_dir.joinpath('model-{}.meta'.format(model_name))
-
-    if not metagraph_filename.exists():
-        saver.export_meta_graph(str(metagraph_filename))
-        print('saving meta graph:', metagraph_filename)
-
-
-def save_freeze_graph(model_dir, output_file=None, suffix=''):
-    if output_file is None:
-        output_file = model_dir.joinpath(model_dir.name + suffix + '.pb')
-    else:
-        output_file = output_file.expanduser()
-
-    with tf.Graph().as_default():
-        with tf.Session() as sess:
-            # Load the model metagraph and checkpoint
-            print('Model directory: {}'.format(model_dir))
-            meta_file, ckpt_file = get_model_filenames(model_dir)
-
-            print('Metagraph file: {}'.format(meta_file))
-            print('Checkpoint file: {}'.format(ckpt_file))
-
-            saver = tf.train.import_meta_graph(str(model_dir.joinpath(meta_file)), clear_devices=True)
-            tf.get_default_session().run(tf.global_variables_initializer())
-            tf.get_default_session().run(tf.local_variables_initializer())
-            saver.restore(tf.get_default_session(), str(model_dir.joinpath(ckpt_file)))
-
-            # Retrieve the protobuf graph definition and fix the batch norm nodes
-            input_graph_def = sess.graph.as_graph_def()
-
-            # Freeze the graph def
-            output_graph_def = freeze_graph_def(sess, input_graph_def, 'embeddings,label_batch')
-
-        # Serialize and dump the output graph to the filesystem
-        with tf.gfile.GFile(str(output_file), 'wb') as f:
-            f.write(output_graph_def.SerializeToString())
-        print('{} ops in the final graph: {}'.format(len(output_graph_def.node), str(output_file)))
-
-    return output_file
-
-
 def learning_rate_value(epoch, config):
     if config.value is not None:
         return config.value
@@ -789,11 +375,11 @@ def learning_rate_value(epoch, config):
 
 
 class EvaluationOfEmbeddings:
-    def __init__(self, dbase, config, graph=None):
+    def __init__(self, dbase, config):
         self.config = config
         self.dbase = dbase
 
-        facenet = FaceNet(self.config.model, graph=graph)
+        facenet = FaceNet(self.config.model)
 
         self.embeddings = np.zeros([dbase.nrof_images, facenet.embedding_size])
 

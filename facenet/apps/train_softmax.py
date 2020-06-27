@@ -177,7 +177,7 @@ def main(**args_):
 
             # perform validation
             epoch1 = epoch + 1
-            if not epoch1 % args.validate.every_n_epochs or epoch1 == args.train.epoch.nrof_epochs:
+            if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
                 validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
