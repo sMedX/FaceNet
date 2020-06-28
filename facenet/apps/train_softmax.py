@@ -132,7 +132,7 @@ def main(**args_):
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
         summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
 
-        facenet.restore_checkpoint(saver, sess, args.model.checkpoint)
+        tfutils.restore_checkpoint(saver, sess, args.model.checkpoint)
         tf.train.global_step(sess, global_step)
         sess.run(global_step.initializer)
 

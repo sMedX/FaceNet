@@ -20,23 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import sys
-from tqdm import tqdm
-import tensorflow.compat.v1 as tf
-import numpy as np
-from skimage import io, transform
-from sklearn.model_selection import KFold
-from scipy import spatial, interpolate
-from tensorflow.python.training import training
-from tensorflow.compat.v1 import graph_util
-import random
-import re
-from tensorflow.python.platform import gfile
 import math
+import numpy as np
+import tensorflow.compat.v1 as tf
+from tqdm import tqdm
 from pathlib import Path
 
-from facenet import utils, ioutils, h5utils, FaceNet, image_processing
+from facenet import ioutils, h5utils, FaceNet, image_processing
 
 
 class Placeholders:
@@ -141,6 +131,7 @@ def triplet_loss(anchor, positive, negative, alpha):
       
     return loss
 
+
 def center_loss(features, label, alfa, nrof_classes):
     """Center loss based on the paper "A Discriminative Feature Learning Approach for Deep Face Recognition"
        (http://ydwen.github.io/papers/WenECCV16.pdf)
@@ -156,73 +147,7 @@ def center_loss(features, label, alfa, nrof_classes):
         loss = tf.reduce_mean(tf.square(features - centers_batch))
     return loss, centers
 
-# def get_image_paths_and_labels(dataset):
-#     image_paths_flat = []
-#     labels_flat = []
-#     for i in range(len(dataset)):
-#         image_paths_flat += dataset[i].image_paths
-#         labels_flat += [i] * len(dataset[i].image_paths)
-#     return image_paths_flat, labels_flat
 
-def shuffle_examples(image_paths, labels):
-    shuffle_list = list(zip(image_paths, labels))
-    random.shuffle(shuffle_list)
-    image_paths_shuff, labels_shuff = zip(*shuffle_list)
-    return image_paths_shuff, labels_shuff
-
-def random_rotate_image(image):
-    angle = np.random.uniform(low=-10.0, high=10.0)
-    output = transform.rotate(image, angle=angle, order=1, resize=False, mode='edge', preserve_range=True)
-    return np.array(output, dtype=image.dtype)
-    # return misc.imrotate(image, angle, 'bicubic') imrotate is deprecated in SciPy 1.0.0
-  
-# 1: Random rotate 2: Random crop  4: Random flip  8:  Fixed image standardization  16: Flip
-RANDOM_ROTATE = 1
-RANDOM_CROP = 2
-RANDOM_FLIP = 4
-FIXED_STANDARDIZATION = 8
-FLIP = 16
-
-
-# def create_input_pipeline(input_queue, image_size, batch_size_placeholder, nrof_preprocess_threads=4):
-#     images_and_labels_list = []
-#     for _ in range(nrof_preprocess_threads):
-#         filenames, label, control = input_queue.dequeue()
-#         images = []
-#         for filename in tf.unstack(filenames):
-#             file_contents = tf.read_file(filename)
-#             image = tf.image.decode_image(file_contents, 3)
-#             image = tf.cond(get_control_flag(control[0], RANDOM_ROTATE),
-#                             lambda: tf.py_func(random_rotate_image, [image], tf.uint8),
-#                             lambda: tf.identity(image))
-#             image = tf.cond(get_control_flag(control[0], RANDOM_CROP),
-#                             lambda: tf.random_crop(image, image_size + (3,)),
-#                             lambda: tf.image.resize_image_with_crop_or_pad(image, image_size[0], image_size[1]))
-#             image = tf.cond(get_control_flag(control[0], RANDOM_FLIP),
-#                             lambda: tf.image.random_flip_left_right(image),
-#                             lambda: tf.identity(image))
-#             image = tf.cond(get_control_flag(control[0], FIXED_STANDARDIZATION),
-#                             lambda: (tf.cast(image, tf.float32) - 127.5)/128.0,
-#                             lambda: tf.image.per_image_standardization(image))
-#             image = tf.cond(get_control_flag(control[0], FLIP),
-#                             lambda: tf.image.flip_left_right(image),
-#                             lambda: tf.identity(image))
-#             #pylint: disable=no-member
-#             image.set_shape(image_size + (3,))
-#             images.append(image)
-#         images_and_labels_list.append([images, label])
-#
-#     image_batch, label_batch = tf.train.batch_join(
-#         images_and_labels_list, batch_size=batch_size_placeholder,
-#         shapes=[image_size + (3,), ()], enqueue_many=True,
-#         capacity=4 * nrof_preprocess_threads * 100,
-#         allow_smaller_final_batch=True)
-#
-#     return image_batch, label_batch
-
-def get_control_flag(control, field):
-    return tf.equal(tf.mod(tf.floor_div(control, field), 2), 1)
-  
 def _add_loss_summaries(total_loss):
     """Add summaries for losses.
   
@@ -290,9 +215,9 @@ def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars)
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
   
     with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
-        train_op = tf.no_op(name='train')
+        op = tf.no_op(name='train')
   
-    return train_op
+    return op
 
 
 def get_label_batch(label_data, batch_size, batch_index):
@@ -328,38 +253,6 @@ def get_triplet_batch(triplets, batch_index, batch_size):
     n = get_batch(nx, int(batch_size/3), batch_index)
     batch = np.vstack([a, p, n])
     return batch
-
-
-def restore_checkpoint(saver, session, path):
-    if path is not None:
-        path = Path(path)
-        print('Restoring pre-trained model: {}'.format(path))
-        saver.restore(session, str(path))
-
-
-def list_variables(filename):
-    reader = training.NewCheckpointReader(filename)
-    variable_map = reader.get_variable_to_shape_map()
-    names = sorted(variable_map.keys())
-    return names
-
-
-def put_images_on_grid(images, shape=(16,8)):
-    nrof_images = images.shape[0]
-    img_size = images.shape[1]
-    bw = 3
-    img = np.zeros((shape[1]*(img_size+bw)+bw, shape[0]*(img_size+bw)+bw, 3), np.float32)
-    for i in range(shape[1]):
-        x_start = i*(img_size+bw)+bw
-        for j in range(shape[0]):
-            img_index = i*shape[0]+j
-            if img_index>=nrof_images:
-                break
-            y_start = j*(img_size+bw)+bw
-            img[x_start:x_start+img_size, y_start:y_start+img_size, :] = images[img_index, :, :, :]
-        if img_index >= nrof_images:
-            break
-    return img
 
 
 def learning_rate_value(epoch, config):

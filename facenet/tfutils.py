@@ -44,6 +44,13 @@ def get_model_filenames(model_dir):
     return meta_file, ckpt_file
 
 
+def restore_checkpoint(saver, session, path):
+    if path:
+        path = Path(path).expanduser()
+        print('Restoring pre-trained model: {}'.format(path))
+        saver.restore(session, str(path))
+
+
 def freeze_graph_def(sess, input_graph_def, output_node_names):
     for node in input_graph_def.node:
         if node.op == 'RefSwitch':
