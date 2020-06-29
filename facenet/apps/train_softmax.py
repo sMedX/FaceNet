@@ -35,14 +35,6 @@ import tensorflow.contrib.slim as slim
 from facenet import ioutils, dataset, statistics, config, h5utils, facenet, tfutils
 
 
-def load_images(path, image_size):
-    contents = tf.io.read_file(path)
-    image = tf.image.decode_image(contents, channels=3)
-    image = tf.image.resize_image_with_crop_or_pad(image, image_size, image_size)
-    image = (tf.cast(image, tf.float32) - 127.5) / 128
-    return image
-
-
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options of the application.')
@@ -67,7 +59,7 @@ def main(**args_):
     print(dbase_emb)
 
     # ------------------------------------------------------------------------------------------------------------------
-    map_func = partial(load_images, image_size=args.image.size)
+    map_func = partial(facenet.load_images, image_size=args.image.size)
     ds_validate = {
         'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
         'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)

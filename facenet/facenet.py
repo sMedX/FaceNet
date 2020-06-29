@@ -62,6 +62,14 @@ class Placeholders:
         }
 
 
+def load_images(path, image_size):
+    contents = tf.io.read_file(path)
+    image = tf.image.decode_image(contents, channels=3)
+    image = tf.image.resize_image_with_crop_or_pad(image, image_size, image_size)
+    image = (tf.cast(image, tf.float32) - 127.5) / 128
+    return image
+
+
 def make_train_dataset(sess, dbase, map_func, args):
     data = list(zip(dbase.files, dbase.labels))
     np.random.shuffle(data)
