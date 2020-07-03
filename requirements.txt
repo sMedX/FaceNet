@@ -1,7 +1,6 @@
-tensorflow>=1.7
+tensorflow >=1.14.0, <2
 scipy
 scikit-learn
-opencv-python
 h5py
 matplotlib
 Pillow
@@ -10,3 +9,5 @@ psutil
 numpy
 pyyaml
 click
+tqdm
+cached_property
