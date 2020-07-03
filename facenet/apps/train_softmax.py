@@ -173,10 +173,11 @@ def main(**args_):
                 validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
-                # tfutils.save_freeze_graph(model_dir=args.model.path, suffix='-{}'.format(epoch), optimize=False)
-                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds_validate['embedding'], placeholders)
+                tfutils.save_freeze_graph(model_dir=args.model.path, optimize=False)
+                embs = facenet.EvaluationOfEmbeddings(dbase, args)
+                # embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds_validate['embedding'], placeholders)
 
-                validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)
+                validation = statistics.FaceToFaceValidation(embs.embeddings, embs.labels, args.validate.validate)
 
                 ioutils.write_text_log(args.txtfile, str(validation))
                 h5utils.write_dict(args.h5file, validation.dict, group='validate')

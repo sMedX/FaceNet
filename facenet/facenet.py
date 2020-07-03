@@ -24,9 +24,9 @@ import math
 import numpy as np
 import tensorflow.compat.v1 as tf
 from tqdm import tqdm
-from pathlib import Path
+from functools import partial
 
-from facenet import ioutils, h5utils, FaceNet, image_processing
+from facenet import ioutils, h5utils, FaceNet
 
 
 class Placeholders:
@@ -90,10 +90,13 @@ def make_train_dataset(sess, dbase, map_func, args):
     return ds
 
 
-def make_validate_dataset(ds, map_func, args):
-    data = list(zip(ds.files, ds.labels))
-    np.random.shuffle(data)
-    files, labels = map(list, zip(*data))
+def make_validate_dataset(ds, map_func, args, shuffle=True):
+    if shuffle:
+        data = list(zip(ds.files, ds.labels))
+        np.random.shuffle(data)
+        files, labels = map(list, zip(*data))
+    else:
+        files, labels = ds.files, ds.labels
 
     images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     labels = tf.data.Dataset.from_tensor_slices(labels)
@@ -279,23 +282,28 @@ class EvaluationOfEmbeddings:
     def __init__(self, dbase, config):
         self.config = config
         self.dbase = dbase
+        self.embeddings = []
+        self.labels = []
 
         facenet = FaceNet(self.config.model)
 
-        self.embeddings = np.zeros([dbase.nrof_images, facenet.embedding_size])
-
         print('Running forward pass on images')
 
-        for i in tqdm(range(0, self.dbase.nrof_images, self.config.batch_size)):
-            files = self.dbase.files[i:i + self.config.batch_size]
-            image_batch = []
+        map_func = partial(load_images, image_size=config.image.size)
+        dataset = make_validate_dataset(dbase, map_func, config, shuffle=False)
+        iterator = dataset.make_one_shot_iterator().get_next()
 
-            for file in files:
-                img = ioutils.read_image(file)
-                img = image_processing(img, config.image)
-                image_batch.append(img)
+        with tf.Session() as sess:
+            nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
 
-            self.embeddings[i:i + self.config.batch_size, :] = facenet.image_to_embedding(image_batch)
+            for i in tqdm(range(nrof_batches)):
+                image_batch, label_batch = sess.run(iterator)
+
+                self.embeddings.append(facenet.evaluate(image_batch))
+                self.labels.append(label_batch)
+
+        self.embeddings = np.concatenate(self.embeddings)
+        self.labels = np.concatenate(self.labels)
 
     def __repr__(self):
         return ('{}\n'.format(self.__class__.__name__) +
