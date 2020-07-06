@@ -79,7 +79,7 @@ def make_train_dataset(dbase, map_func, args):
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
     ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=1, reshuffle_each_iteration=True).repeat()
+    ds = ds.shuffle(buffer_size=10*args.batch_size, reshuffle_each_iteration=True).repeat()
     ds = ds.batch(batch_size=args.batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
