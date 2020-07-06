@@ -107,7 +107,9 @@ def make_validate_dataset(ds, map_func, args, shuffle=True):
     return ds
 
 
-def evaluate_embeddings(sess, embedding, dataset, placeholders):
+def evaluate_embeddings(sess, embedding, dataset, placeholders, info):
+    print('\nRunning forward pass on validation set', info)
+
     embeddings = []
     labels = []
 
