@@ -12,7 +12,7 @@ from facenet import tfutils, ioutils
 
 
 class FaceNet:
-    def __init__(self, model):
+    def __init__(self, config):
         """
         import numpy as np
         from facenet import FaceNet
@@ -22,7 +22,7 @@ class FaceNet:
         print(emb)
         """
         self._session = tf.Session()
-        tfutils.load_model(model)
+        tfutils.load_model(config.path)
 
         # Get input and output tensors
         graph = tf.get_default_graph()

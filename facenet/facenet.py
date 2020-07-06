@@ -289,8 +289,8 @@ class EvaluationOfEmbeddings:
 
         print('Running forward pass on images')
 
-        map_func = partial(load_images, image_size=config.image.size)
-        dataset = make_validate_dataset(dbase, map_func, config, shuffle=False)
+        map_func = partial(load_images, image_size=self.config.image.size)
+        dataset = make_validate_dataset(dbase, map_func, self.config, shuffle=False)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
