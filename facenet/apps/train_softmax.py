@@ -157,7 +157,7 @@ def main(**args_):
         }
 
         # Training and validation loop
-        ds_train = facenet.make_train_dataset(sess, dbase, map_func, args)
+        ds_train = facenet.make_train_dataset(dbase, map_func, args)
 
         for epoch in range(args.train.epoch.nrof_epochs):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)

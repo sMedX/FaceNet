@@ -70,7 +70,7 @@ def load_images(path, image_size):
     return image
 
 
-def make_train_dataset(sess, dbase, map_func, args):
+def make_train_dataset(dbase, map_func, args):
     data = list(zip(dbase.files, dbase.labels))
     np.random.shuffle(data)
     files, labels = map(list, zip(*data))
