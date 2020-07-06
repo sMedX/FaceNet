@@ -157,11 +157,12 @@ def main(**args_):
         }
 
         # Training and validation loop
+        ds_train = facenet.make_train_dataset(sess, dbase, map_func, args)
+
         for epoch in range(args.train.epoch.nrof_epochs):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
             # train for one epoch
-            ds_train = facenet.make_train_dataset(sess, dbase, map_func, args)
             train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds_train)
 
             # save variables and the meta graph if it doesn't exist already
@@ -173,8 +174,6 @@ def main(**args_):
                 validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
-                # tfutils.save_freeze_graph(model_dir=args.model.path)
-                # embs = facenet.EvaluationOfEmbeddings(dbase, config=args)
                 embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds_validate['embedding'], placeholders, info)
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)

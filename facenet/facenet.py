@@ -77,14 +77,10 @@ def make_train_dataset(sess, dbase, map_func, args):
 
     images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     labels = tf.data.Dataset.from_tensor_slices(labels)
-    ds = tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size, drop_remainder=True)
 
-    nrof_batches = sess.run(tf.data.experimental.cardinality(ds))
-    epoch_size = args.train.epoch.size
-
-    count = math.ceil(epoch_size/nrof_batches)
-    ds = ds.repeat(count=count)
-
+    ds = tf.data.Dataset.zip((images, labels))
+    ds = ds.shuffle(buffer_size=1, reshuffle_each_iteration=True).repeat()
+    ds = ds.batch(batch_size=args.batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     return ds
@@ -108,7 +104,7 @@ def make_validate_dataset(ds, map_func, args, shuffle=True):
 
 
 def evaluate_embeddings(sess, embedding, dataset, placeholders, info):
-    print('\nRunning evaluation embeddings on validation set', info)
+    print('\nEvaluation embeddings on validation set', info)
 
     embeddings = []
     labels = []
