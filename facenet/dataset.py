@@ -2,7 +2,6 @@
 __author__ = 'Ruslan N. Kosarev'
 
 from tqdm import tqdm
-from cached_property import cached_property
 import numpy as np
 from pathlib import Path
 
@@ -126,14 +125,14 @@ class DBase:
     def __bool__(self):
         return True if self.nrof_classes > 1 else False
 
-    @cached_property
+    @property
     def files(self):
         files = []
         for cls in self.classes:
             files += cls.files
         return files
 
-    @cached_property
+    @property
     def labels(self):
         labels = []
         for idx, cls in enumerate(self.classes):
