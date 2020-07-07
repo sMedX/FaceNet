@@ -58,13 +58,14 @@ def main(**args_):
     ioutils.write_text_log(args.txtfile, str(dbase_emb))
     print(dbase_emb)
 
-    # ------------------------------------------------------------------------------------------------------------------
     map_func = partial(facenet.load_images, image_size=args.image.size)
-    ds_validate = {
+    ds = {
+        'train': facenet.make_train_dataset(dbase, map_func, args),
         'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
         'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
     }
 
+    # ------------------------------------------------------------------------------------------------------------------
     global_step = tf.Variable(0, trainable=False, name='global_step')
 
     placeholders = facenet.Placeholders(args.image.size)
@@ -157,13 +158,11 @@ def main(**args_):
         }
 
         # Training and validation loop
-        ds_train = facenet.make_train_dataset(dbase, map_func, args)
-
         for epoch in range(args.train.epoch.nrof_epochs):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds_train)
+            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds['train'])
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
@@ -171,10 +170,10 @@ def main(**args_):
             # perform validation
             epoch1 = epoch + 1
             if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
-                validate(sess, ds_validate['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
+                validate(sess, ds['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
-                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds_validate['embedding'], placeholders, info)
+                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds['embedding'], placeholders, info)
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)
 
