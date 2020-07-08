@@ -14,7 +14,7 @@ from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 default_model = src_dir.joinpath('models', '20200520-001709')
-default_batch_size = 100
+default_batch_size = 64
 
 file_extension = '.png'
 
@@ -164,6 +164,9 @@ class TrainOptions(YAMLConfig):
         random.seed(self.seed)
         np.random.seed(self.seed)
         tf.set_random_seed(self.seed)
+
+        if not self.batch_size:
+            self.batch_size = default_batch_size
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()

@@ -65,6 +65,8 @@ def main(**args_):
         'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
     }
 
+    train_iterator = ds['train'].make_one_shot_iterator().get_next()
+
     # ------------------------------------------------------------------------------------------------------------------
     global_step = tf.Variable(0, trainable=False, name='global_step')
 
@@ -162,7 +164,7 @@ def main(**args_):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, ds['train'])
+            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, train_iterator)
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
@@ -197,7 +199,7 @@ def main(**args_):
     return args.model.path
 
 
-def train(args, sess, epoch, tensor_dict, summary, info, placeholders, ds):
+def train(args, sess, epoch, tensor_dict, summary, info, placeholders, iterator):
     print('\nRunning training', info)
     start_time = time.monotonic()
 
@@ -206,8 +208,6 @@ def train(args, sess, epoch, tensor_dict, summary, info, placeholders, ds):
         return False
 
     outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
-
-    iterator = ds.make_one_shot_iterator().get_next()
 
     epoch_size = args.train.epoch.size
 
