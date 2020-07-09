@@ -65,7 +65,11 @@ def main(**args_):
         'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
     }
 
-    train_iterator = ds['train'].make_one_shot_iterator().get_next()
+    iterator = {
+        'train': ds['train'].make_one_shot_iterator(),
+        'validate': ds['validate'].make_initializable_iterator(),
+        'embedding': ds['embedding'].make_initializable_iterator()
+    }
 
     # ------------------------------------------------------------------------------------------------------------------
     global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -164,7 +168,7 @@ def main(**args_):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, train_iterator)
+            train(args, sess, epoch, tensor_dict['train'], summary['train'], info, placeholders, iterator['train'])
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
@@ -172,10 +176,13 @@ def main(**args_):
             # perform validation
             epoch1 = epoch + 1
             if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
-                validate(sess, ds['validate'], placeholders, tensor_dict['validate'], summary['validate'], info)
+                validate(sess, placeholders,
+                         ds['validate'], iterator['validate'],
+                         tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
-                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, ds['embedding'], placeholders, info)
+                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, placeholders,
+                                                                 ds['embedding'], iterator['embedding'], info)
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)
 
@@ -213,7 +220,7 @@ def train(args, sess, epoch, tensor_dict, summary, info, placeholders, iterator)
 
     with tqdm(total=epoch_size) as bar:
         for batch_number in range(epoch_size):
-            image_batch, label_batch = sess.run(iterator)
+            image_batch, label_batch = sess.run(iterator.get_next())
 
             feed_dict = placeholders.train_feed_dict(image_batch, label_batch, learning_rate)
             output = sess.run(tensor_dict, feed_dict=feed_dict)
@@ -232,7 +239,7 @@ def train(args, sess, epoch, tensor_dict, summary, info, placeholders, iterator)
     return True
 
 
-def validate(sess, dataset, placeholders, tensor_dict, summary, info):
+def validate(sess, placeholders, dataset, iterator, tensor_dict, summary, info):
     print('\nRunning forward pass on validation set', info)
     start_time = time.monotonic()
 
@@ -240,11 +247,12 @@ def validate(sess, dataset, placeholders, tensor_dict, summary, info):
 
     # embeddings = np.zeros((0, args.model.config.embedding_size))
     nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
-    iterator = dataset.make_one_shot_iterator().get_next()
+    sess.run(iterator.initializer)
+    batch = iterator.get_next()
 
     with tqdm(total=nrof_batches) as bar:
         for i in range(nrof_batches):
-            image_batch, label_batch = sess.run(iterator)
+            image_batch, label_batch = sess.run(batch)
             output = sess.run(tensor_dict,
                               feed_dict=placeholders.validate_feed_dict(image_batch, label_batch))
 
