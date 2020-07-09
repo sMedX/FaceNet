@@ -103,7 +103,7 @@ def make_validate_dataset(ds, map_func, args, shuffle=True):
     return ds
 
 
-def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, info):
+def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch, info):
     print('\nEvaluation embeddings on validation set', info)
 
     embeddings = []
@@ -111,7 +111,6 @@ def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, info):
 
     nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
     sess.run(iterator.initializer)
-    batch = iterator.get_next()
 
     for _ in tqdm(range(nrof_batches)):
         image_batch, label_batch = sess.run(batch)
