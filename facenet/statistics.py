@@ -215,7 +215,7 @@ class Report:
 
 
 class FaceToFaceValidation:
-    def __init__(self, embeddings, labels, config):
+    def __init__(self, embeddings, labels, config, info=''):
         """
         :param embeddings:
         :param labels:
@@ -223,6 +223,8 @@ class FaceToFaceValidation:
         self.elapsed_time = time.monotonic()
         self.embeddings = embeddings
         self.labels = labels
+        self.info = info
+
         assert (embeddings.shape[0] == len(labels))
 
         self.config = config
@@ -239,9 +241,9 @@ class FaceToFaceValidation:
 
         self._evaluate()
 
-    def __repr__(self, info=''):
+    def __repr__(self):
         """Representation of the database"""
-        info = ('{} {}\n'.format(self.__class__.__name__, info) +
+        info = ('{} {}\n'.format(self.__class__.__name__, self.info) +
                 'metric: {}\n\n'.format(self.config.metric))
         for r in self.reports:
             info += str(r)

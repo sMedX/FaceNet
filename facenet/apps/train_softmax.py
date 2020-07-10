@@ -193,7 +193,7 @@ def main(**args_):
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate)
 
-                ioutils.write_text_log(args.txtfile, validation.__repr__(info))
+                ioutils.write_text_log(args.txtfile, str(validation))
                 h5utils.write_dict(args.h5file, validation.dict, group='validate')
 
                 for key, value in validation.dict.items():
