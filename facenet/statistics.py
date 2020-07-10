@@ -239,9 +239,9 @@ class FaceToFaceValidation:
 
         self._evaluate()
 
-    def __repr__(self):
+    def __repr__(self, info=''):
         """Representation of the database"""
-        info = ('{}\n'.format(self.__class__.__name__) +
+        info = ('{} {}\n'.format(self.__class__.__name__, info) +
                 'metric: {}\n\n'.format(self.config.metric))
         for r in self.reports:
             info += str(r)
