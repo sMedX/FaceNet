@@ -182,9 +182,9 @@ def main(**args_):
             # perform validation
             epoch1 = epoch + 1
             if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
-                validate(sess, placeholders,
-                         ds['validate'], iterator['validate'], batch['validate'],
-                         tensor_dict['validate'], summary['validate'], info)
+                # validate(sess, placeholders,
+                #          ds['validate'], iterator['validate'], batch['validate'],
+                #          tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
                 embeddings, labels = facenet.evaluate_embeddings(sess, embedding, placeholders,
