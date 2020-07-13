@@ -305,7 +305,7 @@ class EvaluationOfEmbeddings:
 
     def __repr__(self):
         return ('{}\n'.format(self.__class__.__name__) +
-                'model: {}\n'.format(self.config.model) +
+                'model: {}\n'.format(self.config.model.path) +
                 'embedding size: {}\n'.format(self.embeddings.shape))
 
     def write_report(self, file):

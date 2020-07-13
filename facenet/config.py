@@ -14,7 +14,7 @@ from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 default_model = src_dir.joinpath('models', '20200520-001709')
-default_batch_size = 64
+default_batch_size = 100
 
 file_extension = '.png'
 
@@ -136,16 +136,16 @@ class Validate(YAMLConfig):
         random.seed(self.seed)
         np.random.seed(self.seed)
 
-        if not self.model:
-            self.model = default_model
+        if not self.model.path:
+            self.model.path = default_model
 
         if not self.file:
-            self.file = Path(self.model).expanduser().joinpath('report.txt')
+            self.file = Path(self.model.path).expanduser().joinpath('report.txt')
         else:
             self.file = Path(self.file).expanduser()
 
         if not self.batch_size:
-            self.batch_size = DefaultConfig2().batch_size
+            self.batch_size = default_batch_size
 
         if not self.dataset.min_nrof_images:
             self.dataset.min_nrof_images = 1
@@ -164,9 +164,6 @@ class TrainOptions(YAMLConfig):
         random.seed(self.seed)
         np.random.seed(self.seed)
         tf.set_random_seed(self.seed)
-
-        if not self.batch_size:
-            self.batch_size = default_batch_size
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
@@ -202,3 +199,15 @@ class TrainOptions(YAMLConfig):
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
         ioutils.store_revision_info(self.logs, sys.argv)
+
+
+class DefaultConfig:
+    def __init__(self):
+        self.model = src_dir.joinpath('models', '20190822-033520')
+        self.pretrained_checkpoint = src_dir.joinpath('models', '20190822-033520', 'model-20190822-033520.ckpt-275')
+
+        # image size (height, width) in pixels
+        self.image_size = 160
+
+        # batch size (number of images to process in a batch
+        self.batch_size = 100
