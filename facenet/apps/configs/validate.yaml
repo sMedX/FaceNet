@@ -1,7 +1,7 @@
 # coding:utf-8
 
 # Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-model: none
+model:
 
 # Number of images to process in a batch
 batch_size: 100
@@ -10,13 +10,15 @@ seed: 0
 
 dataset:
   # Path to the data directory containing aligned face patches
-  path: none
+  path:
   # Path to h5 file with information about valid images
-  h5file: none
+  h5file:
   # Number of classes to download from data set
-  nrof_classes: none
-  # Maximal number of images to download from class
-  nrof_images: none
+  nrof_classes:
+  # Minimal number of classes per class to download from data set
+  min_nrof_images: 1
+  # Maximal number of classes per class to download from data set
+  max_nrof_images:
 
 validate:
   # File to write statistical report

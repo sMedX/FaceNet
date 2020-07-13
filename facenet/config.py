@@ -8,9 +8,14 @@ from datetime import datetime
 import importlib
 import numpy as np
 import random
+import tensorflow as tf
+
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
+default_model = src_dir.joinpath('models', '20200520-001709')
+default_batch_size = 64
+
 file_extension = '.png'
 
 
@@ -93,6 +98,36 @@ class YAMLConfig:
         return True if name in self.__dict__.keys() else False
 
 
+class Embeddings(YAMLConfig):
+    def __init__(self, args_):
+        YAMLConfig.__init__(self, args_['config'])
+        if not self.seed:
+            self.seed = 0
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+
+        if not self.model:
+            self.model = default_model
+
+        if not self.tfrecord:
+            self.tfrecord = Path(self.dataset.path + self.model.stem + '.tfrecord')
+        self.tfrecord = Path(self.tfrecord).expanduser()
+
+        if not self.file:
+            self.file = self.tfrecord.with_suffix('.txt')
+        self.file = Path(self.file).expanduser()
+
+        if not self.batch_size:
+            self.batch_size = default_batch_size
+
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
+
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.file.parent)
+        ioutils.store_revision_info(self.file, sys.argv)
+
+
 class Validate(YAMLConfig):
     def __init__(self, args_):
         YAMLConfig.__init__(self, args_['config'])
@@ -102,7 +137,7 @@ class Validate(YAMLConfig):
         np.random.seed(self.seed)
 
         if not self.model:
-            self.model = DefaultConfig().model
+            self.model = default_model
 
         if not self.file:
             self.file = Path(self.model).expanduser().joinpath('report.txt')
@@ -110,7 +145,10 @@ class Validate(YAMLConfig):
             self.file = Path(self.file).expanduser()
 
         if not self.batch_size:
-            self.batch_size = DefaultConfig().batch_size
+            self.batch_size = DefaultConfig2().batch_size
+
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.file.parent)
@@ -125,11 +163,21 @@ class TrainOptions(YAMLConfig):
             self.seed = 0
         random.seed(self.seed)
         np.random.seed(self.seed)
+        tf.set_random_seed(self.seed)
+
+        if not self.batch_size:
+            self.batch_size = default_batch_size
 
         if subdir is None:
             self.model.path = Path(self.model.path).expanduser()
         else:
             self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
+
+        if not self.dataset.min_nrof_images:
+            self.dataset.min_nrof_images = 1
+
+        if not self.validate.dataset.min_nrof_images:
+            self.validate.dataset.min_nrof_images = 1
 
         self.logs = self.model.path.joinpath('logs')
         self.h5file = self.logs.joinpath('report.h5')
@@ -140,9 +188,6 @@ class TrainOptions(YAMLConfig):
             self.model.update_from_file(network.config_file)
 
         # learning rate options
-        if args_['learning_rate'] is not None:
-            self.train.learning_rate.value = args_['learning_rate']
-
         if self.train.learning_rate.schedule:
             self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
@@ -157,15 +202,3 @@ class TrainOptions(YAMLConfig):
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
         ioutils.store_revision_info(self.logs, sys.argv)
-
-
-class DefaultConfig:
-    def __init__(self):
-        self.model = src_dir.joinpath('models', '20190822-033520')
-        self.pretrained_checkpoint = src_dir.joinpath('models', '20190822-033520', 'model-20190822-033520.ckpt-275')
-
-        # image size (height, width) in pixels
-        self.image_size = 160
-
-        # batch size (number of images to process in a batch
-        self.batch_size = 100

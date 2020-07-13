@@ -20,7 +20,7 @@ As described in http://arxiv.org/abs/1602.07261.
 """
 
 import pathlib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow.contrib.slim as slim
 from typing import Optional
 from collections.abc import Callable
