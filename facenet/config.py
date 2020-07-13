@@ -145,7 +145,7 @@ class Validate(YAMLConfig):
             self.file = Path(self.file).expanduser()
 
         if not self.batch_size:
-            self.batch_size = DefaultConfig().batch_size
+            self.batch_size = DefaultConfig2().batch_size
 
         if not self.dataset.min_nrof_images:
             self.dataset.min_nrof_images = 1
@@ -202,15 +202,3 @@ class TrainOptions(YAMLConfig):
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
         ioutils.store_revision_info(self.logs, sys.argv)
-
-
-class DefaultConfig:
-    def __init__(self):
-        self.model = src_dir.joinpath('models', '20190822-033520')
-        self.pretrained_checkpoint = src_dir.joinpath('models', '20190822-033520', 'model-20190822-033520.ckpt-275')
-
-        # image size (height, width) in pixels
-        self.image_size = 160
-
-        # batch size (number of images to process in a batch
-        self.batch_size = 100
