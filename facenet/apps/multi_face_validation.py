@@ -18,37 +18,50 @@ def similarity(x, y):
 
 
 class Metrics:
-    def __init__(self, embeddings, batches, threshold, alpha, far=None):
+    def __init__(self, embeddings, batches, threshold, alpha, args):
         nrof_classes = len(embeddings)
         nrof_positive_class_pairs = nrof_classes
         nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1)
 
         tp = tn = fp = fn = 0
-        positive_entropy_part = 0
-        negative_entropy_part = 0
+        positive_part_entropy = 0
+        negative_part_entropy = 0
+
+        batch = tf.concat(batches, axis=0)
+        idx1 = -tf.shape(batches[0])[0]
 
         for i, x in enumerate(embeddings):
-            for k, y in enumerate(batches):
-                sims = tf.cast(similarity(x, y), dtype=threshold.dtype)
-                logits = tf.multiply(alpha, tf.subtract(threshold, sims))
+            sims = similarity(x, batch)
+            logits = tf.multiply(alpha, tf.subtract(threshold, sims))
 
-                predict = tf.greater_equal(logits, 0)
-                mean = tf.count_nonzero(predict) / tf.size(predict, out_type=tf.int64)
+            size = tf.shape(batches[i])[0]
+            idx1 += size
+            idx2 = idx1 + size
 
-                if k == i:
-                    logsig = tf.math.log_sigmoid(logits)
-                    positive_entropy_part -= tf.reduce_mean(logsig) / nrof_positive_class_pairs
+            # cross entropy loss
+            positive_logits = logits[:, idx1:idx2]
+            positive_logsig = tf.math.log_sigmoid(positive_logits)
+            positive_part_entropy -= tf.reduce_mean(positive_logsig)
 
-                    tp += mean / nrof_positive_class_pairs
-                    fn += (1 - mean) / nrof_positive_class_pairs
-                else:
-                    logsig = tf.math.log_sigmoid(1 - logits)
-                    negative_entropy_part -= tf.reduce_mean(logsig) / nrof_negative_class_pairs
+            negative_logits = tf.concat([logits[:, :idx1], logits[:, idx2:]], axis=1)
+            negative_logsig = tf.math.log_sigmoid(1 - negative_logits)
+            negative_part_entropy -= tf.reduce_mean(negative_logsig)
 
-                    fp += mean / nrof_negative_class_pairs
-                    tn += (1 - mean) / nrof_negative_class_pairs
+            # confusion matrix based metrics
+            predict = tf.greater_equal(logits, 0)
 
-        self.cross_entropy = positive_entropy_part + negative_entropy_part
+            positive_predict = predict[:, idx1:idx2]
+            positive_mean = tf.count_nonzero(positive_predict)/tf.size(positive_predict, out_type=tf.int64)
+            tp += positive_mean
+            fn += 1 - positive_mean
+
+            negative_predict = tf.concat([predict[:, :idx1], predict[:, idx2:]], axis=1)
+            negative_mean = tf.count_nonzero(negative_predict)/tf.size(negative_predict, out_type=tf.int64)
+
+            fp += negative_mean
+            tn += 1 - negative_mean
+
+        self.cross_entropy = positive_part_entropy + negative_part_entropy
 
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
         self.precision = tp / (tp + fp)
@@ -79,14 +92,14 @@ def main(**args_):
     batches = []
     for emb in embeddings:
         ds = tf.data.Dataset.from_tensor_slices(emb).shuffle(buffer_size=10, reshuffle_each_iteration=True)
-        ds = ds.repeat().batch(batch_size=10)
+        ds = ds.repeat().batch(batch_size=args.batch_size)
         batches.append(tf.convert_to_tensor(ds.make_one_shot_iterator().get_next()))
 
     # vars and metrics
-    alpha = tf.Variable(initial_value=10, dtype=tf.float64, name='alpha')
-    threshold = tf.Variable(initial_value=1, dtype=tf.float64, name='threshold')
+    alpha = tf.Variable(initial_value=10, dtype=tf.float32, name='alpha')
+    threshold = tf.Variable(initial_value=1, dtype=tf.float32, name='threshold')
 
-    metrics = Metrics(embeddings, batches, threshold, alpha)
+    metrics = Metrics(embeddings, batches, threshold, alpha, args)
 
     # define train operations
     global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -115,7 +128,7 @@ def main(**args_):
                 bar.set_postfix_str('variables {}, loss {}'.format(outs['variables'], outs['loss']))
                 bar.update()
 
-        metrics = Metrics(embeddings, embeddings, threshold, alpha)
+        metrics = Metrics(embeddings, embeddings, threshold, alpha, args)
         print(session.run(metrics.__dict__))
 
 
