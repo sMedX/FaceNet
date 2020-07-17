@@ -6,19 +6,12 @@
 
 import click
 from pathlib import Path
+from tqdm import tqdm
+
 import tensorflow as tf
-import numpy as np
 from facenet import dataset, config, statistics, facenet
 
 
-# start_time = ioutils.get_time()
-# https://medium.com/@prasad.pai/how-to-use-dataset-and-iterators-in-tensorflow-with-code-samples-3bb98b6b74ab
-# https://www.tensorflow.org/tutorials/keras/classification?hl=ru
-
-# https://habr.com/ru/post/458170/
-# https://stackoverflow.com/questions/51762406/what-is-the-tensorflow-loss-equivalent-of-binary-cross-entropy
-# https://www.machinelearningmastery.ru/understanding-binary-cross-entropy-log-loss-a-visual-explanation-a3ac6025181a/
-#
 # evaluation of distances
 def similarity(x, y):
     return 2*(1 - x @ tf.transpose(y))
@@ -112,7 +105,7 @@ def main(**args_):
     with tf.Session() as session:
         session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
-        for i in range(1000):
+        for _ in tqdm(range(1000)):
             session.run(train_ops)
 
         outputs = session.run([tensor_ops, metrics.conf_matrix])
