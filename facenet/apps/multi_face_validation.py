@@ -102,6 +102,8 @@ def main(**args_):
         'threshold': threshold
     }
 
+    print('start training')
+
     with tf.Session() as session:
         session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
