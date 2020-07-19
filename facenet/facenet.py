@@ -74,7 +74,6 @@ def image_processing(image_batch, args):
 
     image_batch = tf.identity(image_batch, 'image')
     image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
-    image_batch = tf.cast(image_batch, dtype=tf.float32)
     image_batch = tf.image.per_image_standardization(image_batch)
     image_batch = tf.identity(image_batch, 'input')
 
