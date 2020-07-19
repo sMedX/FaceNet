@@ -138,26 +138,16 @@ def main(**args_):
         tf.train.global_step(sess, global_step)
         sess.run(global_step.initializer)
 
-        tensor_dict = {
-            'train': {
-                'train_op': train_op,
-                'summary_op': summary_op,
-                'tensor_op': {
-                    'accuracy': accuracy,
-                    'loss': total_loss,
-                    'xent': cross_entropy_mean,
-                    'center_loss': prelogits_center_loss,
-                    'prelogits_norm': prelogits_norm,
-                    'learning_rate': learning_rate
-                }
-            },
-            'validate': {
-                'embedding': embedding,
-                'tensor_op': {
-                    'accuracy': accuracy,
-                    'loss': total_loss,
-                    'xent': cross_entropy_mean
-                }
+        tensor_ops = {
+            'train_op': train_op,
+            'summary_op': summary_op,
+            'tensor_op': {
+                'accuracy': accuracy,
+                'loss': total_loss,
+                'xent': cross_entropy_mean,
+                'center_loss': prelogits_center_loss,
+                'prelogits_norm': prelogits_norm,
+                'learning_rate': learning_rate
             }
         }
 
@@ -171,7 +161,7 @@ def main(**args_):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(args, sess, placeholders, epoch, tensor_dict['train'], summary['train'], batch['train'], info)
+            train(args, sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], info)
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
