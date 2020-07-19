@@ -48,33 +48,27 @@ def main(**args_):
 
     # ------------------------------------------------------------------------------------------------------------------
     dbase = dataset.DBase(args.dataset)
-    dbase, dbase_val = dbase.random_split(args.validate)
     ioutils.write_text_log(args.txtfile, str(dbase))
-    ioutils.write_text_log(args.txtfile, str(dbase_val))
     print('train dbase:', dbase)
-    print('validate dbase:', dbase_val)
 
-    dbase_emb = dataset.DBase(args.validate.dataset)
-    ioutils.write_text_log(args.txtfile, str(dbase_emb))
-    print(dbase_emb)
+    dbase_val = dataset.DBase(args.validate.dataset)
+    ioutils.write_text_log(args.txtfile, str(dbase_val))
+    print('validate dbase', dbase_val)
 
     map_func = partial(facenet.load_images, image_size=args.image.size)
     ds = {
         'train': facenet.make_train_dataset(dbase, map_func, args),
         'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
-        'embedding': facenet.make_validate_dataset(dbase_emb, map_func, args)
     }
 
     iterator = {
         'train': ds['train'].make_one_shot_iterator(),
         'validate': ds['validate'].make_initializable_iterator(),
-        'embedding': ds['embedding'].make_initializable_iterator()
     }
 
     batch = {
         'train': iterator['train'].get_next(),
         'validate': iterator['validate'].get_next(),
-        'embedding': iterator['embedding'].get_next()
     }
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -191,7 +185,7 @@ def main(**args_):
 
                 # perform face-to-face validation
                 embeddings, labels = facenet.evaluate_embeddings(sess, embedding, placeholders,
-                                                                 ds['embedding'], iterator['embedding'], batch['embedding'],
+                                                                 ds['validate'], iterator['validate'], batch['validate'],
                                                                  info)
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate, info=info)
