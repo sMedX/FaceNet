@@ -31,7 +31,7 @@ from facenet import ioutils, h5utils, FaceNet
 
 class Placeholders:
     def __init__(self, image_size):
-        self.image_batch = tf.placeholder(tf.float32, shape=[None, image_size, image_size, 3], name='image_batch')
+        self.image_batch = tf.placeholder(tf.uint8, shape=[None, None, None, 3], name='image_batch')
         self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size')
         self.phase_train = tf.placeholder(tf.bool, name='phase_train')
@@ -66,8 +66,19 @@ def load_images(path, image_size):
     contents = tf.io.read_file(path)
     image = tf.image.decode_image(contents, channels=3)
     image = tf.image.resize_image_with_crop_or_pad(image, image_size, image_size)
-    image = (tf.cast(image, tf.float32) - 127.5) / 128
     return image
+
+
+def image_processing(image_batch, args):
+    image_size = tf.convert_to_tensor([args.size, args.size], name='image_size')
+
+    image_batch = tf.identity(image_batch, 'image')
+    image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
+    image_batch = tf.cast(image_batch, dtype=tf.float32)
+    image_batch = tf.image.per_image_standardization(image_batch)
+    image_batch = tf.identity(image_batch, 'input')
+
+    return image_batch
 
 
 def make_train_dataset(dbase, map_func, args):

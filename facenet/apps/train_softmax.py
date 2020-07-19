@@ -83,7 +83,10 @@ def main(**args_):
     placeholders = facenet.Placeholders(args.image.size)
 
     print('Building training graph')
-    prelogits, _ = network.inference(tf.identity(placeholders.image_batch, 'input'),
+
+    image_batch = facenet.image_processing(placeholders.image_batch, args.image)
+
+    prelogits, _ = network.inference(image_batch,
                                      config=args.model.config,
                                      phase_train=placeholders.phase_train)
 
