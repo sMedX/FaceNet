@@ -135,6 +135,7 @@ class Validate(YAMLConfig):
             self.seed = 0
         random.seed(self.seed)
         np.random.seed(self.seed)
+        tf.set_random_seed(self.seed)
 
         if not self.model.path:
             self.model.path = default_model
