@@ -7,6 +7,7 @@
 import click
 from pathlib import Path
 from tqdm import tqdm
+import numpy as np
 
 import tensorflow as tf
 from facenet import dataset, config, statistics, facenet
@@ -14,15 +15,44 @@ from facenet import dataset, config, statistics, facenet
 
 # evaluation of distances
 def similarity(x, y):
-    return 2*(1 - x @ tf.transpose(y))
+    return 2*(1 - x @ y)
+
+
+class ConfusionMatrix:
+    def __init__(self, embeddings, threshold):
+        nrof_classes = len(embeddings)
+        nrof_positive_class_pairs = nrof_classes
+        nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1)/2
+
+        tp = tn = fp = fn = 0
+
+        for i in range(nrof_classes):
+            for k in range(i+1):
+                sims = similarity(embeddings[i], np.transpose(embeddings[k]))
+                count = np.mean(sims < threshold)
+
+                if i == k:
+                    tp += count/nrof_positive_class_pairs
+                    fn += (1 - count)/nrof_positive_class_pairs
+                else:
+                    fp += count/nrof_negative_class_pairs
+                    tn += (1 - count)/nrof_negative_class_pairs
+
+        self.accuracy = (tp + tn) / (tp + fp + tn + fn)
+        self.precision = tp / (tp + fp)
+        self.tp_rate = tp / (tp + fn)
+        self.tn_rate = tn / (tn + fp)
+
+    def __repr__(self):
+        return ('\n'.format(self.__class__.__name__) +
+                'accuracy  {}\n'.format(self.accuracy) +
+                'precision {}\n'.format(self.precision) +
+                'tp rate   {}\n'.format(self.tp_rate) +
+                'tn rate   {}\n'.format(self.tn_rate))
 
 
 class Metrics:
     def __init__(self, embeddings, batches, threshold, alpha, args):
-        nrof_classes = len(embeddings)
-        nrof_positive_class_pairs = nrof_classes
-        nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1)
-
         tp = tn = fp = fn = 0
         positive_part_entropy = 0
         negative_part_entropy = 0
@@ -31,7 +61,7 @@ class Metrics:
         idx1 = -tf.shape(batches[0])[0]
 
         for i, x in enumerate(embeddings):
-            sims = similarity(x, batch)
+            sims = similarity(x, tf.transpose(batch))
             logits = tf.multiply(alpha, tf.subtract(threshold, sims))
 
             size = tf.shape(batches[i])[0]
@@ -86,7 +116,6 @@ def main(**args_):
     args = args.multi_face_validation
 
     embeddings = statistics.split_embeddings(embeddings.embeddings, embeddings.labels)
-    embeddings = [tf.convert_to_tensor(emb) for emb in embeddings]
 
     # define batches
     batches = []
@@ -113,6 +142,7 @@ def main(**args_):
         'train_ops': train_ops,
         'global_step': global_step,
         'loss': metrics.cross_entropy,
+        'accuracy': metrics.accuracy,
         'variables': tf.trainable_variables(),
     }
 
@@ -125,11 +155,13 @@ def main(**args_):
             for _ in range(args.nrof_epochs):
                 outs = session.run(ops)
 
-                bar.set_postfix_str('variables {}, loss {}'.format(outs['variables'], outs['loss']))
+                bar.set_postfix_str('variables {}, loss {} accuracy {}'.format(outs['variables'], outs['loss'], outs['accuracy']))
                 bar.update()
 
-        metrics = Metrics(embeddings, embeddings, threshold, alpha, args)
-        print(session.run(metrics.__dict__))
+        threshold = session.run(threshold)
+
+        conf_mat = ConfusionMatrix(embeddings, threshold)
+        print(conf_mat)
 
 
 if __name__ == '__main__':
