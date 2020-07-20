@@ -66,31 +66,31 @@ class Metrics:
         negative_part_entropy = 0
 
         batch = tf.concat(batches, axis=0)
-        idx1 = -tf.shape(batches[0])[0]
+        # idx1 = -tf.shape(batches[0])[0]
 
         for i, x in enumerate(embeddings):
             probability = model.probability(x, batch)
 
-            size = tf.shape(batches[i])[0]
-            idx1 += size
-            idx2 = idx1 + size
+            # size = tf.shape(batches[i])[0]
+            # idx1 += size
+            # idx2 = idx1 + size
 
             # cross entropy loss
-            positive_probability = probability[:, idx1:idx2]
+            positive_probability = probability[:, i]
             positive_part_entropy -= tf.reduce_mean(tf.math.log(positive_probability))
 
-            negative_probability = 1 - tf.concat([probability[:, :idx1], probability[:, idx2:]], axis=1)
+            negative_probability = 1 - tf.concat([probability[:, :i], probability[:, i+1:]], axis=1)
             negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
             # confusion matrix based metrics
             predict = tf.greater_equal(probability, 0.5)
 
-            positive_predict = predict[:, idx1:idx2]
+            positive_predict = predict[:, i]
             positive_mean = tf.count_nonzero(positive_predict)/tf.size(positive_predict, out_type=tf.int64)
             tp += positive_mean
             fn += 1 - positive_mean
 
-            negative_predict = tf.concat([predict[:, :idx1], predict[:, idx2:]], axis=1)
+            negative_predict = tf.concat([predict[:, :i], predict[:, i+1:]], axis=1)
             negative_mean = tf.count_nonzero(negative_predict)/tf.size(negative_predict, out_type=tf.int64)
 
             fp += negative_mean
@@ -105,18 +105,16 @@ class Metrics:
 
 
 class MembershipModel:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.alpha = tf.Variable(initial_value=10, dtype=tf.float32, name='alpha')
         self.threshold = tf.Variable(initial_value=1, dtype=tf.float32, name='threshold')
 
-    def logits(self, x, batches):
-        sims = similarity(x, tf.transpose(batches))
-        output = tf.multiply(self.alpha, tf.subtract(self.threshold, sims))
-        return output
-
     def probability(self, x, batches):
-        output = tf.math.sigmoid(self.logits(x, batches))
-        return output
+        sims = similarity(x, tf.transpose(batches))
+        logits = tf.multiply(self.alpha, tf.subtract(self.threshold, sims))
+        prob = tf.math.sigmoid(logits)
+        return prob
 
 
 @click.command()
@@ -133,19 +131,17 @@ def main(**args_):
     embeddings = facenet.EvaluationOfEmbeddings(dbase, args)
     print(embeddings)
 
-    args = args.multi_face_validation
-
     embeddings = statistics.split_embeddings(embeddings.embeddings, embeddings.labels)
 
     # define batches
     batches = []
     for emb in embeddings:
         ds = tf.data.Dataset.from_tensor_slices(emb).shuffle(buffer_size=10, reshuffle_each_iteration=True)
-        ds = ds.repeat().batch(batch_size=args.batch_size)
+        ds = ds.repeat().batch(batch_size=args.membership_model.nrof_samples)
         batches.append(tf.convert_to_tensor(ds.make_one_shot_iterator().get_next()))
 
     # membership model and metrics
-    model = MembershipModel()
+    model = MembershipModel(args.membership_model)
     metrics = Metrics(embeddings, batches, model)
 
     # define train operations
@@ -164,8 +160,8 @@ def main(**args_):
     with tf.Session() as session:
         session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
-        with tqdm(total=args.nrof_epochs) as bar:
-            for _ in range(args.nrof_epochs):
+        with tqdm(total=args.train.nrof_epochs) as bar:
+            for _ in range(args.train.nrof_epochs):
                 _, outs = session.run([train_ops, tensor_ops])
 
                 postfix = 'variables {}, loss {}'.format(outs['variables'], outs['loss'])
