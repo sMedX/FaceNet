@@ -29,15 +29,22 @@ class ConfusionMatrix:
         for i in range(nrof_classes):
             for k in range(i+1):
                 sims = similarity(embeddings[i], np.transpose(embeddings[k]))
-                count = np.mean(sims < threshold)
+                mean = np.mean(sims < threshold)
 
                 if i == k:
-                    tp += count/nrof_positive_class_pairs
-                    fn += (1 - count)/nrof_positive_class_pairs
+                    tp += mean
+                    fn += 1 - mean
                 else:
-                    fp += count/nrof_negative_class_pairs
-                    tn += (1 - count)/nrof_negative_class_pairs
+                    fp += mean
+                    tn += 1 - mean
 
+        tp /= nrof_positive_class_pairs
+        fn /= nrof_positive_class_pairs
+
+        fp /= nrof_negative_class_pairs
+        tn /= nrof_negative_class_pairs
+
+        self.threshold = threshold
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
         self.precision = tp / (tp + fp)
         self.tp_rate = tp / (tp + fn)
@@ -45,6 +52,7 @@ class ConfusionMatrix:
 
     def __repr__(self):
         return ('\n'.format(self.__class__.__name__) +
+                'threshold {}\n'.format(self.threshold) +
                 'accuracy  {}\n'.format(self.accuracy) +
                 'precision {}\n'.format(self.precision) +
                 'tp rate   {}\n'.format(self.tp_rate) +
