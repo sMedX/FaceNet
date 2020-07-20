@@ -60,7 +60,7 @@ class ConfusionMatrix:
 
 
 class Metrics:
-    def __init__(self, embeddings, batches, threshold, alpha, args):
+    def __init__(self, embeddings, batches, model, umbalanced=1):
         tp = tn = fp = fn = 0
         positive_part_entropy = 0
         negative_part_entropy = 0
@@ -69,24 +69,21 @@ class Metrics:
         idx1 = -tf.shape(batches[0])[0]
 
         for i, x in enumerate(embeddings):
-            sims = similarity(x, tf.transpose(batch))
-            logits = tf.multiply(alpha, tf.subtract(threshold, sims))
+            probability = model.probability(x, batch)
 
             size = tf.shape(batches[i])[0]
             idx1 += size
             idx2 = idx1 + size
 
             # cross entropy loss
-            positive_logits = logits[:, idx1:idx2]
-            positive_logsig = tf.math.log_sigmoid(positive_logits)
-            positive_part_entropy -= tf.reduce_mean(positive_logsig)
+            positive_probability = probability[:, idx1:idx2]
+            positive_part_entropy -= tf.reduce_mean(tf.math.log(positive_probability))
 
-            negative_logits = tf.concat([logits[:, :idx1], logits[:, idx2:]], axis=1)
-            negative_logsig = tf.math.log_sigmoid(1 - negative_logits)
-            negative_part_entropy -= tf.reduce_mean(negative_logsig)
+            negative_probability = 1 - tf.concat([probability[:, :idx1], probability[:, idx2:]], axis=1)
+            negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
             # confusion matrix based metrics
-            predict = tf.greater_equal(logits, 0)
+            predict = tf.greater_equal(probability, 0.5)
 
             positive_predict = predict[:, idx1:idx2]
             positive_mean = tf.count_nonzero(positive_predict)/tf.size(positive_predict, out_type=tf.int64)
@@ -99,12 +96,27 @@ class Metrics:
             fp += negative_mean
             tn += 1 - negative_mean
 
-        self.cross_entropy = positive_part_entropy + negative_part_entropy
+        self.cross_entropy = positive_part_entropy + umbalanced*negative_part_entropy
 
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
         self.precision = tp / (tp + fp)
         self.tp_rate = tp / (tp + fn)
         self.tn_rate = tn / (tn + fp)
+
+
+class MembershipModel:
+    def __init__(self):
+        self.alpha = tf.Variable(initial_value=10, dtype=tf.float32, name='alpha')
+        self.threshold = tf.Variable(initial_value=1, dtype=tf.float32, name='threshold')
+
+    def logits(self, x, batches):
+        sims = similarity(x, tf.transpose(batches))
+        output = tf.multiply(self.alpha, tf.subtract(self.threshold, sims))
+        return output
+
+    def probability(self, x, batches):
+        output = tf.math.sigmoid(self.logits(x, batches))
+        return output
 
 
 @click.command()
@@ -132,25 +144,18 @@ def main(**args_):
         ds = ds.repeat().batch(batch_size=args.batch_size)
         batches.append(tf.convert_to_tensor(ds.make_one_shot_iterator().get_next()))
 
-    # vars and metrics
-    alpha = tf.Variable(initial_value=10, dtype=tf.float32, name='alpha')
-    threshold = tf.Variable(initial_value=1, dtype=tf.float32, name='threshold')
-
-    metrics = Metrics(embeddings, batches, threshold, alpha, args)
+    # membership model and metrics
+    model = MembershipModel()
+    metrics = Metrics(embeddings, batches, model)
 
     # define train operations
     global_step = tf.Variable(0, trainable=False, name='global_step')
     optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
     train_ops = optimizer.minimize(metrics.cross_entropy, global_step=global_step)
-    # ema = tf.train.ExponentialMovingAverage(args.moving_average_decay, global_step)
-    # with tf.control_dependencies([train_ops]):
-    #     train_ops = ema.apply(tf.trainable_variables())
 
-    ops = {
-        'train_ops': train_ops,
+    tensor_ops = {
         'global_step': global_step,
         'loss': metrics.cross_entropy,
-        'accuracy': metrics.accuracy,
         'variables': tf.trainable_variables(),
     }
 
@@ -161,13 +166,13 @@ def main(**args_):
 
         with tqdm(total=args.nrof_epochs) as bar:
             for _ in range(args.nrof_epochs):
-                outs = session.run(ops)
+                _, outs = session.run([train_ops, tensor_ops])
 
-                bar.set_postfix_str('variables {}, loss {} accuracy {}'.format(outs['variables'], outs['loss'], outs['accuracy']))
+                postfix = 'variables {}, loss {}'.format(outs['variables'], outs['loss'])
+                bar.set_postfix_str(postfix)
                 bar.update()
 
-        threshold = session.run(threshold)
-
+        threshold = session.run(model.threshold)
         conf_mat = ConfusionMatrix(embeddings, threshold)
         print(conf_mat)
 
