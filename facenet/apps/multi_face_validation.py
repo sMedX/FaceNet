@@ -65,11 +65,11 @@ class Metrics:
         positive_part_entropy = 0
         negative_part_entropy = 0
 
-        batch = tf.concat(batches, axis=0)
+        # batch = tf.concat(batches, axis=0)
         # idx1 = -tf.shape(batches[0])[0]
 
         for i, x in enumerate(embeddings):
-            probability = model.probability(x, batch)
+            probability = model.probability(x, batches)
 
             # size = tf.shape(batches[i])[0]
             # idx1 += size
@@ -111,8 +111,16 @@ class MembershipModel:
         self.threshold = tf.Variable(initial_value=1, dtype=tf.float32, name='threshold')
 
     def probability(self, x, batches):
-        sims = similarity(x, tf.transpose(batches))
-        logits = tf.multiply(self.alpha, tf.subtract(self.threshold, sims))
+        output = []
+
+        for b in batches:
+            dist = similarity(x, tf.transpose(b))
+            value = tf.math.reduce_min(dist, axis=1)
+            value = tf.expand_dims(value, axis=1)
+            output.append(value)
+
+        output = tf.concat(output, axis=1)
+        logits = tf.multiply(self.alpha, tf.subtract(self.threshold, output))
         prob = tf.math.sigmoid(logits)
         return prob
 
