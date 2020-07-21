@@ -115,8 +115,7 @@ class MembershipModel:
 
         for b in batches:
             dist = similarity(x, tf.transpose(b))
-            value = tf.math.reduce_min(dist, axis=1)
-            value = tf.expand_dims(value, axis=1)
+            value = tf.math.reduce_min(dist, axis=1, keepdims=True)
             output.append(value)
 
         output = tf.concat(output, axis=1)
