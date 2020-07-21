@@ -86,6 +86,17 @@ def make_train_dataset(dbase, map_func, args):
     return ds
 
 
+def initialize_batches(embeddings, batch_size=1, buffer_size=10):
+    def def_batch(emb):
+        ds = tf.data.Dataset.from_tensor_slices(emb)
+        ds = ds.shuffle(buffer_size=buffer_size, reshuffle_each_iteration=True)
+        ds = ds.repeat().batch(batch_size=batch_size)
+        return tf.convert_to_tensor(ds.make_one_shot_iterator().get_next())
+
+    batches = [def_batch(emb) for emb in embeddings]
+    return batches
+
+
 def make_validate_dataset(ds, map_func, args, shuffle=True):
     if shuffle:
         data = list(zip(ds.files, ds.labels))

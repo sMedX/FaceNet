@@ -3,11 +3,14 @@
 #
 # Copyright (c) 2019 Ruslan N. Kosarev
 
+from dataclasses import dataclass
+
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import sys
 from tqdm import tqdm
+import tensorflow as tf
 
 import time
 import datetime
@@ -19,7 +22,7 @@ from scipy import spatial, interpolate
 from scipy.optimize import brentq
 from pathlib import Path
 
-from facenet import utils, ioutils, h5utils
+from facenet import facenet, utils, ioutils, h5utils
 
 
 def pairwise_similarities(xa, xb=None, metric=0, atol=1.e-5):
@@ -92,6 +95,75 @@ class SimilarityCalculator:
 
     def nrof_images(self, i):
         return self.embeddings[i].shape[0]
+
+
+class ConfusionMatrix:
+    def __init__(self):
+        self.tp = 0.
+        self.tn = 0.
+        self.fp = 0.
+        self.fn = 0.
+
+    @property
+    def accuracy(self):
+        return (self.tp + self.tn) / (self.tp + self.fp + self.tn + self.fn)
+
+    @property
+    def precision(self):
+        return self.tp / (self.tp + self.fp)
+
+    @property
+    def tp_rate(self):
+        return self.tp / (self.tp + self.fn)
+
+    @property
+    def tn_rate(self):
+        return self.tn / (self.tn + self.fp)
+
+    def __repr__(self):
+        return ('{}\n'.format(self.__class__.__name__) +
+                'accuracy  {}\n'.format(self.accuracy) +
+                'precision {}\n'.format(self.precision) +
+                'tp rate   {}\n'.format(self.tp_rate) +
+                'tn rate   {}\n'.format(self.tn_rate))
+
+
+def evaluate_confusion_matrix(embeddings, model, nrof_epochs=10000):
+    batches = facenet.initialize_batches(embeddings, batch_size=model.config.nrof_samples)
+
+    tensor_ops = ConfusionMatrix()
+
+    for i, emb in enumerate(embeddings):
+        probability = model.probability(emb, batches)
+
+        predict = tf.greater_equal(probability, 0.5)
+
+        positive_predict = predict[:, i]
+        positive_mean = tf.count_nonzero(positive_predict)/tf.size(positive_predict, out_type=tf.int64)
+        tensor_ops.tp += positive_mean
+        tensor_ops.fn += 1 - positive_mean
+
+        negative_predict = tf.concat([predict[:, :i], predict[:, i+1:]], axis=1)
+        negative_mean = tf.count_nonzero(negative_predict)/tf.size(negative_predict, out_type=tf.int64)
+        tensor_ops.fp += negative_mean
+        tensor_ops.tn += 1 - negative_mean
+
+    conf_matrix = ConfusionMatrix()
+
+    with tf.Session() as session:
+        with tqdm(total=nrof_epochs) as bar:
+            for _ in range(nrof_epochs):
+                out = session.run(tensor_ops.__dict__)
+                conf_matrix.tp += out['tp']
+                conf_matrix.tn += out['tn']
+                conf_matrix.fp += out['fp']
+                conf_matrix.fn += out['fn']
+
+                postfix = 'evaluate confusion matrix - accuracy {}'.format(conf_matrix.accuracy)
+                bar.set_postfix_str(postfix)
+                bar.update()
+
+    return conf_matrix
 
 
 class ConfidenceMatrix:
