@@ -74,7 +74,7 @@ def cross_entropy(embeddings, batches, model, imbalance=1):
         negative_probability = 1 - tf.concat([probability[:i, :], probability[i+1:, :]], axis=0)
         negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
-    loss = positive_part_entropy + imbalance*negative_part_entropy
+    loss = 2*(positive_part_entropy + imbalance*negative_part_entropy)/len(embeddings)/(1+imbalance)
 
     return loss
 
