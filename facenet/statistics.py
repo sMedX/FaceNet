@@ -128,7 +128,7 @@ class ConfusionMatrix:
                 'tn rate   {}\n'.format(self.tn_rate))
 
 
-def evaluate_confusion_matrix(embeddings, model, nrof_epochs=10000):
+def evaluate_confusion_matrix(embeddings, model, nrof_epochs=1000):
     batches = facenet.initialize_batches(embeddings, batch_size=model.config.nrof_samples)
 
     tensor_ops = ConfusionMatrix()
@@ -138,12 +138,12 @@ def evaluate_confusion_matrix(embeddings, model, nrof_epochs=10000):
 
         predict = tf.greater_equal(probability, 0.5)
 
-        positive_predict = predict[:, i]
+        positive_predict = predict[i, :]
         positive_mean = tf.count_nonzero(positive_predict)/tf.size(positive_predict, out_type=tf.int64)
         tensor_ops.tp += positive_mean
         tensor_ops.fn += 1 - positive_mean
 
-        negative_predict = tf.concat([predict[:, :i], predict[:, i+1:]], axis=1)
+        negative_predict = tf.concat([predict[:i, :], predict[i+1:, :]], axis=0)
         negative_mean = tf.count_nonzero(negative_predict)/tf.size(negative_predict, out_type=tf.int64)
         tensor_ops.fp += negative_mean
         tensor_ops.tn += 1 - negative_mean

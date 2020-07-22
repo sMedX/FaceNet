@@ -67,11 +67,11 @@ def cross_entropy(embeddings, batches, model, imbalance=1):
         probability = model.probability(x, batches)
 
         # positive part of cross entropy
-        positive_probability = probability[:, i]
+        positive_probability = probability[i, :]
         positive_part_entropy -= tf.reduce_mean(tf.math.log(positive_probability))
 
         # negative part of cross entropy
-        negative_probability = 1 - tf.concat([probability[:, :i], probability[:, i+1:]], axis=1)
+        negative_probability = 1 - tf.concat([probability[:i, :], probability[i+1:, :]], axis=0)
         negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
     loss = positive_part_entropy + imbalance*negative_part_entropy
@@ -86,14 +86,13 @@ class MembershipModel:
                      tf.Variable(initial_value=1, dtype=tf.float32, name='threshold')]
 
     def probability(self, input, batches):
-        output = []
-
-        for b in batches:
+        def func(b):
             dist = similarity(input, tf.transpose(b))
-            value = tf.math.reduce_min(dist, axis=1, keepdims=True)
-            output.append(value)
+            val = tf.math.reduce_min(dist, axis=1)
+            return val
 
-        output = tf.concat(output, axis=1)
+        output = tf.map_fn(func, batches)
+
         logits = tf.multiply(self.vars[0], tf.subtract(self.vars[1], output))
         prob = tf.math.sigmoid(logits)
         return prob

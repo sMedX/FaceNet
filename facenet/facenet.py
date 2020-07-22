@@ -94,6 +94,10 @@ def initialize_batches(embeddings, batch_size=1, buffer_size=10):
         return tf.convert_to_tensor(ds.make_one_shot_iterator().get_next())
 
     batches = [def_batch(emb) for emb in embeddings]
+
+    batches = [tf.expand_dims(b, axis=0) for b in batches]
+    batches = tf.concat(batches, axis=0, name='batches')
+
     return batches
 
 
