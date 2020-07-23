@@ -134,7 +134,7 @@ def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch,
 
     for _ in tqdm(range(nrof_batches)):
         image_batch, label_batch = sess.run(batch)
-        embeddings.append(sess.run(embedding, feed_dict=placeholders.embedding_feed_dict(image_batch)))
+        embeddings.append(sess.run(embedding, feed_dict=placeholders.validate_feed_dict(image_batch)))
         labels.append(label_batch)
 
     return np.concatenate(embeddings), np.concatenate(labels)
