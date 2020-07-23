@@ -347,7 +347,7 @@ class Summary:
 
         info = ''
         for key, item in output.items():
-            info += ' {} {:.5f}'.format(key, item)
+            info += ', {} {:.5f}'.format(key, item)
 
         return info[1:]
 
