@@ -87,8 +87,9 @@ def binary_cross_entropy(embeddings):
         negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
     loss = (positive_part_entropy + negative_part_entropy) / batch_size
+    loss_vars = {'alpha': alpha, 'threshold': threshold}
 
-    return loss
+    return loss, loss_vars
 
 
 @click.command()
@@ -137,7 +138,8 @@ def main(**args_):
 
     prelogits, _ = network.inference(image_batch, config=args.model.config, phase_train=placeholders.phase_train)
     embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
-    loss = binary_cross_entropy(embedding)
+
+    loss, loss_vars = binary_cross_entropy(embedding)
 
     learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
                                                args.train.learning_rate.decay_epochs * args.train.epoch.size,
@@ -166,7 +168,9 @@ def main(**args_):
             'summary_op': summary_op,
             'tensor_op': {
                 'loss': loss,
-                'learning_rate': learning_rate
+                'learning_rate': learning_rate,
+                'alpha': loss_vars['alpha'],
+                'threshold': loss_vars['threshold']
             }
         }
 
