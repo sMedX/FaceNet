@@ -22,7 +22,7 @@
 
 import math
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tqdm import tqdm
 from functools import partial
 
@@ -62,10 +62,13 @@ class Placeholders:
         }
 
 
-def load_images(path, image_size):
+def load_images(path, args):
+    height = args.size
+    width = args.size
+
     contents = tf.io.read_file(path)
     image = tf.image.decode_image(contents, channels=3)
-    image = tf.image.resize_image_with_crop_or_pad(image, image_size, image_size)
+    image = tf.image.resize_image_with_crop_or_pad(image, height, width)
     return image
 
 
@@ -307,14 +310,14 @@ class EvaluationOfEmbeddings:
 
         print('Running forward pass on images')
 
-        map_func = partial(load_images, image_size=self.config.image.size)
+        map_func = partial(load_images, args=self.config.image)
         dataset = make_validate_dataset(dbase, map_func, self.config, shuffle=False)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
             nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
 
-            for i in tqdm(range(nrof_batches)):
+            for _ in tqdm(range(nrof_batches)):
                 image_batch, label_batch = sess.run(iterator)
 
                 self.embeddings.append(facenet.evaluate(image_batch))

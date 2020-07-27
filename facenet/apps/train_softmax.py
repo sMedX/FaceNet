@@ -55,7 +55,7 @@ def main(**args_):
     ioutils.write_text_log(args.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    map_func = partial(facenet.load_images, image_size=args.image.size)
+    map_func = partial(facenet.load_images, args=args.image)
     ds = {
         'train': facenet.make_train_dataset(dbase, map_func, args),
         'validate': facenet.make_validate_dataset(dbase_val, map_func, args),
