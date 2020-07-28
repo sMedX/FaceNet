@@ -112,73 +112,32 @@ def main(**args_):
     ioutils.write_text_log(args.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    map_func = partial(facenet.load_images, image_size=args.image.size)
+    load_images = partial(facenet.load_images, image_size=args.image.size)
 
     nrof_classes_per_batch = 3
     nrof_examples_per_class = 4
     batch_size = nrof_classes_per_batch * nrof_examples_per_class
-    #
-    # # NOTE: We're assuming that the 0th directory contains elements from class 0, etc.
-    # directories = [str(cls.path) for cls in dbase.classes]
-    # directories = tf.data.Dataset.from_tensor_slices(directories).enumerate()
-    #
-    # # Define a function that maps each (class, directory) pair to the (shuffled)
-    # # records in those files.
-    # def per_directory_dataset(class_label, directory_glob):
-    #     files = tf.data.Dataset.list_files(directory_glob, shuffle=True)
-    #     # records = tf.data.TFRecordDataset(records)
-    #     # Zip the records with their class.
-    #     # NOTE: This part might not be necessary if the records contain information about
-    #     # their class that can be parsed from them.
-    #     # return tf.data.Dataset.zip((records, tf.data.Dataset.from_tensors(class_label).repeat(None)))
-    #     return files.repeat()
-    #
-    # # NOTE: The `cycle_length` and `block_length` here aren't strictly necessary,
-    # # because the batch size is exactly `number of classes * images per class`.
-    # # However, these arguments may be useful if you want to decouple these numbers.
-    # merged_records = directories.interleave(per_directory_dataset, cycle_length=5, block_length=5)
-    # merged_records = merged_records.batch(25)
-    #
-    # dir_elem = directories.make_one_shot_iterator().get_next()
-    # elem_merged_records = merged_records.make_one_shot_iterator().get_next()
-    #
-    # with tf.Session() as s:
-    #     for i in range(5):
-    #         print('-----------------------')
-    #         print(s.run(dir_elem))
-    #         print(s.run(elem_merged_records))
-    #
-    # exit(0)
 
-    # Build one dataset per class.
-
-    # https://stackoverflow.com/questions/50356677/how-to-create-tf-data-dataset-from-directories-of-tfrecords
     per_class_datasets = [tf.data.Dataset.list_files(cls.files) for cls in dbase.classes]
 
     # Build a dataset where each element is a vector of 5 classes to be chosen for a particular batch.
-    # def classes_map_func(_):
-    #     classes = tf.random.shuffle(tf.range(dbase.nrof_classes))[:nrof_classes_per_batch]
-    #     return classes
-    # classes_per_batch = tf.data.experimental.Counter().map(classes_map_func)
-    classes_per_batch = tf.data.experimental.Counter().map(
-        lambda _: tf.random_shuffle(tf.range(dbase.nrof_classes))[:nrof_classes_per_batch])
-    # import numpy as np
-    #
-    # random_classes = list(range(dbase.nrof_classes))
-    # np.random.shuffle(random_classes)
-    # classes_per_batch = tf.data.Dataset.from_tensor_slices(random_classes)
-    # classes_per_batch = classes_per_batch.shuffle(buffer_size=nrof_classes_per_batch).repeat()
-    # classes_per_batch = classes_per_batch.batch(nrof_classes_per_batch)
+    import numpy as np
 
-    # Transform the dataset of per-batch class vectors into a dataset with one one-hot element per example
-    def func_map(classes):
-        return tf.data.Dataset.from_tensor_slices(tf.one_hot(classes, dbase.nrof_classes)).repeat(nrof_examples_per_class)
-    class_dataset = classes_per_batch.flat_map(func_map)
+    random_classes = np.arange(dbase.nrof_classes)
+    np.random.shuffle(random_classes)
+    classes_per_batch = tf.data.Dataset.from_tensor_slices(random_classes)
+    classes_per_batch = classes_per_batch.shuffle(buffer_size=nrof_classes_per_batch).repeat()
+    classes_per_batch = classes_per_batch.batch(nrof_classes_per_batch)
 
-    example_dataset = tf.data.experimental.sample_from_datasets(per_class_datasets, class_dataset)
-    example_dataset = example_dataset.batch(nrof_classes_per_batch*nrof_examples_per_class)
+    # transform the dataset of per-batch class vectors into a dataset with one one-hot element per example
+    class_dataset = classes_per_batch.flat_map(
+        lambda classes: tf.data.Dataset.from_tensor_slices(
+            tf.one_hot(classes, dbase.nrof_classes)).repeat(nrof_examples_per_class))
 
-    image_batch = example_dataset.make_one_shot_iterator().get_next()
+    samples = tf.data.experimental.sample_from_datasets(per_class_datasets, class_dataset)
+    samples = samples.batch(nrof_classes_per_batch*nrof_examples_per_class)
+
+    image_batch = samples.make_one_shot_iterator().get_next()
     image_batch = tf.reshape(image_batch, shape=[nrof_examples_per_class, nrof_classes_per_batch])
     image_batch = tf.transpose(image_batch)
 
