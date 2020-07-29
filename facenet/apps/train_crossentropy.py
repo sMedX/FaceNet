@@ -117,7 +117,7 @@ def main(**args_):
     load_images = partial(facenet.load_images, image_size=args.image.size)
 
     # build input pipeline for binary crossentropy loss
-    image_batch, label_batch = facenet.binary_crossentropy_input_pipeline(dbase, args)
+    image_batch, label_batch = facenet.binary_cross_entropy_input_pipeline(dbase, args)
 
     val_ds = facenet.make_validate_dataset(dbase_val, load_images, args)
     val_iter = val_ds.make_initializable_iterator()

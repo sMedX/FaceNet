@@ -70,7 +70,7 @@ def load_images(path, image_size):
     return image
 
 
-def binary_crossentropy_input_pipeline(dbase, args):
+def binary_cross_entropy_input_pipeline(dbase, args):
     print('Building binary cross-entropy pipeline.')
 
     batch_size = args.nrof_classes_per_batch * args.nrof_examples_per_class
@@ -84,13 +84,13 @@ def binary_crossentropy_input_pipeline(dbase, args):
                 files += random.sample(cls.files, args.nrof_examples_per_class)
             yield files
 
-    random_samples = tf.data.Dataset.from_generator(generator, output_types=tf.string)
+    dataset = tf.data.Dataset.from_generator(generator, output_types=tf.string)
 
-    random_samples = random_samples.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+    dataset = dataset.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
 
-    random_samples = tf.data.Dataset.zip((random_samples.map(loader), random_samples)).batch(batch_size)
+    dataset = tf.data.Dataset.zip((dataset.map(loader), dataset)).batch(batch_size)
 
-    image_batch, label_batch = random_samples.make_one_shot_iterator().get_next()
+    image_batch, label_batch = dataset.make_one_shot_iterator().get_next()
 
     return image_batch, label_batch
 
