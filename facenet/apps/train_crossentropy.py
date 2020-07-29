@@ -71,7 +71,7 @@ def binary_cross_entropy_loss(embeddings, args):
     positive_part_entropy = 0.
     negative_part_entropy = 0.
 
-    for i in tqdm(range(args.nrof_examples_per_class), postfix='binary_cross_entropy'):
+    for i in tqdm(range(args.nrof_examples_per_class)):
         idx1 = i * args.nrof_examples_per_class
         idx2 = (i + 1) * args.nrof_examples_per_class
 
@@ -87,7 +87,7 @@ def binary_cross_entropy_loss(embeddings, args):
         negative_probability = 1 - tf.concat([probability[:idx1, :], probability[idx2:, :]], axis=0)
         negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
-    loss = (positive_part_entropy + negative_part_entropy) / batch_size
+    loss = (positive_part_entropy + negative_part_entropy) / args.nrof_examples_per_class
     loss_vars = {'alpha': alpha, 'threshold': threshold}
 
     return loss, loss_vars
