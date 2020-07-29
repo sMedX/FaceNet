@@ -71,7 +71,7 @@ def binary_cross_entropy(embeddings):
     positive_part_entropy = 0.
     negative_part_entropy = 0.
 
-    for i in tqdm(range(batch_size)):
+    for i in tqdm(range(batch_size), postfix='binary_cross_entropy'):
         idx1 = i * batch_size
         idx2 = (i + 1) * batch_size
         embs = embeddings[idx1:idx2, :]
