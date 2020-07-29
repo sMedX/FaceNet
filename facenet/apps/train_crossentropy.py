@@ -114,51 +114,12 @@ def main(**args_):
 
     load_images = partial(facenet.load_images, image_size=args.image.size)
 
-    nrof_classes_per_batch = 3
-    nrof_examples_per_class = 4
-    batch_size = nrof_classes_per_batch * nrof_examples_per_class
+    # build input pipeline for binary crossentropy loss
+    image_batch, label_batch = facenet.binary_crossentropy_input_pipeline(dbase, args)
 
-    per_class_datasets = [tf.data.Dataset.list_files(cls.files) for cls in dbase.classes]
-
-    # Build a dataset where each element is a vector of 5 classes to be chosen for a particular batch.
-    import numpy as np
-
-    random_classes = np.arange(dbase.nrof_classes)
-    np.random.shuffle(random_classes)
-    classes_per_batch = tf.data.Dataset.from_tensor_slices(random_classes)
-    classes_per_batch = classes_per_batch.shuffle(buffer_size=nrof_classes_per_batch).repeat()
-    classes_per_batch = classes_per_batch.batch(nrof_classes_per_batch)
-
-    # transform the dataset of per-batch class vectors into a dataset with one one-hot element per example
-    class_dataset = classes_per_batch.flat_map(
-        lambda classes: tf.data.Dataset.from_tensor_slices(
-            tf.one_hot(classes, dbase.nrof_classes)).repeat(nrof_examples_per_class))
-
-    samples = tf.data.experimental.sample_from_datasets(per_class_datasets, class_dataset)
-    samples = samples.batch(nrof_classes_per_batch*nrof_examples_per_class)
-
-    image_batch = samples.make_one_shot_iterator().get_next()
-    image_batch = tf.reshape(image_batch, shape=[nrof_examples_per_class, nrof_classes_per_batch])
-    image_batch = tf.transpose(image_batch)
-
-    with tf.Session() as s:
-        for i in range(1):
-            print('-----------------------')
-            print(s.run(image_batch))
-    exit(0)
-
-    val_ds = facenet.make_validate_dataset(dbase_val, map_func, args)
+    val_ds = facenet.make_validate_dataset(dbase_val, load_images, args)
     val_iter = val_ds.make_initializable_iterator()
     val_elem = val_iter.get_next()
-
-    batches = []
-    for cls in tqdm(dbase.classes):
-        files = cls.files
-        ds = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        ds = ds.shuffle(buffer_size=100, reshuffle_each_iteration=True)
-        ds = ds.repeat().batch(batch_size=batch_size, drop_remainder=True)
-        ds = ds.make_one_shot_iterator().get_next()
-        batches.append(ds)
 
     # ------------------------------------------------------------------------------------------------------------------
     print('Building training graph')
@@ -167,9 +128,9 @@ def main(**args_):
 
     placeholders = Placeholders()
 
-    image_batch = facenet.image_processing(placeholders.image_batch, args.image)
-
-    prelogits, _ = network.inference(image_batch, config=args.model.config, phase_train=placeholders.phase_train)
+    prelogits, _ = network.inference(facenet.image_processing(placeholders.image_batch, args.image),
+                                     config=args.model.config,
+                                     phase_train=placeholders.phase_train)
     embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
 
     loss, loss_vars = binary_cross_entropy(embedding)
@@ -217,7 +178,7 @@ def main(**args_):
             info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(args, sess, placeholders, epoch, tensor_ops, summary['train'], batches, info)
+            train(args, sess, placeholders, epoch, tensor_ops, summary['train'], image_batch, info)
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
@@ -250,7 +211,7 @@ def main(**args_):
     return args.model.path
 
 
-def train(args, sess, placeholders, epoch, tensor_dict, summary, batches, info):
+def train(args, sess, placeholders, epoch, tensor_dict, summary, image_batch, info):
     print('\nRunning training', info)
     start_time = time.monotonic()
 
@@ -261,14 +222,12 @@ def train(args, sess, placeholders, epoch, tensor_dict, summary, batches, info):
     outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
     epoch_size = args.train.epoch.size
-    import numpy as np
 
     with tqdm(total=epoch_size) as bar:
         for batch_number in range(epoch_size):
-            image_batch = np.random.choice(batches, size=batch_size, replace=False).tolist()
-            image_batch = sess.run(tf.concat(image_batch, axis=0))
+            image_batch_np = sess.run(image_batch)
 
-            feed_dict = placeholders.train_feed_dict(image_batch, learning_rate)
+            feed_dict = placeholders.train_feed_dict(image_batch_np, learning_rate)
             output = sess.run(tensor_dict, feed_dict=feed_dict)
 
             for key, value in output['tensor_op'].items():
