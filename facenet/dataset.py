@@ -91,7 +91,8 @@ class DBase:
                 self.h5file = Path(self.h5file).expanduser()
 
             dirs = [p for p in self.path.glob('*') if p.is_dir()]
-            if config.nrof_classes:
+
+            if config.nrof_classes and config.nrof_classes < len(dirs):
                 dirs = np.random.choice(dirs, size=config.nrof_classes, replace=False)
             dirs.sort()
 

@@ -240,6 +240,7 @@ def _add_loss_summaries(total_loss):
 
 
 def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars):
+    print('Building train operations.')
 
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
