@@ -75,29 +75,20 @@ def binary_crossentropy_input_pipeline(dbase, args):
 
     batch_size = args.nrof_classes_per_batch * args.nrof_examples_per_class
 
-    def map_func():
-        while True:
-            classes = random.sample(range(dbase.nrof_classes), args.nrof_classes_per_batch)
-            classes = np.repeat(classes, args.nrof_examples_per_class)
-            yield classes
-
-    classes_per_batch = tf.data.Dataset.from_generator(map_func, output_types=tf.int32)
-
-    # transform the dataset of per-batch class vectors into a dataset with one one-hot element per example
-    def map_func(classes):
-        ds = tf.data.Dataset.from_tensor_slices(tf.one_hot(classes, dbase.nrof_classes))
-        return ds.repeat(args.nrof_examples_per_class)
-
-    class_dataset = classes_per_batch.flat_map(map_func)
-
-    per_class_datasets = [tf.data.Dataset.list_files(cls.files) for cls in dbase.classes]
-
     loader = partial(load_images, image_size=args.image.size)
 
-    random_samples = tf.data.experimental.sample_from_datasets(per_class_datasets, class_dataset)
-    random_samples = tf.data.Dataset.zip((random_samples.map(loader), random_samples))
+    def generator():
+        while True:
+            files = []
+            for cls in random.sample(dbase.classes, args.nrof_classes_per_batch):
+                files += random.sample(cls.files, args.nrof_examples_per_class)
+            yield files
 
-    random_samples = random_samples.batch(batch_size)
+    random_samples = tf.data.Dataset.from_generator(generator, output_types=tf.string)
+
+    random_samples = random_samples.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+
+    random_samples = tf.data.Dataset.zip((random_samples.map(loader), random_samples)).batch(batch_size)
 
     image_batch, label_batch = random_samples.make_one_shot_iterator().get_next()
 
