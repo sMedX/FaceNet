@@ -32,8 +32,6 @@ from pathlib import Path
 import tensorflow as tf
 from facenet import ioutils, dataset, statistics, config, h5utils, facenet, tfutils
 
-batch_size = 8
-
 
 class Placeholders:
     def __init__(self):
@@ -64,16 +62,19 @@ def squared_distance(x, y):
 
 
 # binary cross entropy
-def binary_cross_entropy(embeddings):
+def binary_cross_entropy_loss(embeddings, args):
+    print('Building binary cross-entropy loss.')
+
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
     positive_part_entropy = 0.
     negative_part_entropy = 0.
 
-    for i in tqdm(range(batch_size), postfix='binary_cross_entropy'):
-        idx1 = i * batch_size
-        idx2 = (i + 1) * batch_size
+    for i in tqdm(range(args.nrof_examples_per_class), postfix='binary_cross_entropy'):
+        idx1 = i * args.nrof_examples_per_class
+        idx2 = (i + 1) * args.nrof_examples_per_class
+
         embs = embeddings[idx1:idx2, :]
 
         features = squared_distance(embeddings, embs)
@@ -133,7 +134,7 @@ def main(**args_):
                                      phase_train=placeholders.phase_train)
     embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
 
-    loss, loss_vars = binary_cross_entropy(embedding)
+    loss, loss_vars = binary_cross_entropy_loss(embedding, args)
 
     learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
                                                args.train.learning_rate.decay_epochs * args.train.epoch.size,

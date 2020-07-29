@@ -71,6 +71,7 @@ def load_images(path, image_size):
 
 
 def binary_crossentropy_input_pipeline(dbase, args):
+    print('Building binary cross-entropy pipeline.')
 
     batch_size = args.nrof_classes_per_batch * args.nrof_examples_per_class
 
