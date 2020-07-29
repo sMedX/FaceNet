@@ -88,6 +88,7 @@ def binary_cross_entropy_loss(embeddings, args):
         negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
 
     loss = (positive_part_entropy + negative_part_entropy) / args.nrof_examples_per_class
+
     loss_vars = {'alpha': alpha, 'threshold': threshold}
 
     return loss, loss_vars
