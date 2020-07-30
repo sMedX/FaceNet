@@ -56,38 +56,31 @@ class Placeholders:
         }
 
 
-# evaluation of distances
-def squared_distance(x, y):
-    return 2 * (1 - x @ tf.transpose(y))
-
-
-# binary cross entropy
+# binary cross entropy loss
 def binary_cross_entropy_loss(embeddings, args):
     print('Building binary cross-entropy loss.')
 
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
-    positive_part_entropy = 0.
-    negative_part_entropy = 0.
+    inner_class_entropy = 0.
+    across_class_entropy = 0.
 
-    for i in tqdm(range(args.nrof_classes_per_batch)):
+    distance = 2 * (1 - embeddings @ tf.transpose(embeddings))
+    logits = tf.multiply(alpha, tf.subtract(threshold, distance))
+    probability = tf.math.sigmoid(logits)
+
+    for i in range(args.nrof_classes_per_batch):
         idx1 = i * args.nrof_examples_per_class
         idx2 = (i + 1) * args.nrof_examples_per_class
 
-        embs = embeddings[idx1:idx2, :]
+        inner_class_probability = probability[idx1:idx2, idx1:idx2]
+        inner_class_entropy -= tf.reduce_mean(tf.math.log(inner_class_probability))
 
-        features = squared_distance(embeddings, embs)
-        logits = tf.multiply(alpha, tf.subtract(threshold, features))
-        probability = tf.math.sigmoid(logits)
+        across_class_probability = 1 - tf.concat([probability[idx1:idx2, :idx1], probability[idx1:idx2, idx2:]], axis=1)
+        across_class_entropy -= tf.reduce_mean(tf.math.log(across_class_probability))
 
-        positive_probability = probability[idx1:idx2, :]
-        positive_part_entropy -= tf.reduce_mean(tf.math.log(positive_probability))
-
-        negative_probability = 1 - tf.concat([probability[:idx1, :], probability[idx2:, :]], axis=0)
-        negative_part_entropy -= tf.reduce_mean(tf.math.log(negative_probability))
-
-    loss = (positive_part_entropy + negative_part_entropy) / args.nrof_classes_per_batch
+    loss = (inner_class_entropy + across_class_entropy) / args.nrof_classes_per_batch
 
     loss_vars = {'alpha': alpha, 'threshold': threshold}
 
