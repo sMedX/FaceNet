@@ -77,7 +77,8 @@ def binary_cross_entropy_loss(embeddings, args):
         inner_class_probability = probability[idx1:idx2, idx1:idx2]
         inner_class_entropy -= tf.reduce_mean(tf.math.log(inner_class_probability))
 
-        across_class_probability = 1 - tf.concat([probability[idx1:idx2, :idx1], probability[idx1:idx2, idx2:]], axis=1)
+        across_class_probability = 1 - tf.concat([probability[idx1:idx2, :idx1],
+                                                  probability[idx1:idx2, idx2:]], axis=1)
         across_class_entropy -= tf.reduce_mean(tf.math.log(across_class_probability))
 
     loss = (inner_class_entropy + across_class_entropy) / args.nrof_classes_per_batch
