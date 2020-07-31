@@ -13,7 +13,7 @@ import tensorflow as tf
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
-default_model = src_dir.joinpath('models', '20200520-001709')
+default_model = src_dir.joinpath('models', '20200724-231357')
 default_batch_size = 64
 
 file_extension = '.png'
@@ -135,17 +135,18 @@ class Validate(YAMLConfig):
             self.seed = 0
         random.seed(self.seed)
         np.random.seed(self.seed)
+        tf.set_random_seed(self.seed)
 
-        if not self.model:
-            self.model = default_model
+        if not self.model.path:
+            self.model.path = default_model
 
         if not self.file:
-            self.file = Path(self.model).expanduser().joinpath('report.txt')
+            self.file = Path(self.model.path).expanduser().joinpath('report.txt')
         else:
             self.file = Path(self.file).expanduser()
 
         if not self.batch_size:
-            self.batch_size = DefaultConfig2().batch_size
+            self.batch_size = default_batch_size
 
         if not self.dataset.min_nrof_images:
             self.dataset.min_nrof_images = 1

@@ -5,10 +5,23 @@
 # Copyright (c) 2020 sMedX
 
 import tensorflow.compat.v1 as tf
+from tensorflow.python.framework import dtypes
+
 import numpy as np
 from typing import Iterable
-
 from facenet import tfutils, ioutils
+
+nodes = {
+    'input': {
+        'name': ['image'],
+        'type': [dtypes.uint8.as_datatype_enum]
+        },
+
+    'output': {
+        'name': ['embedding'],
+        'type': [dtypes.float32.as_datatype_enum]
+    }
+}
 
 
 class FaceNet:
@@ -25,11 +38,13 @@ class FaceNet:
         tfutils.load_model(config.path)
 
         # Get input and output tensors
-        graph = tf.get_default_graph()
-        self._embeddings = graph.get_tensor_by_name("embeddings:0")
+        input_node_name = '{}:0'.format(nodes['input']['name'][0])
+        output_node_name = '{}:0'.format(nodes['output']['name'][0])
 
-        self._image_placeholder = graph.get_tensor_by_name("input:0")
-        self._phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
+        graph = tf.get_default_graph()
+        self._phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
+        self._image_placeholder = graph.get_tensor_by_name(input_node_name)
+        self._embeddings = graph.get_tensor_by_name(output_node_name)
 
         self._feed_dict = {
             self._image_placeholder: None,
@@ -51,12 +66,3 @@ class FaceNet:
             image_arrays = np.expand_dims(image_arrays, 0)
 
         return self.evaluate(image_arrays)
-
-
-def image_processing(img, config):
-    img = ioutils.pil2array(img)
-
-    if config.standardization:
-        img = (img - 127.5)/128.0
-
-    return img

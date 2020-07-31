@@ -22,7 +22,7 @@
 
 import math
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 from tqdm import tqdm
 from functools import partial
 
@@ -31,7 +31,7 @@ from facenet import ioutils, h5utils, FaceNet
 
 class Placeholders:
     def __init__(self, image_size):
-        self.image_batch = tf.placeholder(tf.float32, shape=[None, image_size, image_size, 3], name='image_batch')
+        self.image_batch = tf.placeholder(tf.uint8, shape=[None, None, None, 3], name='image_batch')
         self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size')
         self.phase_train = tf.placeholder(tf.bool, name='phase_train')
@@ -62,12 +62,35 @@ class Placeholders:
         }
 
 
-def load_images(path, image_size):
+def load_images(path, args):
+    height = args.size
+    width = args.size
+
     contents = tf.io.read_file(path)
     image = tf.image.decode_image(contents, channels=3)
-    image = tf.image.resize_image_with_crop_or_pad(image, image_size, image_size)
-    image = (tf.cast(image, tf.float32) - 127.5) / 128
+    image = tf.image.resize_image_with_crop_or_pad(image, height, width)
     return image
+
+
+def image_processing(image_batch, args):
+    image_size = tf.convert_to_tensor([args.size, args.size], name='image_size')
+
+    image_batch = tf.identity(image_batch, 'image')
+    image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
+
+    if args.normalization == 0:
+        grayscale_image_batch = tf.image.rgb_to_grayscale(image_batch)
+        min_value = tf.math.reduce_min(grayscale_image_batch)
+        max_value = tf.math.reduce_max(grayscale_image_batch)
+        image_batch = 2*(image_batch - min_value)/(max_value - min_value) - 1
+    elif args.normalization == 1:
+        image_batch = tf.image.per_image_standardization(image_batch)
+    else:
+        raise ValueError('Invalid image normalization algorithm')
+
+    image_batch = tf.identity(image_batch, 'input')
+
+    return image_batch
 
 
 def make_train_dataset(dbase, map_func, args):
@@ -287,14 +310,14 @@ class EvaluationOfEmbeddings:
 
         print('Running forward pass on images')
 
-        map_func = partial(load_images, image_size=self.config.image.size)
+        map_func = partial(load_images, args=self.config.image)
         dataset = make_validate_dataset(dbase, map_func, self.config, shuffle=False)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
             nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
 
-            for i in tqdm(range(nrof_batches)):
+            for _ in tqdm(range(nrof_batches)):
                 image_batch, label_batch = sess.run(iterator)
 
                 self.embeddings.append(facenet.evaluate(image_batch))

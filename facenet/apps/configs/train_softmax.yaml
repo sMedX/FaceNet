@@ -67,8 +67,8 @@ loss:
 image:
   # Image size (height, width) in pixels.
   size: 160
-  # Performs fixed standardization of images
-  standardization: true
+  # Performs normalization of images
+  normalization: 0
   # Performs random cropping of training images. If false, the center image_size pixels from
   # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
   random_crop: false

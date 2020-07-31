@@ -6,33 +6,24 @@
 
 
 import click
-import importlib
 from pathlib import Path
-import tensorflow as tf
 import numpy as np
-from facenet import tfutils, config
 
-path = Path('facenet/models/configs/inception_resnet_v1.yaml')
+import tensorflow as tf
+
+from facenet import tfutils, config, nodes
 
 
 @click.command()
-@click.option('--path', default=path, type=Path, help='Path to model.')
-def main(**args_):
+@click.option('--path', default=config.default_model, type=Path, help='Path to model.')
+def main(**options):
+
+    input_node_name = '{}:0'.format(nodes['input']['name'][0])
+    output_node_name = '{}:0'.format(nodes['output']['name'][0])
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            if str(args_['path']).endswith('yaml'):
-                args = config.YAMLConfig(args_['path'])
-
-                image_batch = tf.convert_to_tensor(np.zeros([1, 160, 160, 3]), np.float32)
-                image_batch = tf.identity(image_batch, 'input')
-                network = importlib.import_module(args.module)
-                prelogits, end_points = network.inference(image_batch, config=args.config, phase_train=False)
-                embeddings = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embeddings')
-                sess.run(tf.global_variables_initializer())
-                sess.run(tf.local_variables_initializer())
-            else:
-                tfutils.load_model(args_['path'], input_map=None)
+            tfutils.load_model(options['path'], input_map=None)
 
             graph = tf.compat.v1.get_default_graph()
 
@@ -50,23 +41,20 @@ def main(**args_):
                 nrof_vars += np.prod(var.shape)
             print('number of variables', nrof_vars)
 
-            input = graph.get_tensor_by_name("input:0")
-            print('input :', input)
+            image_placeholder = graph.get_tensor_by_name(input_node_name)
+            print('image :', image_placeholder)
 
-            embeddings = graph.get_tensor_by_name("embeddings:0")
-            print('output:', embeddings)
+            embedding = graph.get_tensor_by_name(output_node_name)
+            print('output:', embedding)
 
-            image_placeholder = graph.get_tensor_by_name("input:0")
+            phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
 
             feed_dict = {
-                image_placeholder: np.zeros([1, 160, 160, 3]),
+                image_placeholder: np.zeros([1, 160, 160, 3], dtype=np.uint8),
+                phase_train_placeholder: False
             }
 
-            if tfutils.tensor_by_name_exist('phase_train:0'):
-                phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
-                feed_dict[phase_train_placeholder] = False
-
-            out = sess.run(embeddings, feed_dict=feed_dict)
+            out = sess.run(embedding, feed_dict=feed_dict)
             print(out.shape)
 
 

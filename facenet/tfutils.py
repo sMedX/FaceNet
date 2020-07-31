@@ -3,10 +3,10 @@ __author__ = 'Ruslan N. Kosarev'
 
 from pathlib import Path
 import numpy as np
+
 import tensorflow as tf
 from tensorflow.python.tools import strip_unused_lib
 from tensorflow.python.tools import optimize_for_inference_lib
-from tensorflow.python.framework import dtypes
 
 
 def tensor_by_name_exist(tensor_name):
@@ -87,10 +87,12 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
 
     ext = '.pbtxt' if as_text else '.pb'
 
-    input_node_names = ['input']
-    output_node_names = ['embedding']
+    from facenet import nodes
 
-    input_node_types = [dtypes.float32.as_datatype_enum]
+    input_node_names = nodes['input']['name']
+    input_node_types = nodes['input']['type']
+
+    output_node_names = nodes['output']['name']
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
