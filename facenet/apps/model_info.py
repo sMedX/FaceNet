@@ -16,14 +16,14 @@ from facenet import tfutils, config, nodes
 
 @click.command()
 @click.option('--path', default=config.default_model, type=Path, help='Path to model.')
-def main(**args_):
+def main(**args):
 
     input_node_name = '{}:0'.format(nodes['input']['name'][0])
     output_node_name = '{}:0'.format(nodes['output']['name'][0])
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            tfutils.load_model(args_['path'], input_map=None)
+            tfutils.load_model(args['path'], input_map=None)
 
             graph = tf.compat.v1.get_default_graph()
 
