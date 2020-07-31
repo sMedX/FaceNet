@@ -90,29 +90,29 @@ def binary_cross_entropy_loss(embeddings, args):
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options of the application.')
-def main(**args_):
+def main(**options):
     start_time = time.monotonic()
-    args = config.TrainOptions(args_, subdir=config.subdir())
+    options = config.TrainOptions(options, subdir=config.subdir())
 
     # import network
-    print('import model {}'.format(args.model.module))
-    network = importlib.import_module(args.model.module)
+    print('import model {}'.format(options.model.module))
+    network = importlib.import_module(options.model.module)
 
     # ------------------------------------------------------------------------------------------------------------------
-    dbase = dataset.DBase(args.dataset)
-    ioutils.write_text_log(args.txtfile, str(dbase))
+    dbase = dataset.DBase(options.dataset)
+    ioutils.write_text_log(options.txtfile, str(dbase))
     print('train dbase:', dbase)
 
-    dbase_val = dataset.DBase(args.validate.dataset)
-    ioutils.write_text_log(args.txtfile, str(dbase_val))
+    dbase_val = dataset.DBase(options.validate.dataset)
+    ioutils.write_text_log(options.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    load_images = partial(facenet.load_images, image_size=args.image.size)
+    load_images = partial(facenet.load_images, image_size=options.image.size)
 
     # build input pipeline for binary crossentropy loss
-    image_batch, label_batch = facenet.binary_cross_entropy_input_pipeline(dbase, args)
+    image_batch, label_batch = facenet.binary_cross_entropy_input_pipeline(dbase, options)
 
-    val_ds = facenet.make_validate_dataset(dbase_val, load_images, args)
+    val_ds = facenet.make_validate_dataset(dbase_val, load_images, options)
     val_iter = val_ds.make_initializable_iterator()
     val_elem = val_iter.get_next()
 
@@ -123,21 +123,21 @@ def main(**args_):
 
     placeholders = Placeholders()
 
-    prelogits, _ = network.inference(facenet.image_processing(placeholders.image_batch, args.image),
-                                     config=args.model.config,
+    prelogits, _ = network.inference(facenet.image_processing(placeholders.image_batch, options.image),
+                                     config=options.model.config,
                                      phase_train=placeholders.phase_train)
     embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
 
-    cross_entropy, loss_vars = binary_cross_entropy_loss(embedding, args)
+    cross_entropy, loss_vars = binary_cross_entropy_loss(embedding, options)
 
     regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
     loss = tf.add_n([cross_entropy] + regularization_losses, name='loss')
 
     learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
-                                               args.train.learning_rate.decay_epochs * args.train.epoch.size,
-                                               args.train.learning_rate.decay_factor, staircase=True)
+                                               options.train.learning_rate.decay_epochs * options.train.epoch.size,
+                                               options.train.learning_rate.decay_factor, staircase=True)
 
-    train_op = facenet.train_op(args.train, loss, global_step, learning_rate, tf.global_variables())
+    train_op = facenet.train_op(options.train, loss, global_step, learning_rate, tf.global_variables())
 
     # Create a saver
     saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=3)
@@ -146,12 +146,12 @@ def main(**args_):
     summary_op = tf.summary.merge_all()
 
     # Start running operations on the Graph.
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_memory_fraction)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=options.gpu_memory_fraction)
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False)) as sess:
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-        summary_writer = tf.summary.FileWriter(args.logs, sess.graph)
+        summary_writer = tf.summary.FileWriter(options.logs, sess.graph)
 
-        tfutils.restore_checkpoint(saver, sess, args.model.checkpoint)
+        tfutils.restore_checkpoint(saver, sess, options.model.checkpoint)
         tf.train.global_step(sess, global_step)
         sess.run(global_step.initializer)
 
@@ -167,46 +167,46 @@ def main(**args_):
         }
 
         summary = {
-            'train': facenet.Summary(summary_writer, args.h5file, tag='train'),
-            'validate': facenet.Summary(summary_writer, args.h5file, tag='validate')
+            'train': facenet.Summary(summary_writer, options.h5file, tag='train'),
+            'validate': facenet.Summary(summary_writer, options.h5file, tag='validate')
         }
 
         # Training and validation loop
-        for epoch in range(args.train.epoch.nrof_epochs):
-            info = '(model {}, epoch [{}/{}])'.format(args.model.path.stem, epoch+1, args.train.epoch.nrof_epochs)
+        for epoch in range(options.train.epoch.nrof_epochs):
+            info = '(model {}, epoch [{}/{}])'.format(options.model.path.stem, epoch+1, options.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(args, sess, placeholders, epoch, tensor_ops, summary['train'], image_batch, info)
+            train(options, sess, placeholders, epoch, tensor_ops, summary['train'], image_batch, info)
 
             # save variables and the meta graph if it doesn't exist already
-            tfutils.save_variables_and_metagraph(sess, saver, args.model.path, epoch)
+            tfutils.save_variables_and_metagraph(sess, saver, options.model.path, epoch)
 
             # perform validation
             epoch1 = epoch + 1
-            if epoch1 % args.validate.every_n_epochs == 0 or epoch1 == args.train.epoch.nrof_epochs:
+            if epoch1 % options.validate.every_n_epochs == 0 or epoch1 == options.train.epoch.nrof_epochs:
                 embeddings, labels = facenet.evaluate_embeddings(sess, embedding, placeholders,
                                                                  val_ds, val_iter, val_elem, info)
 
-                validation = statistics.FaceToFaceValidation(embeddings, labels, args.validate.validate, info=info)
+                validation = statistics.FaceToFaceValidation(embeddings, labels, options.validate.validate, info=info)
 
-                ioutils.write_text_log(args.txtfile, str(validation))
-                h5utils.write_dict(args.h5file, validation.dict, group='validate')
+                ioutils.write_text_log(options.txtfile, str(validation))
+                h5utils.write_dict(options.h5file, validation.dict, group='validate')
 
                 for key, value in validation.dict.items():
                     summary['validate'].write_tf_summary(value, tag='{}_{}'.format('validate', key))
 
                 print(validation)
 
-    tfutils.save_freeze_graph(model_dir=args.model.path, optimize=True)
+    tfutils.save_freeze_graph(model_dir=options.model.path, optimize=True)
 
-    ioutils.write_elapsed_time(args.h5file, start_time)
-    ioutils.write_elapsed_time(args.txtfile, start_time)
+    ioutils.write_elapsed_time(options.h5file, start_time)
+    ioutils.write_elapsed_time(options.txtfile, start_time)
 
-    print('Statistics have been saved to the h5 file: {}'.format(args.h5file))
-    print('Logs have been saved to the directory: {}'.format(args.logs))
-    print('Model has been saved to the directory: {}'.format(args.model.path))
+    print('Statistics have been saved to the h5 file: {}'.format(options.h5file))
+    print('Logs have been saved to the directory: {}'.format(options.logs))
+    print('Model has been saved to the directory: {}'.format(options.model.path))
 
-    return args.model.path
+    return options.model.path
 
 
 def train(args, sess, placeholders, epoch, tensor_dict, summary, image_batch, info):
