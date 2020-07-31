@@ -128,7 +128,10 @@ def main(**args_):
                                      phase_train=placeholders.phase_train)
     embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
 
-    loss, loss_vars = binary_cross_entropy_loss(embedding, args)
+    cross_entropy, loss_vars = binary_cross_entropy_loss(embedding, args)
+
+    regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    loss = tf.add_n([cross_entropy] + regularization_losses, name='loss')
 
     learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
                                                args.train.learning_rate.decay_epochs * args.train.epoch.size,
