@@ -73,18 +73,18 @@ def load_images(path, options):
     return image
 
 
-def binary_cross_entropy_input_pipeline(dbase, args):
+def binary_cross_entropy_input_pipeline(dbase, options):
     print('Building binary cross-entropy pipeline.')
 
-    batch_size = args.nrof_classes_per_batch * args.nrof_examples_per_class
+    batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
 
-    loader = partial(load_images, image_size=args.image.size)
+    loader = partial(load_images, image_size=options.image.size)
 
     def generator():
         while True:
             files = []
-            for cls in random.sample(dbase.classes, args.nrof_classes_per_batch):
-                files += random.sample(cls.files, args.nrof_examples_per_class)
+            for cls in random.sample(dbase.classes, options.nrof_classes_per_batch):
+                files += random.sample(cls.files, options.nrof_examples_per_class)
             yield files
 
     dataset = tf.data.Dataset.from_generator(generator, output_types=tf.string)
@@ -98,18 +98,18 @@ def binary_cross_entropy_input_pipeline(dbase, args):
     return image_batch, label_batch
 
 
-def image_processing(image_batch, args):
-    image_size = tf.convert_to_tensor([args.size, args.size], name='image_size')
+def image_processing(image_batch, options):
+    image_size = tf.convert_to_tensor([options.size, options.size], name='image_size')
 
     image_batch = tf.identity(image_batch, 'image')
     image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
 
-    if args.normalization == 0:
+    if options.normalization == 0:
         grayscale_image_batch = tf.image.rgb_to_grayscale(image_batch)
         min_value = tf.math.reduce_min(grayscale_image_batch)
         max_value = tf.math.reduce_max(grayscale_image_batch)
         image_batch = 2*(image_batch - min_value)/(max_value - min_value) - 1
-    elif args.normalization == 1:
+    elif options.normalization == 1:
         image_batch = tf.image.per_image_standardization(image_batch)
     else:
         raise ValueError('Invalid image normalization algorithm')
