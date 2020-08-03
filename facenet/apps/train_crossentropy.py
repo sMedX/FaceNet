@@ -107,7 +107,7 @@ def main(**options):
     ioutils.write_text_log(options.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    load_images = partial(facenet.load_images, image_size=options.image.size)
+    load_images = partial(facenet.load_images, options=options.image)
 
     # build input pipeline for binary crossentropy loss
     image_batch, label_batch = facenet.binary_cross_entropy_input_pipeline(dbase, options)

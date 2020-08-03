@@ -63,9 +63,9 @@ class Placeholders:
         }
 
 
-def load_images(path, args):
-    height = args.size
-    width = args.size
+def load_images(path, options):
+    height = options.size
+    width = options.size
 
     contents = tf.io.read_file(path)
     image = tf.image.decode_image(contents, channels=3)
