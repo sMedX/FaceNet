@@ -78,7 +78,7 @@ def binary_cross_entropy_input_pipeline(dbase, options):
 
     batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
 
-    loader = partial(load_images, image_size=options.image.size)
+    loader = partial(load_images, options=options.image)
 
     def generator():
         while True:
@@ -233,12 +233,12 @@ def _add_loss_summaries(total_loss):
     return loss_averages_op
 
 
-def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars):
+def train_op(options, total_loss, global_step, learning_rate, update_gradient_vars):
     print('Building train operations.')
 
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
-    optimizer = args.optimizer.lower()
+    optimizer = options.optimizer.lower()
 
     # Compute gradients.
     with tf.control_dependencies([loss_averages_op]):
@@ -261,7 +261,7 @@ def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars)
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
   
     # Add histograms for trainable variables and for gradients.
-    if args.log_histograms:
+    if options.log_histograms:
         for var in tf.trainable_variables():
             tf.summary.histogram(var.op.name, var)
    
@@ -270,7 +270,7 @@ def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars)
                 tf.summary.histogram(var.op.name + '/gradients', grad)
   
     # Track the moving averages of all trainable variables.
-    variable_averages = tf.train.ExponentialMovingAverage(args.moving_average_decay, global_step)
+    variable_averages = tf.train.ExponentialMovingAverage(options.moving_average_decay, global_step)
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
   
     with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
