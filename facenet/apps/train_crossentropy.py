@@ -57,7 +57,7 @@ class Placeholders:
 
 
 # binary cross entropy loss
-def binary_cross_entropy_loss(embeddings, args):
+def binary_cross_entropy_loss(embeddings, options):
     print('Building binary cross-entropy loss.')
 
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
@@ -70,9 +70,9 @@ def binary_cross_entropy_loss(embeddings, args):
     logits = tf.multiply(alpha, tf.subtract(threshold, distance))
     probability = tf.math.sigmoid(logits)
 
-    for i in range(args.nrof_classes_per_batch):
-        idx1 = i * args.nrof_examples_per_class
-        idx2 = (i + 1) * args.nrof_examples_per_class
+    for i in range(options.nrof_classes_per_batch):
+        idx1 = i * options.nrof_examples_per_class
+        idx2 = (i + 1) * options.nrof_examples_per_class
 
         inner_class_probability = probability[idx1:idx2, idx1:idx2]
         inner_class_entropy -= tf.reduce_mean(tf.math.log(inner_class_probability))
@@ -80,7 +80,7 @@ def binary_cross_entropy_loss(embeddings, args):
         across_class_probability = 1 - tf.concat([probability[idx1:idx2, :idx1], probability[idx1:idx2, idx2:]], axis=1)
         across_class_entropy -= tf.reduce_mean(tf.math.log(across_class_probability))
 
-    loss = (inner_class_entropy + across_class_entropy) / args.nrof_classes_per_batch
+    loss = (inner_class_entropy + across_class_entropy) / options.nrof_classes_per_batch
 
     loss_vars = {'alpha': alpha, 'threshold': threshold}
 
