@@ -29,7 +29,10 @@ import importlib
 from tqdm import tqdm
 from functools import partial
 from pathlib import Path
+
+import numpy as np
 import tensorflow as tf
+
 from facenet import ioutils, dataset, statistics, config, h5utils, facenet, tfutils
 
 
@@ -63,26 +66,38 @@ def binary_cross_entropy_loss(embeddings, options):
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
-    inner_class_entropy = 0.
-    across_class_entropy = 0.
+    triu_indices = np.triu_indices(options.nrof_examples_per_class, k=1)
+
+    block_indices = np.meshgrid(range(options.nrof_examples_per_class), range(options.nrof_examples_per_class))
+    block_indices = [indices.flatten() for indices in block_indices]
+
+    inner_class_indices = []
+    across_class_indices = []
+
+    for i in range(options.nrof_classes_per_batch):
+        for k in range(i, options.nrof_classes_per_batch):
+            i_shift = i * options.nrof_examples_per_class
+            k_shift = k * options.nrof_examples_per_class
+
+            if i == k:
+                for ii, kk in zip(*triu_indices):
+                    inner_class_indices.append((ii + i_shift, kk + k_shift))
+            else:
+                for ii, kk in zip(*block_indices):
+                    across_class_indices.append((ii + i_shift, kk + k_shift))
 
     distance = 2 * (1 - embeddings @ tf.transpose(embeddings))
     logits = tf.multiply(alpha, tf.subtract(threshold, distance))
-    probability = tf.math.sigmoid(logits)
 
-    scale = options.nrof_examples_per_class/(options.nrof_examples_per_class-1)
+    logits = tf.concat([tf.gather_nd(logits, inner_class_indices),
+                        tf.gather_nd(logits, across_class_indices)], axis=0)
 
-    for i in range(options.nrof_classes_per_batch):
-        idx1 = i * options.nrof_examples_per_class
-        idx2 = (i + 1) * options.nrof_examples_per_class
+    labels = tf.concat([tf.convert_to_tensor(np.ones(len(inner_class_indices))),
+                        tf.convert_to_tensor(np.zeros(len(across_class_indices)))], axis=0)
+    labels = tf.cast(labels, dtype=logits.dtype)
 
-        inner_class_probability = probability[idx1:idx2, idx1:idx2]
-        inner_class_entropy -= scale*tf.reduce_mean(tf.math.log(inner_class_probability))
-
-        across_class_probability = 1 - tf.concat([probability[idx1:idx2, :idx1], probability[idx1:idx2, idx2:]], axis=1)
-        across_class_entropy -= tf.reduce_mean(tf.math.log(across_class_probability))
-
-    loss = (inner_class_entropy + across_class_entropy) / options.nrof_classes_per_batch
+    pos_weight = len(across_class_indices) / len(inner_class_indices)
+    loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight))
 
     loss_vars = {'alpha': alpha, 'threshold': threshold}
 
