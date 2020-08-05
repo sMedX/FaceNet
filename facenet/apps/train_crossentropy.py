@@ -65,8 +65,8 @@ def binary_cross_entropy_loss(embeddings, options):
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
     # define upper-triangle indices
-    size = embeddings.shape[0]
-    triu_indices = [(i, k) for i, k in zip(*np.triu_indices(size, k=1))]
+    batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
+    triu_indices = [(i, k) for i, k in zip(*np.triu_indices(batch_size, k=1))]
 
     # compute labels for embeddings
     labels = []
