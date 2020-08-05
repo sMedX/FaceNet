@@ -81,7 +81,8 @@ def binary_cross_entropy_loss(embeddings, options):
     pos_weight = len(labels)/sum(labels) - 1
 
     # initialize cross entropy loss
-    distances = tf.gather_nd(2 * (1 - embeddings @ tf.transpose(embeddings)), triu_indices)
+    distances = 2 * (1 - embeddings @ tf.transpose(embeddings))
+    distances = tf.gather_nd(distances, triu_indices)
 
     logits = tf.multiply(alpha, tf.subtract(threshold, distances))
     labels = tf.constant(labels, dtype=logits.dtype)
