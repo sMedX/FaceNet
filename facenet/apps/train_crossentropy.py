@@ -61,47 +61,35 @@ class Placeholders:
 
 # binary cross entropy loss
 def binary_cross_entropy_loss(embeddings, options):
-    print('Building binary cross-entropy loss.')
-
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
-    triu_indices = np.triu_indices(options.nrof_examples_per_class, k=1)
+    # define upper-triangle indices
+    size = embeddings.shape[0]
+    triu_indices = [(i, k) for i, k in zip(*np.triu_indices(size, k=1))]
 
-    block_indices = np.meshgrid(range(options.nrof_examples_per_class), range(options.nrof_examples_per_class))
-    block_indices = [indices.flatten() for indices in block_indices]
+    # compute labels for embeddings
+    labels = []
+    for i, k in triu_indices:
+        if i // options.nrof_examples_per_class == k // options.nrof_examples_per_class:
+            # label 1 means inner class distance
+            labels.append(1)
+        else:
+            # label 0 means across class distance
+            labels.append(0)
 
-    inner_class_indices = []
-    across_class_indices = []
+    pos_weight = len(labels)/sum(labels) - 1
 
-    for i in range(options.nrof_classes_per_batch):
-        for k in range(i, options.nrof_classes_per_batch):
-            i_shift = i * options.nrof_examples_per_class
-            k_shift = k * options.nrof_examples_per_class
+    # initialize cross entropy loss
+    distances = tf.gather_nd(2 * (1 - embeddings @ tf.transpose(embeddings)), triu_indices)
 
-            if i == k:
-                for ii, kk in zip(*triu_indices):
-                    inner_class_indices.append((ii + i_shift, kk + k_shift))
-            else:
-                for ii, kk in zip(*block_indices):
-                    across_class_indices.append((ii + i_shift, kk + k_shift))
+    logits = tf.multiply(alpha, tf.subtract(threshold, distances))
+    labels = tf.constant(labels, dtype=logits.dtype)
 
-    distance = 2 * (1 - embeddings @ tf.transpose(embeddings))
-    logits = tf.multiply(alpha, tf.subtract(threshold, distance))
+    cross_entropy = tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight)
+    loss = tf.reduce_mean(cross_entropy)
 
-    logits = tf.concat([tf.gather_nd(logits, inner_class_indices),
-                        tf.gather_nd(logits, across_class_indices)], axis=0)
-
-    labels = tf.concat([tf.convert_to_tensor(np.ones(len(inner_class_indices))),
-                        tf.convert_to_tensor(np.zeros(len(across_class_indices)))], axis=0)
-    labels = tf.cast(labels, dtype=logits.dtype)
-
-    pos_weight = len(across_class_indices) / len(inner_class_indices)
-    loss = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight))
-
-    loss_vars = {'alpha': alpha, 'threshold': threshold}
-
-    return loss, loss_vars
+    return loss, {'alpha': alpha, 'threshold': threshold}
 
 
 @click.command()
