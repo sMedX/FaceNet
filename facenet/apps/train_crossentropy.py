@@ -63,6 +63,7 @@ class Placeholders:
 def binary_cross_entropy_loss(embeddings, options):
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
+    loss_vars = {'alpha': alpha, 'threshold': threshold}
 
     # define upper-triangle indices
     batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
@@ -90,7 +91,7 @@ def binary_cross_entropy_loss(embeddings, options):
     cross_entropy = tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight)
     loss = tf.reduce_mean(cross_entropy)
 
-    return loss, {'alpha': alpha, 'threshold': threshold}
+    return loss, loss_vars
 
 
 @click.command()
