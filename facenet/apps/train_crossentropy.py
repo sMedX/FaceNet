@@ -63,6 +63,7 @@ class Placeholders:
 def binary_cross_entropy_loss(embeddings, options):
     alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
+
     loss_vars = {'alpha': alpha, 'threshold': threshold}
 
     # define upper-triangle indices
@@ -72,7 +73,7 @@ def binary_cross_entropy_loss(embeddings, options):
     # compute labels for embeddings
     labels = []
     for i, k in triu_indices:
-        if i // options.nrof_examples_per_class == k // options.nrof_examples_per_class:
+        if (i // options.nrof_examples_per_class) == (k // options.nrof_examples_per_class):
             # label 1 means inner class distance
             labels.append(1)
         else:
