@@ -29,8 +29,8 @@ import importlib
 from tqdm import tqdm
 from functools import partial
 from pathlib import Path
+
 import tensorflow.compat.v1 as tf
-import tensorflow.contrib.slim as slim
 
 from facenet import ioutils, dataset, statistics, config, h5utils, facenet, tfutils
 
@@ -72,22 +72,18 @@ def main(**options):
     }
 
     # ------------------------------------------------------------------------------------------------------------------
+    print('Building training graph')
+
     global_step = tf.Variable(0, trainable=False, name='global_step')
 
     placeholders = facenet.Placeholders(options.image.size)
 
-    print('Building training graph')
-
     image_batch = facenet.image_processing(placeholders.image_batch, options.image)
 
-    prelogits, _ = network.inference(image_batch,
-                                     config=options.model.config,
-                                     phase_train=placeholders.phase_train)
+    # prelogits, _ = network.inference(image_batch, config=options.model.config, phase_train=placeholders.phase_train)
+    prelogits, _ = network.inference(image_batch, config=options.model.config, phase_train=True)
 
-    logits = slim.fully_connected(prelogits, dbase.nrof_classes, activation_fn=None,
-                                  weights_initializer=slim.initializers.xavier_initializer(),
-                                  weights_regularizer=slim.l2_regularizer(options.model.config.weight_decay),
-                                  scope='Logits', reuse=False)
+    logits = tf.layers.dense(prelogits, dbase.nrof_classes, activation=None)
 
     embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
 
