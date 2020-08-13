@@ -72,18 +72,20 @@ def load_images(path, args):
     return image
 
 
-def image_processing(image_batch, args):
-    image_size = tf.convert_to_tensor([args.size, args.size], name='image_size')
+def image_processing(image_batch, config):
+    image_size = tf.constant([config.size, config.size], name='image_size')
 
     image_batch = tf.identity(image_batch, 'image')
-    image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
 
-    if args.normalization == 0:
-        grayscale_image_batch = tf.image.rgb_to_grayscale(image_batch)
-        min_value = tf.math.reduce_min(grayscale_image_batch)
-        max_value = tf.math.reduce_max(grayscale_image_batch)
+    image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
+    image_batch = tf.cast(image_batch, dtype=tf.float32)
+
+    if config.normalization == 0:
+        min_value = tf.math.reduce_min(image_batch, axis=[-1, -2, -3], keepdims=True)
+        max_value = tf.math.reduce_max(image_batch, axis=[-1, -2, -3], keepdims=True)
+
         image_batch = 2*(image_batch - min_value)/(max_value - min_value) - 1
-    elif args.normalization == 1:
+    elif config.normalization == 1:
         image_batch = tf.image.per_image_standardization(image_batch)
     else:
         raise ValueError('Invalid image normalization algorithm')
