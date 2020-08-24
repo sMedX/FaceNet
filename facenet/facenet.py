@@ -62,9 +62,9 @@ class Placeholders:
         }
 
 
-def load_images(path, args):
-    height = args.size
-    width = args.size
+def load_images(path, config):
+    height = config.size
+    width = config.size
 
     contents = tf.io.read_file(path)
     image = tf.image.decode_image(contents, channels=3)
@@ -72,18 +72,23 @@ def load_images(path, args):
     return image
 
 
-def image_processing(image_batch, args):
-    image_size = tf.convert_to_tensor([args.size, args.size], name='image_size')
+def image_processing(image_batch, config):
+    eps = 1e-3
 
     image_batch = tf.identity(image_batch, 'image')
+    image_batch = tf.cast(image_batch, dtype=tf.float32, name='float_image')
+
+    image_size = tf.constant([config.size, config.size], name='image_size')
     image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
 
-    if args.normalization == 0:
-        grayscale_image_batch = tf.image.rgb_to_grayscale(image_batch)
-        min_value = tf.math.reduce_min(grayscale_image_batch)
-        max_value = tf.math.reduce_max(grayscale_image_batch)
-        image_batch = 2*(image_batch - min_value)/(max_value - min_value) - 1
-    elif args.normalization == 1:
+    if config.normalization == 0:
+        min_value = tf.math.reduce_min(image_batch, axis=[-1, -2, -3], keepdims=True)
+        max_value = tf.math.reduce_max(image_batch, axis=[-1, -2, -3], keepdims=True)
+        dynamic_range = tf.math.maximum(max_value - min_value, eps)
+
+        image_batch = (2*image_batch - (max_value + min_value))/dynamic_range
+
+    elif config.normalization == 1:
         image_batch = tf.image.per_image_standardization(image_batch)
     else:
         raise ValueError('Invalid image normalization algorithm')
