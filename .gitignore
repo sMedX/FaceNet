@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 /*.yaml
+/*.pb
+/*.ckpt*
 
 # Distribution / packaging
 .Python
