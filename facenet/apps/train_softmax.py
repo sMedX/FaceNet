@@ -84,17 +84,18 @@ def main(**options):
                                      config=options.model.config,
                                      phase_train=placeholders.phase_train)
 
+    prelogits = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
+
     logits = slim.fully_connected(prelogits, dbase.nrof_classes, activation_fn=None,
                                   weights_initializer=slim.initializers.xavier_initializer(),
                                   weights_regularizer=slim.l2_regularizer(options.model.config.weight_decay),
                                   scope='Logits', reuse=False)
 
-    embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
-
+    # embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
     # Norm for the prelogits
-    eps = 1e-4
-    prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=options.loss.prelogits_norm_p, axis=1))
-    tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * options.loss.prelogits_norm_factor)
+    # eps = 1e-4
+    # prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=options.loss.prelogits_norm_p, axis=1))
+    # tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_norm * options.loss.prelogits_norm_factor)
 
     # Add center loss
     prelogits_center_loss, _ = facenet.center_loss(prelogits, placeholders.label_batch, options.loss.center_alfa,
@@ -146,7 +147,6 @@ def main(**options):
                 'loss': total_loss,
                 'xent': cross_entropy_mean,
                 'center_loss': prelogits_center_loss,
-                'prelogits_norm': prelogits_norm,
                 'learning_rate': learning_rate
             }
         }
@@ -174,7 +174,7 @@ def main(**options):
                 #          tensor_dict['validate'], summary['validate'], info)
 
                 # perform face-to-face validation
-                embeddings, labels = facenet.evaluate_embeddings(sess, embedding, placeholders,
+                embeddings, labels = facenet.evaluate_embeddings(sess, prelogits, placeholders,
                                                                  ds['validate'], iterator['validate'], batch['validate'],
                                                                  info)
 
