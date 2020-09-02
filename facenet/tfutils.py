@@ -8,6 +8,8 @@ import tensorflow as tf
 from tensorflow.python.tools import strip_unused_lib
 from tensorflow.python.tools import optimize_for_inference_lib
 
+from facenet import h5utils
+
 
 def tensor_by_name_exist(tensor_name):
     tensor_names = [t.name for op in tf.get_default_graph().get_operations() for t in op.values()]
@@ -83,7 +85,7 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimize=True, as_text=False):
+def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimize=True, as_text=False, h5write=True):
 
     ext = '.pbtxt' if as_text else '.pb'
 
@@ -114,9 +116,6 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
             # Retrieve the protobuf graph definition and fix the batch norm nodes
             input_graph_def = sess.graph.as_graph_def()
 
-            # dest_nodes = ['input', 'embeddings']
-            # output_graph_def = tf.compat.v1.graph_util.extract_sub_graph(input_graph_def, dest_nodes)
-
             graph_def = freeze_graph_def(sess, input_graph_def, output_node_names)
 
             if strip:
@@ -131,7 +130,22 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
 
             tf.io.write_graph(graph_def, str(output_file.parent), output_file.name, as_text=as_text)
 
-    print('{} ops in the final graph: {}'.format(len(graph_def.node), output_file))
+            if h5write:
+                h5file = output_file.with_suffix('.h5')
+
+                keys = ('/weights', '/biases')
+                nrof_vars = 0
+
+                for idx, var in enumerate(tf.compat.v1.trainable_variables()):
+                    if any(key in var.name for key in keys):
+                        data = sess.run(var)
+                        print('{}/{}) {} {}/{}'.format(nrof_vars, idx, var.name, data.shape, str(data.dtype)))
+                        h5utils.write(h5file, var.name, data)
+                        nrof_vars += 1
+
+                print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
+
+    print('{} operations in the final graph: {}'.format(len(graph_def.node), output_file))
 
     return output_file
 
