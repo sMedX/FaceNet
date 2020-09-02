@@ -5,12 +5,12 @@ and exports the model as a graphdef protobuf
 # Copyright (c) 2020 sMedX
 
 import click
-import pathlib
+from pathlib import Path
 from facenet import tfutils, config
 
 
 @click.command()
-@click.option('--model_dir', default=config.default_model, type=pathlib.Path,
+@click.option('--model_dir', default=config.default_model, type=Path,
               help='Directory with the meta graph and checkpoint files containing model parameters.')
 @click.option('--as_text', default=0, type=int,
               help='Writes the graph as an ASCII proto.')
