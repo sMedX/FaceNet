@@ -143,7 +143,7 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
                         h5utils.write(h5file, var.name, data)
                         nrof_vars += 1
 
-                print('\n')
+                print()
                 print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
 
     print('{} operations in the final graph: {}'.format(len(graph_def.node), output_file))
