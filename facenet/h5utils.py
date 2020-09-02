@@ -71,3 +71,13 @@ def keys(file):
 def visit(file, func=print):
     with h5py.File(str(file), mode='r') as f:
         f.visit(func)
+
+
+def visititems(file, func=None):
+    if func is None:
+        def func(name, obj):
+            if isinstance(obj, h5py.Dataset):
+                print(name, obj.shape, obj.dtype)
+
+    with h5py.File(str(file), mode='r') as f:
+        f.visititems(func)
