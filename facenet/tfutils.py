@@ -134,14 +134,16 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
                 h5file = output_file.with_suffix('.h5')
 
                 keys = ('/weights', '/biases')
+                name = 'InceptionResnet'
                 nrof_vars = 0
 
                 for idx, var in enumerate(tf.compat.v1.trainable_variables()):
-                    if any(key in var.name for key in keys):
-                        data = sess.run(var)
-                        print('{}/{}) {} {}/{}'.format(nrof_vars, idx, var.name, data.shape, str(data.dtype)))
-                        h5utils.write(h5file, var.name, data)
-                        nrof_vars += 1
+                    if name in var.name:
+                        if any(key in var.name for key in keys):
+                            data = sess.run(var)
+                            print('{}/{}) {} {}/{}'.format(nrof_vars, idx, var.name, data.shape, str(data.dtype)))
+                            h5utils.write(h5file, var.name, data)
+                            nrof_vars += 1
 
                 print()
                 print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
