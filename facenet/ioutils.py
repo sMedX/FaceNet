@@ -214,3 +214,18 @@ def write_text_log(file, info):
 
     with file.open(mode='a') as f:
         f.write(info)
+
+
+def glob(model_dir, pattern, count=1):
+    files = list(model_dir.glob(pattern))
+
+    if count is not None:
+        if len(files) != count:
+            raise ValueError('There should not be more than {} files in the model directory {}.'.format(count, model_dir))
+
+    if count == 1:
+        return files[0]
+    else:
+        return files
+
+
