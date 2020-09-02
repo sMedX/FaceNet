@@ -74,10 +74,13 @@ def visit(file, func=print):
 
 
 def visititems(file, func=None):
+    items = []
     if func is None:
         def func(name, obj):
             if isinstance(obj, h5py.Dataset):
-                print(name, obj.shape, obj.dtype)
+                items.append({'name': name, 'shape': obj.shape, 'type': obj.dtype})
 
     with h5py.File(str(file), mode='r') as f:
         f.visititems(func)
+
+    return items
