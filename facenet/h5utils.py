@@ -60,7 +60,10 @@ def read(file, name, default=None):
         if name in hf:
             return hf[name][...]
         else:
-            return default
+            if default is not None:
+                return default
+            else:
+                raise KeyError(f'Invalid key {name} in H5 file {file}')
 
 
 def keys(file):
