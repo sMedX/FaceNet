@@ -88,7 +88,7 @@ class Block35(torch.nn.Module):
         path = 'InceptionResnetV1/Repeat/block35_{}'.format(idx)
 
         layers = OrderedDict({
-            'Conv2d_1x1':  Conv2d(32, 32, kernel_size=1, padding=0, bias=True)
+            'Conv2d_1x1':  Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
         })
         self.conv2d = torch.nn.Sequential(initialize_layers(layers, h5file, path))
 
@@ -101,6 +101,47 @@ class Block35(torch.nn.Module):
 
         input_ids += self.scale * self.conv2d(mixed)
         input_ids = self.activation_fn(input_ids)
+
+        return input_ids
+
+
+class ReductionA(torch.nn.Module):
+    """
+    stride=1, padding=SAME
+    """
+
+    def __init__(self, h5file):
+        super().__init__()
+        in_channels = 256
+
+        # scope Branch_0
+        path = 'InceptionResnetV1/Mixed_6a/Branch_0'
+
+        layers = OrderedDict({
+            'Conv2d_1a_3x3': Conv2d(in_channels, 384, kernel_size=3, stride=2, padding=0, bias=False),
+            'relu1': torch.nn.ReLU()
+        })
+        self.tower_conv1 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+
+        # scope Branch_1
+        path = 'InceptionResnetV1/Mixed_6a/Branch_1'
+
+        layers = OrderedDict({
+            'Conv2d_0a_1x1': Conv2d(in_channels, 384, kernel_size=1, stride=1, padding=0, bias=False),
+            'relu1': torch.nn.ReLU(),
+            'Conv2d_0b_3x3': Conv2d(384, 192, kernel_size=3,  stride=1, padding=1, bias=False),
+            'relu2': torch.nn.ReLU(),
+            'Conv2d_1a_3x3': Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=False),
+            'relu3': torch.nn.ReLU()
+        })
+        self.tower_conv2 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+
+        self.max_pool = torch.nn.MaxPool2d(3, stride=2, padding=0)
+
+    def forward(self, input_ids, past=None):
+        input_ids = torch.cat([self.tower_conv1(input_ids),
+                               self.tower_conv2(input_ids),
+                               self.max_pool(input_ids)], dim=1)
 
         return input_ids
 
@@ -133,6 +174,8 @@ class FaceNet(torch.nn.Module):
             layers[f'block35_{idx+1}'] = Block35(h5file, scale=0.17, idx=idx+1)
         self.block35 = torch.nn.Sequential(layers)
 
+        self.reduction_a = ReductionA(h5file)
+
         # self.apply(self.init_weights)
 
     def init_weights(self):
@@ -141,5 +184,7 @@ class FaceNet(torch.nn.Module):
     def forward(self, input_ids, past=None):
         out = self.sequential.forward(input_ids)
         out = self.block35.forward(out)
+        out = self.reduction_a.forward(out)
+
         return out
 
