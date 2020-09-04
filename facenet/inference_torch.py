@@ -22,23 +22,25 @@ def image_processing(image, eps=1e-3):
     return image
 
 
+def initialize_conv2d(name, layer, h5file, path):
+    h5key = '{}/{}/weights:0'.format(path, name)
+
+    weight = h5utils.read(h5file, h5key)
+    print(h5key, weight.shape, weight.dtype)
+    weight = np.transpose(weight, axes=[3, 2, 0, 1])
+    layer.weight = torch.nn.Parameter(torch.from_numpy(weight))
+
+    if layer.bias is not None:
+        h5key = '{}/{}/biases:0'.format(path, name)
+        bias = h5utils.read(h5file, h5key)
+        print(h5key, bias.shape, bias.dtype)
+        layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
+
+
 def initialize_layers(layers, h5file, path):
     for name, layer in layers.items():
         if isinstance(layer, torch.nn.modules.conv.Conv2d):
-            h5key = '{}/{}/weights:0'.format(path, name)
-
-            weight = h5utils.read(h5file, h5key)
-            print(h5key, weight.shape, weight.dtype)
-            weight = np.transpose(weight, axes=[3, 2, 0, 1])
-            layer.weight = torch.nn.Parameter(torch.from_numpy(weight))
-
-            if layer.bias is not None:
-                h5key = '{}/{}/biases:0'.format(path, name)
-                bias = h5utils.read(h5file, h5key)
-                print(h5key, bias.shape, bias.dtype)
-                layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
-
-    return layers
+            initialize_conv2d(name, layer, h5file, path)
 
 
 class Block35(torch.nn.Module):
@@ -52,16 +54,17 @@ class Block35(torch.nn.Module):
         in_channels = 256
 
         # scope Branch_0
-        path = 'InceptionResnetV1/Repeat/block35_{}/Branch_0'.format(idx)
+        path = f'InceptionResnetV1/Repeat/block35_{idx}/Branch_0'
 
         layers = OrderedDict({
             'Conv2d_1x1': Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
             'relu1': torch.nn.ReLU()
         })
-        self.tower_conv1 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+        initialize_layers(layers, h5file, path)
+        self.tower_conv1 = torch.nn.Sequential(layers)
 
         # scope Branch_1
-        path = 'InceptionResnetV1/Repeat/block35_{}/Branch_1'.format(idx)
+        path = f'InceptionResnetV1/Repeat/block35_{idx}/Branch_1'
 
         layers = OrderedDict({
             'Conv2d_0a_1x1': Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
@@ -69,10 +72,11 @@ class Block35(torch.nn.Module):
             'Conv2d_0b_3x3': Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
             'relu2': torch.nn.ReLU()
         })
-        self.tower_conv2 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+        initialize_layers(layers, h5file, path)
+        self.tower_conv2 = torch.nn.Sequential(layers)
 
         # scope Branch_2
-        path = 'InceptionResnetV1/Repeat/block35_{}/Branch_2'.format(idx)
+        path = f'InceptionResnetV1/Repeat/block35_{idx}/Branch_2'
 
         layers = OrderedDict({
             'Conv2d_0a_1x1': Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
@@ -82,15 +86,15 @@ class Block35(torch.nn.Module):
             'Conv2d_0c_3x3': Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
             'relu3': torch.nn.ReLU()
         })
-        self.tower_conv3 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+        initialize_layers(layers, h5file, path)
+        self.tower_conv3 = torch.nn.Sequential(layers)
 
         # InceptionResnetV1/Repeat/block35_1/Conv2d_1x1/weights:0
-        path = 'InceptionResnetV1/Repeat/block35_{}'.format(idx)
+        path = f'InceptionResnetV1/Repeat/block35_{idx}'
 
-        layers = OrderedDict({
-            'Conv2d_1x1':  Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
-        })
-        self.conv2d = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+        conv2d = Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
+        initialize_conv2d('Conv2d_1x1', conv2d, h5file, path)
+        self.conv2d = conv2d
 
         self.activation_fn = torch.nn.ReLU()
 
@@ -98,6 +102,59 @@ class Block35(torch.nn.Module):
         mixed = torch.cat((self.tower_conv1(input_ids),
                            self.tower_conv2(input_ids),
                            self.tower_conv3(input_ids)), dim=1)
+
+        input_ids += self.scale * self.conv2d(mixed)
+        input_ids = self.activation_fn(input_ids)
+
+        return input_ids
+
+
+class Block17(torch.nn.Module):
+    """Builds the 17x17 resnet block
+    stride=1, padding=SAME
+    """
+
+    def __init__(self, h5file, scale=1., idx=None):
+        super().__init__()
+        self.scale = scale
+        in_channels = 896
+
+        # scope Branch_0
+        path = f'InceptionResnetV1/Repeat_1/block17_{idx}/Branch_0'
+
+        layers = OrderedDict({
+            'Conv2d_1x1': Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=False),
+            'relu1': torch.nn.ReLU()
+        })
+        initialize_layers(layers, h5file, path)
+        self.tower_conv1 = torch.nn.Sequential(layers)
+
+        # scope Branch_1
+        path = f'InceptionResnetV1/Repeat_1/block17_{idx}/Branch_1'
+
+        layers = OrderedDict({
+            'Conv2d_0a_1x1': Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=False),
+            'relu1': torch.nn.ReLU(),
+            'Conv2d_0b_1x7': Conv2d(128, 128, kernel_size=(1, 7), stride=1, padding=(1, 2), bias=False),
+            'relu2': torch.nn.ReLU(),
+            'Conv2d_0c_7x1': Conv2d(128, 128, kernel_size=(7, 1), stride=1, padding=(2, 1), bias=False),
+            'relu3': torch.nn.ReLU()
+        })
+        initialize_layers(layers, h5file, path)
+        self.tower_conv2 = torch.nn.Sequential(layers)
+
+        # InceptionResnetV1/Repeat_1/block17_1/Conv2d_1x1
+        path = f'InceptionResnetV1/Repeat_1/block17_{idx}'
+
+        conv2d = Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
+        initialize_conv2d('Conv2d_1x1', conv2d, h5file, path)
+        self.conv2d = conv2d
+
+        self.activation_fn = torch.nn.ReLU()
+
+    def forward(self, input_ids, past=None):
+        mixed = torch.cat((self.tower_conv1(input_ids),
+                           self.tower_conv2(input_ids)), dim=1)
 
         input_ids += self.scale * self.conv2d(mixed)
         input_ids = self.activation_fn(input_ids)
@@ -121,7 +178,8 @@ class ReductionA(torch.nn.Module):
             'Conv2d_1a_3x3': Conv2d(in_channels, 384, kernel_size=3, stride=2, padding=0, bias=False),
             'relu1': torch.nn.ReLU()
         })
-        self.tower_conv1 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+        initialize_layers(layers, h5file, path)
+        self.tower_conv1 = torch.nn.Sequential(layers)
 
         # scope Branch_1
         path = 'InceptionResnetV1/Mixed_6a/Branch_1'
@@ -134,7 +192,8 @@ class ReductionA(torch.nn.Module):
             'Conv2d_1a_3x3': Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=False),
             'relu3': torch.nn.ReLU()
         })
-        self.tower_conv2 = torch.nn.Sequential(initialize_layers(layers, h5file, path))
+        initialize_layers(layers, h5file, path)
+        self.tower_conv2 = torch.nn.Sequential(layers)
 
         self.max_pool = torch.nn.MaxPool2d(3, stride=2, padding=0)
 
@@ -167,7 +226,8 @@ class FaceNet(torch.nn.Module):
             'relu6': torch.nn.ReLU()
         })
 
-        self.sequential = torch.nn.Sequential(initialize_layers(layers, h5file, 'InceptionResnetV1'))
+        initialize_layers(layers, h5file, 'InceptionResnetV1')
+        self.sequential = torch.nn.Sequential(layers)
 
         layers = OrderedDict()
         for idx in range(5):
@@ -176,15 +236,17 @@ class FaceNet(torch.nn.Module):
 
         self.reduction_a = ReductionA(h5file)
 
-        # self.apply(self.init_weights)
-
-    def init_weights(self):
-        raise NotImplementedError
+        # 10 x Inception-Resnet-B
+        layers = OrderedDict()
+        for idx in range(10):
+            layers[f'block17_{idx+1}'] = Block17(h5file, scale=0.10, idx=idx+1)
+        self.block17 = torch.nn.Sequential(layers)
 
     def forward(self, input_ids, past=None):
-        out = self.sequential.forward(input_ids)
-        out = self.block35.forward(out)
-        out = self.reduction_a.forward(out)
+        input_ids = self.sequential.forward(input_ids)
+        input_ids = self.block35.forward(input_ids)
+        input_ids = self.reduction_a.forward(input_ids)
+        input_ids = self.block17.forward(input_ids)
 
-        return out
+        return input_ids
 
