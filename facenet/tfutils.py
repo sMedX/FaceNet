@@ -85,7 +85,7 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimize=True, as_text=False, h5write=True):
+def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimize=True, as_text=False):
 
     ext = '.pbtxt' if as_text else '.pb'
 
@@ -129,24 +129,6 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
                                                                               input_node_types)
 
             tf.io.write_graph(graph_def, str(output_file.parent), output_file.name, as_text=as_text)
-
-            if h5write:
-                h5file = output_file.with_suffix('.h5')
-
-                keys = ('/weights', '/biases')
-                name = 'InceptionResnet'
-                nrof_vars = 0
-
-                for idx, var in enumerate(tf.compat.v1.trainable_variables()):
-                    if name in var.name:
-                        if any(key in var.name for key in keys):
-                            data = sess.run(var)
-                            print('{}/{}) {} {}/{}'.format(nrof_vars, idx, var.name, data.shape, str(data.dtype)))
-                            h5utils.write(h5file, var.name, data)
-                            nrof_vars += 1
-
-                print()
-                print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
 
     print('{} operations in the final graph: {}'.format(len(graph_def.node), output_file))
 
