@@ -27,6 +27,7 @@ from tqdm import tqdm
 from functools import partial
 
 from facenet import ioutils, h5utils, FaceNet
+from facenet import config as default_config
 
 
 class Placeholders:
@@ -62,11 +63,15 @@ class Placeholders:
         }
 
 
-def load_images(path, config):
-    height = config.size
-    width = config.size
+def load_images(path, config=None):
+    if config is None:
+        height = default_config.image_size
+        width = default_config.image_size
+    else:
+        height = config.size
+        width = config.size
 
-    contents = tf.io.read_file(path)
+    contents = tf.io.read_file(str(path))
     image = tf.image.decode_image(contents, channels=3)
     image = tf.image.resize_image_with_crop_or_pad(image, height, width)
     return image

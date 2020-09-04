@@ -135,7 +135,7 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
     return output_file
 
 
-def export_h5(model_dir):
+def export_h5(model_dir, test=False):
 
     from facenet import nodes
 
@@ -172,6 +172,9 @@ def export_h5(model_dir):
                         print('{}/{}) {} {}/{}'.format(nrof_vars, idx, var.name, data.shape, str(data.dtype)))
                         h5utils.write(h5file, var.name, data)
                         nrof_vars += 1
+
+            if test:
+                pass
 
             print()
             print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
