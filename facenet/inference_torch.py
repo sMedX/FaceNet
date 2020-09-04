@@ -22,17 +22,26 @@ def image_processing(image, eps=1e-3):
     return image
 
 
-def initialize_conv2d(name, layer, h5file, path):
-    h5key = '{}/{}/weights:0'.format(path, name)
+def check_shapes(shape1, shape2, key):
+    if shape1 != shape2:
+        raise ValueError(f'Shapes {tuple(shape1)} and {tuple(shape2)} do not match for key {key}')
+
+
+def initialize_conv2d(layer, h5file, path, name):
+    h5key = f'{path}/{name}/weights:0'
 
     weight = h5utils.read(h5file, h5key)
-    print(h5key, weight.shape, weight.dtype)
     weight = np.transpose(weight, axes=[3, 2, 0, 1])
+    check_shapes(weight.shape, layer.weight.shape, h5key)
+
+    print(h5key, weight.shape, weight.dtype)
     layer.weight = torch.nn.Parameter(torch.from_numpy(weight))
 
     if layer.bias is not None:
         h5key = '{}/{}/biases:0'.format(path, name)
         bias = h5utils.read(h5file, h5key)
+        check_shapes(bias.shape, layer.bias.shape, h5key)
+
         print(h5key, bias.shape, bias.dtype)
         layer.bias = torch.nn.Parameter(torch.from_numpy(bias))
 
@@ -40,7 +49,7 @@ def initialize_conv2d(name, layer, h5file, path):
 def initialize_layers(layers, h5file, path):
     for name, layer in layers.items():
         if isinstance(layer, torch.nn.modules.conv.Conv2d):
-            initialize_conv2d(name, layer, h5file, path)
+            initialize_conv2d(layer, h5file, path, name)
 
 
 class Block35(torch.nn.Module):
@@ -93,7 +102,7 @@ class Block35(torch.nn.Module):
         path = f'InceptionResnetV1/Repeat/block35_{idx}'
 
         conv2d = Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
-        initialize_conv2d('Conv2d_1x1', conv2d, h5file, path)
+        initialize_conv2d(conv2d, h5file, path, 'Conv2d_1x1')
         self.conv2d = conv2d
 
         self.activation_fn = torch.nn.ReLU()
@@ -146,8 +155,8 @@ class Block17(torch.nn.Module):
         # InceptionResnetV1/Repeat_1/block17_1/Conv2d_1x1
         path = f'InceptionResnetV1/Repeat_1/block17_{idx}'
 
-        conv2d = Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
-        initialize_conv2d('Conv2d_1x1', conv2d, h5file, path)
+        conv2d = Conv2d(256, 896, kernel_size=1, padding=0, bias=True)
+        initialize_conv2d(conv2d, h5file, path, 'Conv2d_1x1')
         self.conv2d = conv2d
 
         self.activation_fn = torch.nn.ReLU()
@@ -169,13 +178,12 @@ class ReductionA(torch.nn.Module):
 
     def __init__(self, h5file):
         super().__init__()
-        in_channels = 256
 
         # scope Branch_0
         path = 'InceptionResnetV1/Mixed_6a/Branch_0'
 
         layers = OrderedDict({
-            'Conv2d_1a_3x3': Conv2d(in_channels, 384, kernel_size=3, stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=False),
             'relu1': torch.nn.ReLU()
         })
         initialize_layers(layers, h5file, path)
@@ -185,9 +193,9 @@ class ReductionA(torch.nn.Module):
         path = 'InceptionResnetV1/Mixed_6a/Branch_1'
 
         layers = OrderedDict({
-            'Conv2d_0a_1x1': Conv2d(in_channels, 384, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': Conv2d(256, 192, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': torch.nn.ReLU(),
-            'Conv2d_0b_3x3': Conv2d(384, 192, kernel_size=3,  stride=1, padding=1, bias=False),
+            'Conv2d_0b_3x3': Conv2d(192, 192, kernel_size=3,  stride=1, padding=1, bias=False),
             'relu2': torch.nn.ReLU(),
             'Conv2d_1a_3x3': Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=False),
             'relu3': torch.nn.ReLU()
@@ -200,6 +208,64 @@ class ReductionA(torch.nn.Module):
     def forward(self, input_ids, past=None):
         input_ids = torch.cat([self.tower_conv1(input_ids),
                                self.tower_conv2(input_ids),
+                               self.max_pool(input_ids)], dim=1)
+
+        return input_ids
+
+
+class ReductionB(torch.nn.Module):
+    """
+    stride=1, padding=SAME
+    """
+
+    def __init__(self, h5file):
+        super().__init__()
+        in_channels = 896
+
+        # scope Branch_0
+        path = 'InceptionResnetV1/Mixed_7a/Branch_0'
+
+        layers = OrderedDict({
+            'Conv2d_0a_1x1': Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
+            'relu1': torch.nn.ReLU(),
+            'Conv2d_1a_3x3': Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=False),
+            'relu2': torch.nn.ReLU()
+        })
+        initialize_layers(layers, h5file, path)
+        self.tower_conv1 = torch.nn.Sequential(layers)
+
+        # scope Branch_1
+        path = 'InceptionResnetV1/Mixed_7a/Branch_1'
+
+        layers = OrderedDict({
+            'Conv2d_0a_1x1': Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
+            'relu1': torch.nn.ReLU(),
+            'Conv2d_1a_3x3': Conv2d(256, 256, kernel_size=3,  stride=2, padding=0, bias=False),
+            'relu2': torch.nn.ReLU()
+        })
+        initialize_layers(layers, h5file, path)
+        self.tower_conv2 = torch.nn.Sequential(layers)
+
+        # scope Branch_2
+        path = 'InceptionResnetV1/Mixed_7a/Branch_2'
+
+        layers = OrderedDict({
+            'Conv2d_0a_1x1': Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
+            'relu1': torch.nn.ReLU(),
+            'Conv2d_0b_3x3': Conv2d(256, 256, kernel_size=3,  stride=1, padding=1, bias=False),
+            'relu2': torch.nn.ReLU(),
+            'Conv2d_1a_3x3': Conv2d(256, 256, kernel_size=3, stride=2, padding=0, bias=False),
+            'relu3': torch.nn.ReLU()
+        })
+        initialize_layers(layers, h5file, path)
+        self.tower_conv3 = torch.nn.Sequential(layers)
+
+        self.max_pool = torch.nn.MaxPool2d(3, stride=2, padding=0)
+
+    def forward(self, input_ids, past=None):
+        input_ids = torch.cat([self.tower_conv1(input_ids),
+                               self.tower_conv2(input_ids),
+                               self.tower_conv3(input_ids),
                                self.max_pool(input_ids)], dim=1)
 
         return input_ids
@@ -242,11 +308,15 @@ class FaceNet(torch.nn.Module):
             layers[f'block17_{idx+1}'] = Block17(h5file, scale=0.10, idx=idx+1)
         self.block17 = torch.nn.Sequential(layers)
 
+        # Reduction-B
+        self.reduction_b = ReductionB(h5file)
+
     def forward(self, input_ids, past=None):
         input_ids = self.sequential.forward(input_ids)
         input_ids = self.block35.forward(input_ids)
         input_ids = self.reduction_a.forward(input_ids)
         input_ids = self.block17.forward(input_ids)
+        input_ids = self.reduction_b.forward(input_ids)
 
         return input_ids
 
