@@ -69,6 +69,8 @@ def initialize_layers(layers, h5file, path):
     for name, layer in layers.items():
         if isinstance(layer, nn.Conv2d):
             initialize_conv2d(layer, h5file, path, name)
+        if isinstance(layer, nn.Linear):
+            initialize_linear(layer, h5file, path, name)
 
 
 class Block35(nn.Module):
@@ -76,36 +78,30 @@ class Block35(nn.Module):
     stride=1, padding=SAME
     """
 
-    def __init__(self, h5file, scale=1., idx=None):
+    def __init__(self, h5file, path, scale=1.):
         super().__init__()
         self.scale = scale
         in_channels = 256
 
         # scope Branch_0
-        path = f'InceptionResnetV1/Repeat/block35_{idx}/Branch_0'
-
         layers = OrderedDict({
             'Conv2d_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
             'relu1': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
 
         # scope Branch_1
-        path = f'InceptionResnetV1/Repeat/block35_{idx}/Branch_1'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
             'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
             'relu2': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
 
         # scope Branch_2
-        path = f'InceptionResnetV1/Repeat/block35_{idx}/Branch_2'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
@@ -114,17 +110,13 @@ class Block35(nn.Module):
             'Conv2d_0c_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
             'relu3': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_2')
         self.tower_conv3 = nn.Sequential(layers)
 
         # InceptionResnetV1/Repeat/block35_1/Conv2d_1x1/weights:0
-        path = f'InceptionResnetV1/Repeat/block35_{idx}'
-
         conv2d = nn.Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
         initialize_conv2d(conv2d, h5file, path, 'Conv2d_1x1')
         self.conv2d = conv2d
-
-        self.activation_fn = nn.ReLU()
 
     def forward(self, input_ids, past=None):
         mixed = torch.cat((self.tower_conv1(input_ids),
@@ -132,7 +124,6 @@ class Block35(nn.Module):
                            self.tower_conv3(input_ids)), dim=1)
 
         input_ids += self.scale * self.conv2d(mixed)
-        input_ids = self.activation_fn(input_ids)
 
         return input_ids
 
@@ -142,24 +133,20 @@ class Block17(nn.Module):
     stride=1, padding=SAME
     """
 
-    def __init__(self, h5file, scale=1., idx=None):
+    def __init__(self, h5file, path, scale=1.0):
         super().__init__()
         self.scale = scale
         in_channels = 896
 
         # scope Branch_0
-        path = f'InceptionResnetV1/Repeat_1/block17_{idx}/Branch_0'
-
         layers = OrderedDict({
             'Conv2d_1x1': nn.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
 
         # scope Branch_1
-        path = f'InceptionResnetV1/Repeat_1/block17_{idx}/Branch_1'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
@@ -168,24 +155,19 @@ class Block17(nn.Module):
             'Conv2d_0c_7x1': nn.Conv2d(128, 128, kernel_size=(7, 1), stride=1, padding=(3, 0), bias=False),
             'relu3': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
 
         # InceptionResnetV1/Repeat_1/block17_1/Conv2d_1x1
-        path = f'InceptionResnetV1/Repeat_1/block17_{idx}'
-
         conv2d = nn.Conv2d(256, 896, kernel_size=1, padding=0, bias=True)
         initialize_conv2d(conv2d, h5file, path, 'Conv2d_1x1')
         self.conv2d = conv2d
-
-        self.activation_fn = nn.ReLU()
 
     def forward(self, input_ids, past=None):
         mixed = torch.cat((self.tower_conv1(input_ids),
                            self.tower_conv2(input_ids)), dim=1)
 
         input_ids += self.scale * self.conv2d(mixed)
-        input_ids = self.activation_fn(input_ids)
 
         return input_ids
 
@@ -239,22 +221,18 @@ class ReductionA(nn.Module):
     stride=1, padding=SAME
     """
 
-    def __init__(self, h5file):
+    def __init__(self, h5file, path):
         super().__init__()
 
         # scope Branch_0
-        path = 'InceptionResnetV1/Mixed_6a/Branch_0'
-
         layers = OrderedDict({
             'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=False),
             'relu1': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
 
         # scope Branch_1
-        path = 'InceptionResnetV1/Mixed_6a/Branch_1'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(256, 192, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
@@ -263,7 +241,7 @@ class ReductionA(nn.Module):
             'Conv2d_1a_3x3': nn.Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=False),
             'relu3': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file,  path + '/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
 
         self.max_pool = nn.MaxPool2d(3, stride=2, padding=0)
@@ -281,37 +259,31 @@ class ReductionB(nn.Module):
     stride=1, padding=SAME
     """
 
-    def __init__(self, h5file):
+    def __init__(self, h5file, path):
         super().__init__()
         in_channels = 896
 
         # scope Branch_0
-        path = 'InceptionResnetV1/Mixed_7a/Branch_0'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
             'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=False),
             'relu2': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
 
         # scope Branch_1
-        path = 'InceptionResnetV1/Mixed_7a/Branch_1'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
             'Conv2d_1a_3x3': nn.Conv2d(256, 256, kernel_size=3,  stride=2, padding=0, bias=False),
             'relu2': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
 
         # scope Branch_2
-        path = 'InceptionResnetV1/Mixed_7a/Branch_2'
-
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
             'relu1': nn.ReLU(),
@@ -320,7 +292,7 @@ class ReductionB(nn.Module):
             'Conv2d_1a_3x3': nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=0, bias=False),
             'relu3': nn.ReLU()
         })
-        initialize_layers(layers, h5file, path)
+        initialize_layers(layers, h5file, path + '/Branch_2')
         self.tower_conv3 = nn.Sequential(layers)
 
         self.max_pool = nn.MaxPool2d(3, stride=2, padding=0)
@@ -360,19 +332,23 @@ class FaceNet(nn.Module):
 
         layers = OrderedDict()
         for idx in range(5):
-            layers[f'block35_{idx+1}'] = Block35(h5file, scale=0.17, idx=idx+1)
+            path = f'InceptionResnetV1/Repeat/block35_{idx+1}'
+            layers[f'block35_{idx+1}'] = Block35(h5file, path, scale=0.17)
+            layers[f'block35_{idx+1}_relu'] = nn.ReLU()
         self.block35 = nn.Sequential(layers)
 
-        self.reduction_a = ReductionA(h5file)
+        self.reduction_a = ReductionA(h5file, 'InceptionResnetV1/Mixed_6a')
 
         # 10 x Inception-Resnet-B
         layers = OrderedDict()
         for idx in range(10):
-            layers[f'block17_{idx+1}'] = Block17(h5file, scale=0.10, idx=idx+1)
+            path = f'InceptionResnetV1/Repeat_1/block17_{idx+1}'
+            layers[f'block17_{idx+1}'] = Block17(h5file, path, scale=0.10)
+            layers[f'block17_{idx+1}_relu'] = nn.ReLU()
         self.block17 = nn.Sequential(layers)
 
         # Reduction-B
-        self.reduction_b = ReductionB(h5file)
+        self.reduction_b = ReductionB(h5file, 'InceptionResnetV1/Mixed_7a')
 
         # 5 x Inception-Resnet-C
         layers = OrderedDict()
