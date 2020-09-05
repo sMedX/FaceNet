@@ -32,6 +32,25 @@ config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
 
 default_model_config = YAMLConfig(config_file).config
 
+name = 'InceptionResnetV1'
+
+end_points = (
+    'InceptionResnetV1/Conv2d_1a_3x3/Relu:0',
+    'InceptionResnetV1/Conv2d_2a_3x3/Relu:0',
+    'InceptionResnetV1/Conv2d_2b_3x3/Relu:0',
+    'InceptionResnetV1/MaxPool_3a_3x3/MaxPool:0',
+    'InceptionResnetV1/Conv2d_3b_1x1/Relu:0',
+    'InceptionResnetV1/Conv2d_4a_3x3/Relu:0',
+    'InceptionResnetV1/Conv2d_4b_3x3/Relu:0',
+    'InceptionResnetV1/Repeat/block35_5/Relu:0',
+    'InceptionResnetV1/Mixed_6a/concat:0',
+    'InceptionResnetV1/Repeat_1/block17_10/Relu:0',
+    'InceptionResnetV1/Mixed_7a/concat:0',
+    'InceptionResnetV1/Repeat_2/block8_5/Relu:0',
+    'InceptionResnetV1/Block8/add:0',
+    'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0'
+)
+
 
 # Inception-Resnet-A
 def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
