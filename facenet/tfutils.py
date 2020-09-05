@@ -13,7 +13,6 @@ from facenet import h5utils
 
 def tensor_by_name_exist(tensor_name):
     tensor_names = [t.name for op in tf.get_default_graph().get_operations() for t in op.values()]
-
     return True if tensor_name in tensor_names else False
 
 
@@ -135,17 +134,15 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
     return output_file
 
 
-def export_h5(model_dir, test=False):
+def export_h5(model_dir, image_batch=None, module=None):
 
     from facenet import nodes
 
-    input_node_names = nodes['input']['name']
-    input_node_types = nodes['input']['type']
+    node_names = []
+    for name, item in nodes.items():
+        node_names += [s + f':{idx}' for idx, s in enumerate(item['name'])]
 
-    output_node_names = nodes['output']['name']
-
-    keys = ('/weights', '/biases')
-    name = 'InceptionResnet'
+    trainable_variable_keys = ('/weights', '/biases')
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
@@ -163,20 +160,33 @@ def export_h5(model_dir, test=False):
             sess.run(tf.compat.v1.local_variables_initializer())
             saver.restore(sess, str(model_dir.joinpath(ckpt_file)))
 
+            graph = tf.compat.v1.get_default_graph()
+
+            feed_dict = {
+                graph.get_tensor_by_name('image:0'): image_batch,
+                graph.get_tensor_by_name('phase_train:0'): False
+            }
+
+            tensor_names = list(module.end_points) + ['image:0', 'input:0', 'embedding:0']
+
+            for idx, tensor_name in enumerate(tensor_names):
+                out = sess.run(graph.get_tensor_by_name(tensor_name), feed_dict=feed_dict)
+                print('{}) {} {}/{}'.format(idx, tensor_name, out.shape, str(out.dtype)))
+                h5utils.write(h5file, f'test/{tensor_name}', out)
+            print()
+
             nrof_vars = 0
 
-            for idx, var in enumerate(tf.compat.v1.trainable_variables()):
-                if name in var.name:
-                    if any(key in var.name for key in keys):
+            for var in tf.compat.v1.trainable_variables():
+                if module.name in var.name:
+                    if any(key in var.name for key in trainable_variable_keys):
                         data = sess.run(var)
-                        print('{}/{}) {} {}/{}'.format(nrof_vars, idx, var.name, data.shape, str(data.dtype)))
+                        print('{}) {} {}/{}'.format(nrof_vars, var.name, data.shape, str(data.dtype)))
                         h5utils.write(h5file, var.name, data)
                         nrof_vars += 1
-
-            if test:
-                pass
-
             print()
+
+            print('{} end points have been written to the h5 file {}'.format(len(tensor_names), h5file))
             print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
 
     return h5file
