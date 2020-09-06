@@ -244,7 +244,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
     return net, end_points
 
 
-def inference(images, config=None, phase_train=True, reuse=None):
+def inference(inputs, config=None, phase_train=True, reuse=None):
 
     if config is None:
         config = default_model_config
@@ -266,7 +266,7 @@ def inference(images, config=None, phase_train=True, reuse=None):
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
 
-        return inception_resnet_v1(images,
+        return inception_resnet_v1(inputs,
                                    config,
                                    is_training=phase_train,
                                    dropout_keep_prob=config.keep_probability,
