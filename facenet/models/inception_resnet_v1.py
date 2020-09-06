@@ -35,20 +35,20 @@ default_model_config = YAMLConfig(config_file).config
 scope_name = 'InceptionResnetV1'
 
 end_points = (
-    'InceptionResnetV1/Conv2d_1a_3x3/Relu:0',
-    'InceptionResnetV1/Conv2d_2a_3x3/Relu:0',
-    'InceptionResnetV1/Conv2d_2b_3x3/Relu:0',
-    'InceptionResnetV1/MaxPool_3a_3x3/MaxPool:0',
-    'InceptionResnetV1/Conv2d_3b_1x1/Relu:0',
-    'InceptionResnetV1/Conv2d_4a_3x3/Relu:0',
-    'InceptionResnetV1/Conv2d_4b_3x3/Relu:0',
-    'InceptionResnetV1/Repeat/block35_5/Relu:0',
-    'InceptionResnetV1/Mixed_6a/concat:0',
-    'InceptionResnetV1/Repeat_1/block17_10/Relu:0',
-    'InceptionResnetV1/Mixed_7a/concat:0',
-    'InceptionResnetV1/Repeat_2/block8_5/Relu:0',
-    'InceptionResnetV1/Block8/add:0',
-    'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0'
+    f'{scope_name}/Conv2d_1a_3x3/Relu:0',
+    f'{scope_name}/Conv2d_2a_3x3/Relu:0',
+    f'{scope_name}/Conv2d_2b_3x3/Relu:0',
+    f'{scope_name}/MaxPool_3a_3x3/MaxPool:0',
+    f'{scope_name}/Conv2d_3b_1x1/Relu:0',
+    f'{scope_name}/Conv2d_4a_3x3/Relu:0',
+    f'{scope_name}/Conv2d_4b_3x3/Relu:0',
+    f'{scope_name}/Repeat/block35_5/Relu:0',
+    f'{scope_name}/Mixed_6a/concat:0',
+    f'{scope_name}/Repeat_1/block17_10/Relu:0',
+    f'{scope_name}/Mixed_7a/concat:0',
+    f'{scope_name}/Repeat_2/block8_5/Relu:0',
+    f'{scope_name}/Block8/add:0',
+    f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
 )
 
 
