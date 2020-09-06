@@ -1,10 +1,4 @@
 
-import torch
-
-
-import click
-from pathlib import Path
-
 import numpy as np
 import torch
 
@@ -12,14 +6,13 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 inp_channels = 3
-out_channels = 5
+out_channels = 32
 kernel_size = (3, 3)
-
-height = 128
-width = 128
-
-slim_padding = 'valid'
 stride = 2
+slim_padding = 'valid'
+
+height = 160
+width = 160
 
 
 def apply_slim_conv2d(inputs):
