@@ -32,7 +32,7 @@ config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
 
 default_model_config = YAMLConfig(config_file).config
 
-name = 'InceptionResnetV1'
+scope_name = 'InceptionResnetV1'
 
 end_points = (
     'InceptionResnetV1/Conv2d_1a_3x3/Relu:0',
@@ -164,7 +164,7 @@ def reduction_b(net, config):
 def inception_resnet_v1(inputs, config, is_training=True,
                         dropout_keep_prob=0.8,
                         reuse=None,
-                        scope='InceptionResnetV1'):
+                        scope=scope_name):
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
@@ -180,7 +180,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
     end_points = {}
     bottleneck_layer_size = config.embedding_size
 
-    with tf.variable_scope(scope, 'InceptionResnetV1', [inputs], reuse=reuse):
+    with tf.variable_scope(scope, scope, [inputs], reuse=reuse):
         with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
             with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
                 # 149 x 149 x 32
