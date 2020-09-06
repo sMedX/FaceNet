@@ -266,8 +266,7 @@ def inference(inputs, config=None, phase_train=True, reuse=None):
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
 
-        return inception_resnet_v1(inputs,
-                                   config,
+        return inception_resnet_v1(inputs, config,
                                    is_training=phase_train,
                                    dropout_keep_prob=config.keep_probability,
                                    reuse=reuse)
