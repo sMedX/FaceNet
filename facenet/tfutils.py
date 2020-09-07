@@ -90,10 +90,10 @@ def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimi
 
     from facenet import nodes
 
-    input_node_names = nodes['input']['name']
-    input_node_types = nodes['input']['type']
+    input_node_names = [nodes['input']['name']]
+    input_node_types = [nodes['input']['type']]
 
-    output_node_names = nodes['output']['name']
+    output_node_names = [nodes['output']['name']]
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
