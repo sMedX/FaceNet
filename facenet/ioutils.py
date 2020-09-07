@@ -216,16 +216,11 @@ def write_text_log(file, info):
         f.write(info)
 
 
-def glob(model_dir, pattern, count=1):
+def glob_single_file(model_dir, pattern):
     files = list(model_dir.glob(pattern))
 
-    if count is not None:
-        if len(files) != count:
-            raise ValueError('There should not be more than {} files in the model directory {}.'.format(count, model_dir))
+    if len(files) != 1:
+        raise ValueError('There should not be more than {} files in the model directory {}.'.format(count, model_dir))
 
-    if count == 1:
-        return files[0]
-    else:
-        return files
-
+    return files[0]
 
