@@ -1,5 +1,4 @@
-"""Imports a model metagraph and checkpoint file, converts the variables to constants
-and exports the model as a graphdef protobuf
+"""Exports trainable parameters to h5 file
 """
 # MIT License
 # Copyright (c) 2020 sMedX
