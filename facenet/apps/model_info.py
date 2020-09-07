@@ -18,8 +18,8 @@ from facenet import tfutils, config, nodes
 @click.option('--path', default=config.default_model, type=Path, help='Path to model.')
 def main(**options):
 
-    input_node_name = '{}:0'.format(nodes['input']['name'][0])
-    output_node_name = '{}:0'.format(nodes['output']['name'][0])
+    input_node_name = nodes['input']['name'] + ':0'
+    output_node_name = nodes['output']['name'] + ':0'
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
@@ -27,10 +27,10 @@ def main(**options):
 
             graph = tf.compat.v1.get_default_graph()
 
-            # for i, op in enumerate(graph.get_operations()):
-            #     print(i, op.name, op.type)
-            #     print('\tinputs ', op.inputs)
-            #     print('\toutputs', op.outputs)
+            for i, op in enumerate(graph.get_operations()):
+                print(i, op.name, op.type)
+                print('\tinputs ', op.inputs)
+                print('\toutputs', op.outputs)
 
             print()
             print('length of list of graph operations', len(graph.get_operations()))
