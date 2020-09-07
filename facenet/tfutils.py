@@ -140,13 +140,14 @@ def export_h5(model_dir, image_batch=None, module=None):
 
     node_names = []
     for name, item in nodes.items():
-        node_names += [s + f':{idx}' for idx, s in enumerate(item['name'])]
+        node_names += [item['name'] + ':0']
 
+    checkpoints = 'checkpoints'
     trainable_variable_keys = ('/weights', '/biases')
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
-            # load the model metagraph and checkpoint
+            # load the model meta graph and checkpoint
             print('Model directory: {}'.format(model_dir))
             meta_file, ckpt_file = get_model_filenames(model_dir)
 
@@ -172,7 +173,7 @@ def export_h5(model_dir, image_batch=None, module=None):
             for idx, tensor_name in enumerate(tensor_names):
                 out = sess.run(graph.get_tensor_by_name(tensor_name), feed_dict=feed_dict)
                 print('{}) {} {}/{}'.format(idx, tensor_name, out.shape, str(out.dtype)))
-                h5utils.write(h5file, f'test/{tensor_name}', out)
+                h5utils.write(h5file, f'{checkpoints}/{tensor_name}', out)
             print()
 
             nrof_vars = 0
