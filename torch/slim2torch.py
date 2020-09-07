@@ -10,7 +10,7 @@ out_channels = 32
 kernel_size = (3, 3)
 stride = 2
 
-slim_padding = 'same'
+slim_padding = 'valid'
 
 height = 160
 width = 160
@@ -25,7 +25,7 @@ def apply_slim_conv2d(inputs):
     """
     inputs = tf.convert_to_tensor(inputs)
     net = slim.conv2d(inputs, out_channels, kernel_size=kernel_size, stride=stride,
-                      padding=slim_padding, activation_fn=None)
+                      padding=slim_padding, activation_fn=slim.nn.relu)
 
     with tf.Session() as sess:
         sess.run([tf.compat.v1.global_variables_initializer(), tf.compat.v1.local_variables_initializer()])
@@ -55,6 +55,7 @@ def apply_torch_conv2d(inputs, variables):
     conv2d.weight = torch.nn.Parameter(torch.from_numpy(weight))
 
     out = conv2d.forward(inputs_torch)
+    out = torch.relu(out)
 
     out = out.detach().cpu().numpy()
     out = np.transpose(out, axes=[0, 2, 3, 1])
@@ -76,6 +77,7 @@ def main(**options):
     out2 = apply_torch_conv2d(inputs, variables)
     print(out2.shape)
 
+    print('------------------------------')
     idx = [idx//2 for idx in out1.shape]
     print(out1[idx[0], idx[1]-1:idx[1]+2, idx[2]-1:idx[2]+2, idx[3]])
     print(out2[idx[0], idx[1]-1:idx[1]+2, idx[2]-1:idx[2]+2, idx[3]])
@@ -86,5 +88,3 @@ def main(**options):
 
 if __name__ == '__main__':
     main()
-
-
