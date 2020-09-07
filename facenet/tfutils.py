@@ -168,7 +168,7 @@ def export_h5(model_dir, image_batch=None, module=None):
                 graph.get_tensor_by_name('phase_train:0'): False
             }
 
-            tensor_names = list(module.end_points) + ['image:0', 'input:0', 'embedding:0']
+            tensor_names = list(module.end_points) + node_names
 
             for idx, tensor_name in enumerate(tensor_names):
                 out = sess.run(graph.get_tensor_by_name(tensor_name), feed_dict=feed_dict)
