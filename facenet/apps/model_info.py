@@ -27,10 +27,17 @@ def main(**options):
 
             graph = tf.compat.v1.get_default_graph()
 
-            for i, op in enumerate(graph.get_operations()):
-                print(i, op.name, op.type)
-                print('\tinputs ', op.inputs)
-                print('\toutputs', op.outputs)
+            fname = options['path'].joinpath('operations.txt')
+            with open(fname, 'w') as f:
+                for i, op in enumerate(graph.get_operations()):
+                    f.write(f'{i}) {op.name} {op.type}\n')
+                    f.write(f'---  inputs {op.inputs}\n')
+                    f.write(f'--- outputs {op.outputs}\n')
+
+            fname = options['path'].joinpath('variables.txt')
+            with open(fname, 'w') as f:
+                for i, var in enumerate(tf.compat.v1.trainable_variables()):
+                    f.write(f'{i}) {var}\n')
 
             print()
             print('length of list of graph operations', len(graph.get_operations()))
