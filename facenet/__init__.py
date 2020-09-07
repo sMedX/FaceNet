@@ -13,18 +13,18 @@ from facenet import tfutils, ioutils
 
 nodes = {
     'input': {
-        'name': ['image'],
-        'type': [dtypes.uint8.as_datatype_enum]
+        'name': 'image',
+        'type': dtypes.uint8.as_datatype_enum
         },
 
     'inference_input': {
-        'name': ['input'],
-        'type': [dtypes.float32.as_datatype_enum]
+        'name': 'input',
+        'type': dtypes.float32.as_datatype_enum
     },
 
     'output': {
-        'name': ['embedding'],
-        'type': [dtypes.float32.as_datatype_enum]
+        'name': 'embedding',
+        'type': dtypes.float32.as_datatype_enum
     }
 }
 
