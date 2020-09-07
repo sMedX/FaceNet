@@ -179,7 +179,7 @@ def export_h5(model_dir, image_batch=None, module=None):
             nrof_vars = 0
 
             for var in tf.compat.v1.trainable_variables():
-                if module.name in var.name:
+                if module.scope_name in var.name:
                     if any(key in var.name for key in trainable_variable_keys):
                         data = sess.run(var)
                         print('{}) {} {}/{}'.format(nrof_vars, var.name, data.shape, str(data.dtype)))
