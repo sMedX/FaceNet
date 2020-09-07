@@ -12,7 +12,7 @@ from facenet import h5utils
 
 
 def tensor_by_name_exist(tensor_name):
-    tensor_names = [t.name for op in tf.get_default_graph().get_operations() for t in op.values()]
+    tensor_names = [t.name for op in tf.compat.v1.get_default_graph().get_operations() for t in op.values()]
     return True if tensor_name in tensor_names else False
 
 

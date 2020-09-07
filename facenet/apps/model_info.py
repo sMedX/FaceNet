@@ -9,7 +9,7 @@ import click
 from pathlib import Path
 import numpy as np
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from facenet import tfutils, config, nodes
 
@@ -25,7 +25,7 @@ def main(**options):
         with tf.Session() as sess:
             tfutils.load_model(options['path'], input_map=None)
 
-            graph = tf.compat.v1.get_default_graph()
+            graph = tf.get_default_graph()
 
             fname = options['path'].joinpath('operations.txt')
             with open(fname, 'w') as f:
@@ -36,15 +36,15 @@ def main(**options):
 
             fname = options['path'].joinpath('variables.txt')
             with open(fname, 'w') as f:
-                for i, var in enumerate(tf.compat.v1.trainable_variables()):
+                for i, var in enumerate(tf.trainable_variables()):
                     f.write(f'{i}) {var}\n')
 
             print()
             print('length of list of graph operations', len(graph.get_operations()))
-            print('length of list of global variables', len(tf.compat.v1.global_variables()))
+            print('length of list of global variables', len(tf.global_variables()))
 
             nrof_vars = 0
-            for var in tf.compat.v1.global_variables():
+            for var in tf.global_variables():
                 nrof_vars += np.prod(var.shape)
             print('number of variables', nrof_vars)
 
@@ -55,15 +55,17 @@ def main(**options):
             print('output:', embedding)
 
             phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
-            batch_size_placeholder = graph.get_tensor_by_name('batch_size:0')
 
             feed_dict = {
                 image_placeholder: np.zeros([1, 160, 160, 3], dtype=np.uint8),
-                batch_size_placeholder: 1,
                 phase_train_placeholder: False
             }
 
-            sess.run([tf.compat.v1.global_variables_initializer(), tf.compat.v1.local_variables_initializer()])
+            if tfutils.tensor_by_name_exist('batch_size:0'):
+                batch_size_placeholder = graph.get_tensor_by_name('batch_size:0')
+                feed_dict[batch_size_placeholder] = 1
+
+            sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
             out = sess.run(embedding, feed_dict=feed_dict)
             print(out.shape)
 
