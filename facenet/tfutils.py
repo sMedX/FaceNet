@@ -143,7 +143,6 @@ def export_h5(model_dir, image_batch=None, module=None):
         node_names += [item['name'] + ':0']
 
     checkpoints = 'checkpoints'
-    trainable_variable_keys = ('/weights', '/biases')
 
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
@@ -180,11 +179,10 @@ def export_h5(model_dir, image_batch=None, module=None):
 
             for var in tf.compat.v1.trainable_variables():
                 if module.scope_name in var.name:
-                    if any(key in var.name for key in trainable_variable_keys):
-                        data = sess.run(var)
-                        print('{}) {} {}/{}'.format(nrof_vars, var.name, data.shape, str(data.dtype)))
-                        h5utils.write(h5file, var.name, data)
-                        nrof_vars += 1
+                    data = sess.run(var)
+                    print('{}) {} {}/{}'.format(nrof_vars, var.name, data.shape, str(data.dtype)))
+                    h5utils.write(h5file, var.name, data)
+                    nrof_vars += 1
             print()
 
             print('{} end points have been written to the h5 file {}'.format(len(tensor_names), h5file))
