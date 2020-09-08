@@ -50,12 +50,10 @@ def main(**options):
             print('output:', embedding)
 
             phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
-            batch_size_placeholder = graph.get_tensor_by_name('batch_size:0')
 
             feed_dict = {
                 image_placeholder: np.zeros([1, 160, 160, 3], dtype=np.uint8),
-                phase_train_placeholder: False,
-                batch_size_placeholder: 1
+                phase_train_placeholder: False
             }
 
             sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
