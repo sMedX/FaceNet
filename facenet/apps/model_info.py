@@ -43,11 +43,6 @@ def main(**options):
             print('length of list of graph operations', len(graph.get_operations()))
             print('length of list of global variables', len(tf.global_variables()))
 
-            nrof_vars = 0
-            for var in tf.global_variables():
-                nrof_vars += np.prod(var.shape)
-            print('number of variables', nrof_vars)
-
             image_placeholder = graph.get_tensor_by_name(input_node_name)
             print('image :', image_placeholder)
 
@@ -55,20 +50,40 @@ def main(**options):
             print('output:', embedding)
 
             phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
+            batch_size_placeholder = graph.get_tensor_by_name('batch_size:0')
 
             feed_dict = {
                 image_placeholder: np.zeros([1, 160, 160, 3], dtype=np.uint8),
-                phase_train_placeholder: False
+                phase_train_placeholder: False,
+                batch_size_placeholder: 1
             }
-
-            if tfutils.tensor_by_name_exist('batch_size:0'):
-                batch_size_placeholder = graph.get_tensor_by_name('batch_size:0')
-                feed_dict[batch_size_placeholder] = 1
 
             sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
             out = sess.run(embedding, feed_dict=feed_dict)
             print(out.shape)
 
+    # tfutils.load_model(options['path'], input_map=None)
+    # from tensorflow.python.platform import gfile
+    # from tensorflow.python.framework import tensor_util
+    # from facenet import ioutils
+    #
+    # pbfile = ioutils.glob_single_file(options['path'], '*.pb')
+    #
+    # with tf.Session() as sess:
+    #     print('load graph')
+    #     with gfile.FastGFile(str(pbfile), 'rb') as f:
+    #         graph_def = tf.GraphDef()
+    #         graph_def.ParseFromString(f.read())
+    #         sess.graph.as_default()
+    #         tf.import_graph_def(graph_def, name='')
+    #         graph_nodes = [n for n in graph_def.node]
+    #         weights = [n for n in graph_nodes if n.op == 'Const']
+    #
+    #         for n in weights:
+    #             if n.name.startswith('InceptionResnetV1/Conv2d_1a_3x3'):
+    #                 w = tensor_util.MakeNdarray(n.attr['value'].tensor)
+    #                 print(n.name, w.shape)
+    #                 print(w)
 
 if __name__ == '__main__':
     main()

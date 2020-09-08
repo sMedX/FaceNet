@@ -210,33 +210,35 @@ def save_variables_and_metagraph(sess, saver, model_dir, step, model_name=None):
         print('saving meta graph:', metagraph_filename)
 
 
-def load_model(path, input_map=None):
-    # Check if the model is a model directory (containing a metagraph and a checkpoint file) or
-    # if it is a protobuf file with a frozen graph
-
+def load_frozen_graph(path, input_map=None):
     path = Path(path).expanduser()
 
-    if path.is_file():
-        print('Model filename: {}'.format(path))
-        with tf.io.gfile.GFile(str(path), 'rb') as f:
-            graph_def = tf.compat.v1.GraphDef()
-            graph_def.ParseFromString(f.read())
-            tf.import_graph_def(graph_def, input_map=input_map, name='')
-    else:
-        pb_files = list(path.glob('*.pb'))
-
-        if len(pb_files) == 1:
-            load_model(pb_files[0], input_map=input_map)
+    if path.is_dir():
+        files = list(path.glob('*.pb'))
+        if len(files) != 1:
+            raise ValueError(f'There should not be more than one pb file in the model directory {path}.')
         else:
-            print('Model directory: {}'.format(path))
-            meta_file, ckpt_file = get_model_filenames(path)
+            path = files[0]
 
-            print('Metagraph file : {}'.format(meta_file))
-            print('Checkpoint file: {}'.format(ckpt_file))
+    print('Model filename: {}'.format(path))
+    with tf.io.gfile.GFile(str(path), 'rb') as f:
+        graph_def = tf.compat.v1.GraphDef()
+        graph_def.ParseFromString(f.read())
+        tf.import_graph_def(graph_def, input_map=input_map, name='')
 
-            saver = tf.compat.v1.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
-            with tf.compat.v1.Session() as sess:
-                saver.restore(sess, str(path.joinpath(ckpt_file)))
+
+def load_model(path, input_map=None):
+    path = Path(path).expanduser()
+
+    print('Model directory: {}'.format(path))
+    meta_file, ckpt_file = get_model_filenames(path)
+
+    print('Metagraph file : {}'.format(meta_file))
+    print('Checkpoint file: {}'.format(ckpt_file))
+
+    saver = tf.compat.v1.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
+    with tf.compat.v1.Session() as sess:
+        saver.restore(sess, str(path.joinpath(ckpt_file)))
 
 
 def int64_feature(value):
