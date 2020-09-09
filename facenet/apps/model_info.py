@@ -57,8 +57,16 @@ def main(**options):
             with open(fname, 'w') as f:
                 for i, op in enumerate(graph.get_operations()):
                     f.write(f'{i}) {op.name} {op.type}\n')
+
                     f.write(f'---  inputs {op.inputs}\n')
-                    f.write(f'--- outputs {op.outputs}\n')
+                    for input_tensor in op.inputs:
+                        f.write(f'            {input_tensor}\n')
+
+                    f.write(f'--- outputs {op.outputs[0]}\n')
+                    for output in op.outputs[1:]:
+                        f.write(f'            {output}\n')
+
+                    f.write(f'---  values {op.values}\n')
 
 
 if __name__ == '__main__':
