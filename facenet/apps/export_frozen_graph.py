@@ -23,7 +23,7 @@ from facenet import tfutils, config, nodes
 @click.option('--optimize', default=1, type=int,
               help='Applies optimize_for_inference for exported graph.')
 def main(**args):
-    pb_file = tfutils.save_freeze_graph(args['model_dir'],
+    pb_file = tfutils.save_frozen_graph(args['model_dir'],
                                         strip=args['strip'],
                                         optimize=args['optimize'],
                                         as_text=args['as_text'])

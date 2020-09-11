@@ -84,7 +84,7 @@ def freeze_graph_def(sess, input_graph_def, output_node_names):
     return output_graph_def
 
 
-def save_freeze_graph(model_dir, output_file=None, suffix='', strip=True, optimize=True, as_text=False):
+def save_frozen_graph(model_dir, output_file=None, suffix='', strip=True, optimize=True, as_text=False):
 
     ext = '.pbtxt' if as_text else '.pb'
 
