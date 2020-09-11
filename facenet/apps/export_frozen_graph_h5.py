@@ -23,7 +23,14 @@ def main(**args):
     with tf.compat.v1.Session() as sess:
         image_batch = sess.run(image_batch)
 
-    h5file = tfutils.export_h5(args['model_dir'], image_batch, module)
+        tfutils.load_frozen_graph(args['model_dir'])
+        graph = tf.get_default_graph()
+
+        image_batch = sess.run(image_batch)
+
+        for i, op in enumerate(graph.get_nodes()):
+            pass
+
 
 
 if __name__ == '__main__':
