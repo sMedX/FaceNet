@@ -6,7 +6,11 @@ and exports the model as a graphdef protobuf
 
 import click
 from pathlib import Path
-from facenet import tfutils, config
+
+import numpy as np
+import tensorflow.compat.v1 as tf
+
+from facenet import tfutils, config, nodes
 
 
 @click.command()
@@ -23,6 +27,35 @@ def main(**args):
                                         strip=args['strip'],
                                         optimize=args['optimize'],
                                         as_text=args['as_text'])
+
+    input_node_name = nodes['input']['name'] + ':0'
+    output_node_name = nodes['output']['name'] + ':0'
+
+    with tf.Graph().as_default():
+        with tf.Session() as sess:
+            tfutils.load_frozen_graph(args['model_dir'])
+            graph = tf.get_default_graph()
+
+            image_size = sess.run(graph.get_tensor_by_name('image_size:0'))
+            print(image_size)
+            height = image_size[0]
+            width = image_size[1]
+
+            image_placeholder = graph.get_tensor_by_name(input_node_name)
+            print('image :', image_placeholder)
+
+            embedding = graph.get_tensor_by_name(output_node_name)
+            print('output:', embedding)
+
+            phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
+
+            feed_dict = {
+                image_placeholder: np.zeros([1, width, height, 3], dtype=np.uint8),
+                phase_train_placeholder: False
+            }
+
+            out = sess.run(embedding, feed_dict=feed_dict)
+            print(out.shape)
 
 
 if __name__ == '__main__':
