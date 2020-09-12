@@ -188,7 +188,7 @@ def main(**options):
 
                 print(validation)
 
-    tfutils.save_freeze_graph(model_dir=options.model.path, optimize=True)
+    tfutils.save_frozen_graph(model_dir=options.model.path, optimize=True)
 
     ioutils.write_elapsed_time(options.h5file, start_time)
     ioutils.write_elapsed_time(options.txtfile, start_time)
