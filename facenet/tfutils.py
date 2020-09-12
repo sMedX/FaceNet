@@ -117,15 +117,9 @@ def save_frozen_graph(model_dir, output_file=None, suffix='', strip=True, optimi
 
             graph_def = freeze_graph_def(sess, input_graph_def, output_node_names)
 
-            if strip:
-                graph_def = strip_unused_lib.strip_unused(graph_def,
-                                                          input_node_names, output_node_names,
-                                                          input_node_types)
-
-            if optimize:
-                graph_def = optimize_for_inference_lib.optimize_for_inference(graph_def,
-                                                                              input_node_names, output_node_names,
-                                                                              input_node_types)
+            graph_def = optimize_for_inference_lib.optimize_for_inference(graph_def,
+                                                                          input_node_names, output_node_names,
+                                                                          input_node_types)
 
             tf.io.write_graph(graph_def, str(output_file.parent), output_file.name, as_text=as_text)
 
