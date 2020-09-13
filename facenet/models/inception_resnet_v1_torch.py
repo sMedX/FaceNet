@@ -313,18 +313,18 @@ class FaceNet(nn.Module):
 
         layers = OrderedDict({
             'Conv2d_1a_3x3': nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=0, bias=True),
-            'relu1': nn.ReLU(),
+            'Conv2d_1a_3x3/Relu': nn.ReLU(inplace=True),
             'Conv2d_2a_3x3': nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0, bias=True),
-            'relu2': nn.ReLU(),
+            'Conv2d_2a_3x3/Relu': nn.ReLU(inplace=True),
             'Conv2d_2b_3x3': nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, bias=True),
-            'relu3': nn.ReLU(),
-            'pool': nn.MaxPool2d(3, stride=2, padding=0),
+            'Conv2d_2b_3x3/Relu': nn.ReLU(inplace=True),
+            'MaxPool_3a_3x3': nn.MaxPool2d(3, stride=2, padding=0),
             'Conv2d_3b_1x1': nn.Conv2d(64, 80, kernel_size=1, stride=1, padding=0, bias=True),
-            'relu4': nn.ReLU(),
+            'Conv2d_3b_1x1/Relu': nn.ReLU(inplace=True),
             'Conv2d_4a_3x3': nn.Conv2d(80, 192, kernel_size=3, stride=1, padding=0, bias=True),
-            'relu5': nn.ReLU(),
+            'Conv2d_4a_3x3/Relu': nn.ReLU(inplace=True),
             'Conv2d_4b_3x3': nn.Conv2d(192, 256, kernel_size=3, stride=2, padding=0, bias=True),
-            'relu6': nn.ReLU()
+            'Conv2d_4b_3x3/Relu': nn.ReLU(inplace=True)
         })
 
         initialize_layers(layers, h5file, 'InceptionResnetV1')
