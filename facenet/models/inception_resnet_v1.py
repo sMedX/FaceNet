@@ -21,6 +21,8 @@ As described in http://arxiv.org/abs/1602.07261.
 
 import pathlib
 import tensorflow.compat.v1 as tf
+from tensorflow.python.framework import dtypes
+
 import tensorflow.contrib.slim as slim
 from typing import Optional
 from collections.abc import Callable
@@ -34,7 +36,12 @@ default_model_config = YAMLConfig(config_file).config
 
 scope_name = 'InceptionResnetV1'
 
-inference_output = f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
+nodes = {
+    'inference_output': {
+        'name': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0',
+        'type': dtypes.float32.as_datatype_enum
+        }
+    }
 
 
 # Inception-Resnet-A

@@ -132,9 +132,8 @@ def export_h5(model_dir, image_batch=None, module=None):
 
     from facenet import nodes
 
-    node_names = []
-    for name, item in nodes.items():
-        node_names += [item['name'] + ':0']
+    for key, item in module.nodes.items():
+        nodes[key] = item
 
     checkpoints = 'checkpoints'
 
@@ -163,6 +162,13 @@ def export_h5(model_dir, image_batch=None, module=None):
 
             nrof_ops = 0
 
+            for key, item in nodes.items():
+                name = item['name']
+                out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
+                print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
+                h5utils.write(h5file, f'{checkpoints}/{name}', out)
+                nrof_ops += 1
+
             for idx, op in enumerate(graph.get_operations()):
                 if op.type == 'Relu':
                     name = f'{op.name[:-5]}/output'
@@ -170,18 +176,6 @@ def export_h5(model_dir, image_batch=None, module=None):
                     print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
                     h5utils.write(h5file, f'{checkpoints}/{name}', out)
                     nrof_ops += 1
-
-            for name in node_names:
-                out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
-                print(f'{nrof_ops}) {name[:-2]} {out.shape} {out.dtype}')
-                h5utils.write(h5file, f'{checkpoints}/{name[:-2]}', out)
-                nrof_ops += 1
-
-            out = sess.run(graph.get_tensor_by_name(module.inference_output), feed_dict=feed_dict)
-            name = f'{module.scope_name}/inference'
-            print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
-            h5utils.write(h5file, f'{checkpoints}/{name}', out)
-            nrof_ops += 1
 
             print()
             print(f'{nrof_ops} checkpoints have been written to the h5 file {h5file}')
