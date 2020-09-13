@@ -211,9 +211,8 @@ def export_h5(model_dir, image_batch=None, module=None):
                 print(f'{idx}/{len(names)}) {name}')
 
                 for key, value in zip(['weights', 'biases'], [weights, biases]):
-                    path = f'{name}/{key}'
                     print(f'{key}: {value.shape} {str(value.dtype)}')
-                    h5utils.write(h5file, path, value)
+                    h5utils.write(h5file, f'{name}/{key}', value)
 
             print()
             print('{} variables have been written to the h5 file {}'.format(2*len(names), h5file))
