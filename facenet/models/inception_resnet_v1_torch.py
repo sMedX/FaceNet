@@ -9,6 +9,16 @@ from torch import nn
 
 from facenet import h5utils
 
+scope_name = 'InceptionResnetV1'
+checkpoint_path = 'checkpoints'
+
+
+def numpy_to_torch(data):
+    data = np.transpose(data, axes=[0, 3, 1, 2])
+    data = np.float32(data)
+    data = torch.from_numpy(data)
+    return data
+
 
 def image_processing(image, eps=1e-3):
     image = torch.from_numpy(image)
@@ -80,13 +90,15 @@ class Block35(nn.Module):
 
     def __init__(self, h5file, path, scale=1.):
         super().__init__()
+        self.h5file = h5file
         self.scale = scale
+        self.path = path
         in_channels = 256
 
         # scope Branch_0
         layers = OrderedDict({
             'Conv2d_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=True),
-            'relu1': nn.ReLU()
+            'Conv2d_1x1/Relu': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file, path + '/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
@@ -94,9 +106,9 @@ class Block35(nn.Module):
         # scope Branch_1
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=True),
-            'relu1': nn.ReLU(),
+            'Conv2d_0a_1x1/Relu': nn.ReLU(inplace=True),
             'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True),
-            'relu2': nn.ReLU()
+            'Conv2d_0b_3x3/Relu': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file, path + '/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
@@ -104,11 +116,11 @@ class Block35(nn.Module):
         # scope Branch_2
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=True),
-            'relu1': nn.ReLU(),
+            'Conv2d_0a_1x1/Relu': nn.ReLU(inplace=True),
             'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True),
-            'relu2': nn.ReLU(),
+            'Conv2d_0b_3x3/Relu': nn.ReLU(inplace=True),
             'Conv2d_0c_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True),
-            'relu3': nn.ReLU()
+            'Conv2d_0c_3x3/Relu': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file, path + '/Branch_2')
         self.tower_conv3 = nn.Sequential(layers)
@@ -117,6 +129,9 @@ class Block35(nn.Module):
         conv2d = nn.Conv2d(96, 256, kernel_size=1, padding=0, bias=True)
         initialize_conv2d(conv2d, h5file, path, 'Conv2d_1x1')
         self.conv2d = conv2d
+        self.activation = nn.ReLU(inplace=True)
+
+        self.test()
 
     def forward(self, input_ids, past=None):
         mixed = torch.cat((self.tower_conv1(input_ids),
@@ -124,8 +139,24 @@ class Block35(nn.Module):
                            self.tower_conv3(input_ids)), dim=1)
 
         input_ids += self.scale * self.conv2d(mixed)
+        input_ids = self.activation(input_ids)
 
         return input_ids
+
+    def test(self):
+        input_name = f'{checkpoint_path}/{self.path}/Branch_0/Conv2d_1x1/input'
+        output_name = f'{checkpoint_path}/{self.path}/Relu/output'
+
+        inp = h5utils.read(self.h5file, input_name)
+        inp = numpy_to_torch(inp)
+        out = self.forward(inp)
+        out1 = out.detach().cpu().numpy()
+
+        out2 = h5utils.read(self.h5file, output_name)
+        out2 = np.transpose(out2, axes=[0, 3, 1, 2])
+
+        norm = np.max(np.abs(out1 - out2))
+        print(f'{self.__class__.__name__}: {inp.shape} -> {out.shape} norm: {norm}')
 
 
 class Block17(nn.Module):
@@ -334,7 +365,6 @@ class FaceNet(nn.Module):
         for idx in range(5):
             path = f'InceptionResnetV1/Repeat/block35_{idx+1}'
             layers[f'block35_{idx+1}'] = Block35(h5file, path, scale=0.17)
-            layers[f'block35_{idx+1}_relu'] = nn.ReLU()
         self.block35 = nn.Sequential(layers)
 
         self.reduction_a = ReductionA(h5file, 'InceptionResnetV1/Mixed_6a')
@@ -367,6 +397,8 @@ class FaceNet(nn.Module):
         self.linear = nn.Linear(1792, 512, bias=False)
         initialize_linear(self.linear, h5file, 'InceptionResnetV1', 'Bottleneck')
 
+        self.test()
+
     def forward(self, input_ids, past=None):
         input_ids = self.sequential.forward(input_ids)
         input_ids = self.block35.forward(input_ids)
@@ -381,4 +413,21 @@ class FaceNet(nn.Module):
         input_ids = self.linear.forward(input_ids)
 
         return input_ids
+
+    def test(self):
+        layers = list(self.sequential.named_modules())[1:]
+        input_name = layers[0][0]
+        output_name = layers[-1][0]
+
+        inp = h5utils.read(self.h5file, f'checkpoints/{scope_name}/{input_name}/input')
+        inp = numpy_to_torch(inp)
+        out = self.sequential(inp)
+        out1 = out.detach().cpu().numpy()
+
+        out2 = h5utils.read(self.h5file, f'checkpoints/{scope_name}/{output_name}/output')
+        out2 = np.transpose(out2, axes=[0, 3, 1, 2])
+
+        norm = np.max(np.abs(out1 - out2))
+        print('sequential: {} -> {} norm: {}'.format(inp.shape, out.shape, norm))
+
 
