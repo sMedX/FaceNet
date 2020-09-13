@@ -6,11 +6,10 @@
 import click
 from pathlib import Path
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from facenet import tfutils, config, facenet
 import facenet.models.inception_resnet_v1 as module
-from tensorflow.python.tools import optimize_for_inference_lib
 
 
 @click.command()
@@ -19,9 +18,12 @@ from tensorflow.python.tools import optimize_for_inference_lib
 def main(**args):
     files = config.data_dir.glob('*' + config.file_extension)
 
-    images = [tf.expand_dims(facenet.load_images(f), 0) for f in files]
+    loader = facenet.ImageLoader(config=None)
+
+    images = [tf.expand_dims(loader(f), 0) for f in files]
     image_batch = tf.concat(images, axis=0)
-    with tf.compat.v1.Session() as sess:
+
+    with tf.Session() as sess:
         image_batch = sess.run(image_batch)
 
     tfutils.export_h5(args['model_dir'], image_batch, module)

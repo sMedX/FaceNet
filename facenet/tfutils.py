@@ -177,8 +177,16 @@ def export_h5(model_dir, image_batch=None, module=None):
                     h5utils.write(h5file, f'{checkpoints}/{name}', out)
                     nrof_ops += 1
 
+                if op.type == 'MaxPool':
+                    name = f'{op.name}/output'
+                    out = sess.run(op.outputs[0], feed_dict=feed_dict)
+                    print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
+                    h5utils.write(h5file, f'{checkpoints}/{name}', out)
+                    nrof_ops += 1
+
             print()
             print(f'{nrof_ops} checkpoints have been written to the h5 file {h5file}')
+            print()
 
             names = []
 
@@ -216,6 +224,7 @@ def export_h5(model_dir, image_batch=None, module=None):
 
             print()
             print('{} variables have been written to the h5 file {}'.format(2*len(names), h5file))
+            print()
 
     return h5file
 
