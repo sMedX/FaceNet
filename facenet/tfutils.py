@@ -161,18 +161,24 @@ def export_h5(model_dir, image_batch=None, module=None):
                 graph.get_tensor_by_name('phase_train:0'): False
             }
 
-            # tensor_names = node_names
-            #
-            # for op in graph.get_operations():
-            #     if op.type == 'Relu':
-            #         tensor_names.append(op.outputs[0].name)
-            #
-            # for idx, name in enumerate(tensor_names):
-            #     out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
-            #     print('{}) {} {}/{}'.format(idx, name, out.shape, str(out.dtype)))
-            #     h5utils.write(h5file, f'{checkpoints}/{name}', out)
-            # print()
-            # print('{} end points have been written to the h5 file {}'.format(len(tensor_names), h5file))
+            nrof_ops = 0
+
+            for idx, op in enumerate(graph.get_operations()):
+                if op.type == 'Relu':
+                    name = f'{op.name[:-5]}/output'
+                    out = sess.run(op.inputs[0], feed_dict=feed_dict)
+                    print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
+                    h5utils.write(h5file, f'{checkpoints}/{name}', out)
+                    nrof_ops += 1
+
+            for idx, name in enumerate(node_names):
+                out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
+                print(f'{idx}) {name[:-2]} {out.shape} {out.dtype}')
+                h5utils.write(h5file, f'{checkpoints}/{name[:-2]}', out)
+                nrof_ops += 1
+
+            print()
+            print(f'{nrof_ops} checkpoints have been written to the h5 file {h5file}')
 
             names = []
 
