@@ -202,7 +202,8 @@ def export_h5(model_dir, image_batch=None, module=None):
 
                 weights, biases = sess.run([weights, biases])
 
-                print('{}/{}) {}'.format(idx, len(names), name))
+                print(f'{idx}/{len(names)}) {name}')
+
                 for key, value in zip(['weights', 'biases'], [weights, biases]):
                     path = f'{name}/{key}'
                     print(f'{key}: {value.shape} {str(value.dtype)}')
