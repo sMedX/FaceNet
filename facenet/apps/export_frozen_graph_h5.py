@@ -10,6 +10,7 @@ import tensorflow as tf
 
 from facenet import tfutils, config, facenet
 import facenet.models.inception_resnet_v1 as module
+from tensorflow.python.tools import optimize_for_inference_lib
 
 
 @click.command()
@@ -23,14 +24,7 @@ def main(**args):
     with tf.compat.v1.Session() as sess:
         image_batch = sess.run(image_batch)
 
-        tfutils.load_frozen_graph(args['model_dir'])
-        graph = tf.get_default_graph()
-
-        image_batch = sess.run(image_batch)
-
-        for i, op in enumerate(graph.get_nodes()):
-            pass
-
+    tfutils.export_h5(args['model_dir'], image_batch, module)
 
 
 if __name__ == '__main__':
