@@ -27,7 +27,6 @@ import click
 import time
 import importlib
 from tqdm import tqdm
-from functools import partial
 from pathlib import Path
 import tensorflow.compat.v1 as tf
 import tensorflow.contrib.slim as slim
@@ -55,7 +54,7 @@ def main(**options):
     ioutils.write_text_log(options.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    map_func = partial(facenet.load_images, config=options.image)
+    map_func = facenet.ImageLoader(config=options.image)
     ds = {
         'train': facenet.make_train_dataset(dbase, map_func, options),
         'validate': facenet.make_validate_dataset(dbase_val, map_func, options),

@@ -63,18 +63,20 @@ class Placeholders:
         }
 
 
-def load_images(path, config=None):
-    if config is None:
-        height = default_config.image_size
-        width = default_config.image_size
-    else:
-        height = config.size
-        width = config.size
+class ImageLoader:
+    def __init__(self, config=None):
+        if config is None:
+            self.height = default_config.image_size
+            self.width = default_config.image_size
+        else:
+            self.height = config.size
+            self.width = config.size
 
-    contents = tf.io.read_file(str(path))
-    image = tf.image.decode_image(contents, channels=3)
-    image = tf.image.resize_image_with_crop_or_pad(image, height, width)
-    return image
+    def __call__(self, path):
+        contents = tf.io.read_file(str(path))
+        image = tf.image.decode_image(contents, channels=3)
+        image = tf.image.resize_image_with_crop_or_pad(image, self.height, self.width)
+        return image
 
 
 def image_processing(image_batch, config):
