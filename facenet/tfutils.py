@@ -171,11 +171,17 @@ def export_h5(model_dir, image_batch=None, module=None):
                     h5utils.write(h5file, f'{checkpoints}/{name}', out)
                     nrof_ops += 1
 
-            for idx, name in enumerate(node_names):
+            for name in node_names:
                 out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
-                print(f'{idx}) {name[:-2]} {out.shape} {out.dtype}')
+                print(f'{nrof_ops}) {name[:-2]} {out.shape} {out.dtype}')
                 h5utils.write(h5file, f'{checkpoints}/{name[:-2]}', out)
                 nrof_ops += 1
+
+            out = sess.run(graph.get_tensor_by_name(module.inference_output), feed_dict=feed_dict)
+            name = f'{module.scope_name}/inference'
+            print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
+            h5utils.write(h5file, f'{checkpoints}/{name}', out)
+            nrof_ops += 1
 
             print()
             print(f'{nrof_ops} checkpoints have been written to the h5 file {h5file}')
