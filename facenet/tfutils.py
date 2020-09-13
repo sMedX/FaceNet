@@ -161,28 +161,32 @@ def export_h5(model_dir, image_batch=None, module=None):
                 graph.get_tensor_by_name('phase_train:0'): False
             }
 
-            tensor_names = list(module.end_points) + node_names
-
-            # for idx, tensor_name in enumerate(tensor_names):
-            #     out = sess.run(graph.get_tensor_by_name(tensor_name), feed_dict=feed_dict)
-            #     print('{}) {} {}/{}'.format(idx, tensor_name, out.shape, str(out.dtype)))
-            #     h5utils.write(h5file, f'{checkpoints}/{tensor_name}', out)
+            # tensor_names = node_names
+            #
+            # for op in graph.get_operations():
+            #     if op.type == 'Relu':
+            #         tensor_names.append(op.outputs[0].name)
+            #
+            # for idx, name in enumerate(tensor_names):
+            #     out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
+            #     print('{}) {} {}/{}'.format(idx, name, out.shape, str(out.dtype)))
+            #     h5utils.write(h5file, f'{checkpoints}/{name}', out)
             # print()
+            # print('{} end points have been written to the h5 file {}'.format(len(tensor_names), h5file))
 
-            nrof_vars = 0
-            name_map = []
+            names = []
 
             for var in tf.compat.v1.trainable_variables():
                 if module.scope_name in var.name:
                     if 'weights' in var.name:
-                        name_map.append(var.name[:var.name.rfind('/')])
+                        names.append(var.name[:var.name.rfind('/')])
 
             for node in graph.as_graph_def().node:
                 if node.op == 'FusedBatchNorm':
                     epsilon = node.attr['epsilon'].f
                     break
 
-            for name in name_map:
+            for idx, name in enumerate(names):
                 weights = graph.get_tensor_by_name(name + '/weights:0')
 
                 if exist_tensor_by_name(name + '/biases:0'):
@@ -192,21 +196,19 @@ def export_h5(model_dir, image_batch=None, module=None):
                     mean = graph.get_tensor_by_name(name + '/BatchNorm/moving_mean:0')
                     variance = graph.get_tensor_by_name(name + '/BatchNorm/moving_variance:0')
 
-                    scale = 1/tf.sqrt(variance + epsilon)
+                    scale = 1. / tf.sqrt(variance + epsilon)
                     weights = weights * scale
                     biases = -mean * scale + beta
 
                 weights, biases = sess.run([weights, biases])
 
-                for key, value in zip(['weights', 'biases'], [weights, biases]):
+                for i, (key, value) in enumerate(zip(['weights', 'biases'], [weights, biases])):
                     path = f'{name}/{key}'
-                    print('{}) {} {} {}'.format(nrof_vars, path, value.shape, str(value.dtype)))
+                    print('{}) {} {} {}'.format(2*idx + i, path, value.shape, str(value.dtype)))
                     h5utils.write(h5file, path, value)
-                    nrof_vars += 1
 
             print()
-            print('{} end points have been written to the h5 file {}'.format(len(tensor_names), h5file))
-            print('{} variables have been written to the h5 file {}'.format(nrof_vars, h5file))
+            print('{} variables have been written to the h5 file {}'.format(2*len(names), h5file))
 
     return h5file
 
