@@ -28,7 +28,7 @@ def check_shapes(shape1, shape2, key):
 
 
 def initialize_conv2d(layer, h5file, path, name):
-    h5key = f'{path}/{name}/weights:0'
+    h5key = f'{path}/{name}/weights'
 
     weight = h5utils.read(h5file, h5key)
     weight = np.transpose(weight, axes=[3, 2, 0, 1])
@@ -38,7 +38,7 @@ def initialize_conv2d(layer, h5file, path, name):
     layer.weight = nn.Parameter(torch.from_numpy(weight))
 
     if layer.bias is not None:
-        h5key = '{}/{}/biases:0'.format(path, name)
+        h5key = f'{path}/{name}/biases'
         bias = h5utils.read(h5file, h5key)
         check_shapes(bias.shape, layer.bias.shape, h5key)
 
@@ -47,7 +47,7 @@ def initialize_conv2d(layer, h5file, path, name):
 
 
 def initialize_linear(layer, h5file, path, name):
-    h5key = f'{path}/{name}/weights:0'
+    h5key = f'{path}/{name}/weights'
 
     weight = h5utils.read(h5file, h5key)
     weight = np.transpose(weight)
@@ -57,7 +57,7 @@ def initialize_linear(layer, h5file, path, name):
     layer.weight = nn.Parameter(torch.from_numpy(weight))
 
     if layer.bias is not None:
-        h5key = '{}/{}/biases:0'.format(path, name)
+        h5key = f'{path}/{name}/biases'
         bias = h5utils.read(h5file, h5key)
         check_shapes(bias.shape, layer.bias.shape, h5key)
 
@@ -85,7 +85,7 @@ class Block35(nn.Module):
 
         # scope Branch_0
         layers = OrderedDict({
-            'Conv2d_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
+            'Conv2d_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=True),
             'relu1': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_0')
@@ -93,9 +93,9 @@ class Block35(nn.Module):
 
         # scope Branch_1
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
+            'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True),
             'relu2': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_1')
@@ -103,11 +103,11 @@ class Block35(nn.Module):
 
         # scope Branch_2
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 32, kernel_size=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
+            'Conv2d_0b_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True),
             'relu2': nn.ReLU(),
-            'Conv2d_0c_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=False),
+            'Conv2d_0c_3x3': nn.Conv2d(32, 32, kernel_size=3, padding=1, bias=True),
             'relu3': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_2')
@@ -140,7 +140,7 @@ class Block17(nn.Module):
 
         # scope Branch_0
         layers = OrderedDict({
-            'Conv2d_1x1': nn.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_1x1': nn.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_0')
@@ -148,11 +148,11 @@ class Block17(nn.Module):
 
         # scope Branch_1
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 128, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_0b_1x7': nn.Conv2d(128, 128, kernel_size=(1, 7), stride=1, padding=(0, 3), bias=False),
+            'Conv2d_0b_1x7': nn.Conv2d(128, 128, kernel_size=(1, 7), stride=1, padding=(0, 3), bias=True),
             'relu2': nn.ReLU(),
-            'Conv2d_0c_7x1': nn.Conv2d(128, 128, kernel_size=(7, 1), stride=1, padding=(3, 0), bias=False),
+            'Conv2d_0c_7x1': nn.Conv2d(128, 128, kernel_size=(7, 1), stride=1, padding=(3, 0), bias=True),
             'relu3': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_1')
@@ -184,7 +184,7 @@ class Block8(nn.Module):
 
         # scope Branch_0
         layers = OrderedDict({
-            'Conv2d_1x1': nn.Conv2d(in_channels, 192, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_1x1': nn.Conv2d(in_channels, 192, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU()
         })
         initialize_layers(layers, h5file, f'{path}/Branch_0')
@@ -192,11 +192,11 @@ class Block8(nn.Module):
 
         # scope Branch_1
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 192, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 192, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_0b_1x3': nn.Conv2d(192, 192, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=False),
+            'Conv2d_0b_1x3': nn.Conv2d(192, 192, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=True),
             'relu2': nn.ReLU(),
-            'Conv2d_0c_3x1': nn.Conv2d(192, 192, kernel_size=(3, 1), stride=1, padding=(1, 0), bias=False),
+            'Conv2d_0c_3x1': nn.Conv2d(192, 192, kernel_size=(3, 1), stride=1, padding=(1, 0), bias=True),
             'relu3': nn.ReLU()
         })
         initialize_layers(layers, h5file, f'{path}/Branch_1')
@@ -226,7 +226,7 @@ class ReductionA(nn.Module):
 
         # scope Branch_0
         layers = OrderedDict({
-            'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=True),
             'relu1': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_0')
@@ -234,11 +234,11 @@ class ReductionA(nn.Module):
 
         # scope Branch_1
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(256, 192, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(256, 192, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_0b_3x3': nn.Conv2d(192, 192, kernel_size=3,  stride=1, padding=1, bias=False),
+            'Conv2d_0b_3x3': nn.Conv2d(192, 192, kernel_size=3,  stride=1, padding=1, bias=True),
             'relu2': nn.ReLU(),
-            'Conv2d_1a_3x3': nn.Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': nn.Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=True),
             'relu3': nn.ReLU()
         })
         initialize_layers(layers, h5file,  path + '/Branch_1')
@@ -265,9 +265,9 @@ class ReductionB(nn.Module):
 
         # scope Branch_0
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=True),
             'relu2': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_0')
@@ -275,9 +275,9 @@ class ReductionB(nn.Module):
 
         # scope Branch_1
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_1a_3x3': nn.Conv2d(256, 256, kernel_size=3,  stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': nn.Conv2d(256, 256, kernel_size=3,  stride=2, padding=0, bias=True),
             'relu2': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_1')
@@ -285,11 +285,11 @@ class ReductionB(nn.Module):
 
         # scope Branch_2
         layers = OrderedDict({
-            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_0a_1x1': nn.Conv2d(in_channels, 256, kernel_size=1, stride=1, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_0b_3x3': nn.Conv2d(256, 256, kernel_size=3,  stride=1, padding=1, bias=False),
+            'Conv2d_0b_3x3': nn.Conv2d(256, 256, kernel_size=3,  stride=1, padding=1, bias=True),
             'relu2': nn.ReLU(),
-            'Conv2d_1a_3x3': nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=0, bias=True),
             'relu3': nn.ReLU()
         })
         initialize_layers(layers, h5file, path + '/Branch_2')
@@ -312,18 +312,18 @@ class FaceNet(nn.Module):
         self.h5file = h5file
 
         layers = OrderedDict({
-            'Conv2d_1a_3x3': nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=0, bias=False),
+            'Conv2d_1a_3x3': nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=0, bias=True),
             'relu1': nn.ReLU(),
-            'Conv2d_2a_3x3': nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0, bias=False),
+            'Conv2d_2a_3x3': nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0, bias=True),
             'relu2': nn.ReLU(),
-            'Conv2d_2b_3x3': nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, bias=False),
+            'Conv2d_2b_3x3': nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, bias=True),
             'relu3': nn.ReLU(),
             'pool': nn.MaxPool2d(3, stride=2, padding=0),
-            'Conv2d_3b_1x1': nn.Conv2d(64, 80, kernel_size=1, stride=1, padding=0, bias=False),
+            'Conv2d_3b_1x1': nn.Conv2d(64, 80, kernel_size=1, stride=1, padding=0, bias=True),
             'relu4': nn.ReLU(),
-            'Conv2d_4a_3x3': nn.Conv2d(80, 192, kernel_size=3, stride=1, padding=0, bias=False),
+            'Conv2d_4a_3x3': nn.Conv2d(80, 192, kernel_size=3, stride=1, padding=0, bias=True),
             'relu5': nn.ReLU(),
-            'Conv2d_4b_3x3': nn.Conv2d(192, 256, kernel_size=3, stride=2, padding=0, bias=False),
+            'Conv2d_4b_3x3': nn.Conv2d(192, 256, kernel_size=3, stride=2, padding=0, bias=True),
             'relu6': nn.ReLU()
         })
 
