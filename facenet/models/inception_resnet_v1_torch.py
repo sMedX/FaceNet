@@ -457,7 +457,7 @@ class FaceNet(nn.Module):
         self.avg_pool2d = nn.AvgPool2d(3, stride=1, padding=0)
         self.flatten = nn.Flatten()
 
-        self.linear = nn.Linear(1792, 512, bias=False)
+        self.linear = nn.Linear(1792, 512, bias=True)
         initialize_linear(self.linear, h5file, 'InceptionResnetV1', 'Bottleneck')
 
     def forward_image(self, image):
