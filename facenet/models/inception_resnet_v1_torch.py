@@ -369,9 +369,10 @@ class ImageProcessing:
     order of: batch_shape + [channels, height, width].
     :return:
     """
-    def __init__(self, eps=1e-3, data_format="NHWC"):
+    def __init__(self, h5file, eps=1e-3, data_format="NHWC"):
         self.data_format = data_format
         self.eps = torch.tensor(eps)
+        self.image_size = h5utils.read(h5file, 'checkpoint/image_size:0')
 
     def forward_image(self, image):
         if image.ndim not in (3, 4):
@@ -382,6 +383,9 @@ class ImageProcessing:
 
         if self.data_format == "NHWC":
             image = image.transpose([0, 3, 1, 2])
+
+        if any(image.shape[2:] != self.image_size):
+            raise ValueError(f'Shape of the input image must be {self.image_size}')
 
         return self.forward(torch.from_numpy(image).float())
 
@@ -399,7 +403,7 @@ class FaceNet(nn.Module):
         super().__init__()
         self.h5file = h5file
 
-        self.preprocessing = ImageProcessing()
+        self.preprocessing = ImageProcessing(h5file)
 
         layers = OrderedDict({
             'Conv2d_1a_3x3': nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=0, bias=True),
