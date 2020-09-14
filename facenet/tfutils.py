@@ -132,11 +132,6 @@ def export_h5(model_dir, image_batch=None, module=None):
 
     from facenet import nodes
 
-    for key, item in module.nodes.items():
-        nodes[key] = item
-
-    checkpoints = 'checkpoints'
-
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
             # load the model meta graph and checkpoint
@@ -162,27 +157,54 @@ def export_h5(model_dir, image_batch=None, module=None):
 
             nrof_ops = 0
 
+            def write(i, path, data):
+                print(f'{i}) {path} {data.shape} {data.dtype}')
+                h5utils.write(h5file, path, data)
+
             for key, item in nodes.items():
                 name = item['name']
                 out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
                 print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
-                h5utils.write(h5file, f'{checkpoints}/{name}', out)
+                h5utils.write(h5file, f'checkpoint/{name}', out)
                 nrof_ops += 1
 
-            for idx, op in enumerate(graph.get_operations()):
-                if op.type == 'Relu':
-                    name = f'{op.name[:-5]}/output'
-                    out = sess.run(op.inputs[0], feed_dict=feed_dict)
-                    print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
-                    h5utils.write(h5file, f'{checkpoints}/{name}', out)
-                    nrof_ops += 1
+            for name, item in module.nodes.items():
+                inp = graph.get_tensor_by_name(item['input'])
+                out = graph.get_tensor_by_name(item['output'])
 
-                if op.type == 'MaxPool':
-                    name = f'{op.name}/output'
-                    out = sess.run(op.outputs[0], feed_dict=feed_dict)
-                    print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
-                    h5utils.write(h5file, f'{checkpoints}/{name}', out)
-                    nrof_ops += 1
+                inp, out = sess.run([inp, out], feed_dict=feed_dict)
+
+                path = item['path']
+                write(nrof_ops, f'{path}/checkpoint/input', inp)
+                write(nrof_ops, f'{path}/checkpoint/output', out)
+                nrof_ops += 1
+
+            # for idx, op in enumerate(graph.get_operations()):
+            #     if op.type == 'Relu':
+            #         name = op.name[:-5]
+            #
+            #         try:
+            #             inp = graph.get_operation_by_name(name + '/Conv2D').inputs[0]
+            #             inp = sess.run(inp, feed_dict=feed_dict)
+            #             write(nrof_ops, f'{checkpoints}/{name}/input', inp)
+            #             nrof_ops += 1
+            #         except:
+            #             pass
+            #
+            #         out = sess.run(op.inputs[0], feed_dict=feed_dict)
+            #         write(nrof_ops, f'{checkpoints}/{name}/output', out)
+            #         nrof_ops += 1
+            #
+            #         out = sess.run(op.outputs[0], feed_dict=feed_dict)
+            #         write(nrof_ops, f'{checkpoints}/{op.name}/output', out)
+            #         nrof_ops += 1
+            #
+            #     if op.type == 'MaxPool':
+            #         name = op.name[:-len('/MaxPool')]
+            #         inp, out = sess.run([op.inputs[0], op.outputs[0]], feed_dict=feed_dict)
+            #         write(nrof_ops, f'{checkpoints}/{name}/input', inp)
+            #         write(nrof_ops, f'{checkpoints}/{name}/output', out)
+            #         nrof_ops += 1
 
             print()
             print(f'{nrof_ops} checkpoints have been written to the h5 file {h5file}')
@@ -198,7 +220,6 @@ def export_h5(model_dir, image_batch=None, module=None):
             for node in graph.as_graph_def().node:
                 if node.op == 'FusedBatchNorm':
                     epsilon = node.attr['epsilon'].f
-                    break
 
             for idx, name in enumerate(names):
                 weights = graph.get_tensor_by_name(name + '/weights:0')
