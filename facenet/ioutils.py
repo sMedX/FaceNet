@@ -141,14 +141,14 @@ class ImageLoader:
 
     def __init__(self, input, prefix=None, display=100, log=True):
 
-        if not isinstance(input, (str, list)):
+        if not isinstance(input, (Path, list)):
             raise IOError('Input \'{}\' must be directory or list of files'.format(input))
 
         if isinstance(input, list):
             self.files = input
-        elif os.path.isdir(os.path.expanduser(input)):
-            prefix = os.path.expanduser(input)
-            self.files = os.listdir(prefix)
+        elif input.is_dir():
+            prefix = input.expanduser()
+            self.files = list(prefix.glob('*'))
         else:
             raise IOError('Directory \'{}\' does not exist'.format(input))
 
@@ -176,7 +176,7 @@ class ImageLoader:
                 print('{}/{}, {}, {}'.format(self.counter, self.size, self.filename, image.size))
 
             self.counter += 1
-            return image
+            return pil2array(image)
         else:
             print('\n\rnumber of processed images {}'.format(self.size))
             raise StopIteration
