@@ -1,7 +1,9 @@
 """Functions for building the face recognition inference in Torch.
 """
 
+from typing import Optional
 from collections import OrderedDict
+from collections.abc import Callable
 
 import numpy as np
 import torch
@@ -14,22 +16,41 @@ checkpoint_path = 'checkpoints'
 
 
 def numpy_to_torch(data):
-    data = np.transpose(data, axes=[0, 3, 1, 2])
+    if data.ndim == 4:
+        data = np.transpose(data, axes=[0, 3, 1, 2])
+
     data = np.float32(data)
     data = torch.from_numpy(data)
     return data
 
 
-def image_processing(image, eps=1e-3):
-    image = torch.from_numpy(image)
-    image = image.float()
+def torch_to_numpy(data):
+    data = data.detach().cpu().numpy()
+    if data.ndim == 4:
+        data = np.transpose(data, axes=[0, 2, 3, 1])
 
-    min_value = torch.min(image)
-    max_value = torch.max(image)
-    dynamic_range = torch.max(max_value - min_value, torch.tensor(eps))
-    image = (2*image - (max_value + min_value))/dynamic_range
+    return data
 
-    return image
+
+def test_layer(layer, h5file, path, output_name=None):
+    if output_name is None:
+        output_name = layer
+
+    input_path = f'{path}/checkpoint/input'
+    output_path = f'{path}/checkpoint/output'
+
+    inp = h5utils.read(h5file, input_path)
+    out = layer(numpy_to_torch(inp))
+
+    out1 = torch_to_numpy(out)
+    out2 = h5utils.read(h5file, output_path)
+    norm = np.max(np.abs(out1 - out2))
+
+    print(f'error: {norm}, {output_name}: {inp.shape} -> {out.shape}')
+
+
+def test_custom_module(module):
+    test_layer(module, module.h5file, module.path, output_name=module.__class__.__name__)
 
 
 def check_shapes(shape1, shape2, key):
@@ -131,8 +152,6 @@ class Block35(nn.Module):
         self.conv2d = conv2d
         self.activation = nn.ReLU(inplace=True)
 
-        self.test()
-
     def forward(self, input_ids, past=None):
         mixed = torch.cat((self.tower_conv1(input_ids),
                            self.tower_conv2(input_ids),
@@ -142,21 +161,6 @@ class Block35(nn.Module):
         input_ids = self.activation(input_ids)
 
         return input_ids
-
-    def test(self):
-        input_name = f'{checkpoint_path}/{self.path}/Branch_0/Conv2d_1x1/input'
-        output_name = f'{checkpoint_path}/{self.path}/Relu/output'
-
-        inp = h5utils.read(self.h5file, input_name)
-        inp = numpy_to_torch(inp)
-        out = self.forward(inp)
-        out1 = out.detach().cpu().numpy()
-
-        out2 = h5utils.read(self.h5file, output_name)
-        out2 = np.transpose(out2, axes=[0, 3, 1, 2])
-
-        norm = np.max(np.abs(out1 - out2))
-        print(f'{self.__class__.__name__}: {inp.shape} -> {out.shape} norm: {norm}')
 
 
 class Block17(nn.Module):
@@ -208,15 +212,23 @@ class Block8(nn.Module):
     stride=1, padding=SAME
     """
 
-    def __init__(self, h5file, path, scale=1.0):
+    def __init__(self, h5file, path, scale=1.0, activation=True):
         super().__init__()
+        self.h5file = h5file
+        self.path = path
         self.scale = scale
+
+        if activation:
+            self.activation = nn.ReLU(inplace=True)
+        else:
+            self.activation = None
+
         in_channels = 1792
 
         # scope Branch_0
         layers = OrderedDict({
             'Conv2d_1x1': nn.Conv2d(in_channels, 192, kernel_size=1, stride=1, padding=0, bias=True),
-            'relu1': nn.ReLU()
+            'Conv2d_1x1/Relu': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file, f'{path}/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
@@ -224,25 +236,27 @@ class Block8(nn.Module):
         # scope Branch_1
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(in_channels, 192, kernel_size=1, stride=1, padding=0, bias=True),
-            'relu1': nn.ReLU(),
+            'Conv2d_0a_1x1/Relu': nn.ReLU(inplace=True),
             'Conv2d_0b_1x3': nn.Conv2d(192, 192, kernel_size=(1, 3), stride=1, padding=(0, 1), bias=True),
-            'relu2': nn.ReLU(),
+            'Conv2d_0b_1x3/Relu': nn.ReLU(inplace=True),
             'Conv2d_0c_3x1': nn.Conv2d(192, 192, kernel_size=(3, 1), stride=1, padding=(1, 0), bias=True),
-            'relu3': nn.ReLU()
+            'Conv2d_0c_3x1/Relu': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file, f'{path}/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
 
         # InceptionResnetV1/Repeat_1/block17_1/Conv2d_1x1
-        conv2d = nn.Conv2d(384, 1792, kernel_size=1, padding=0, bias=True)
-        initialize_conv2d(conv2d, h5file, path, 'Conv2d_1x1')
-        self.conv2d = conv2d
+        self.conv2d = nn.Conv2d(384, 1792, kernel_size=1, padding=0, bias=True)
+        initialize_conv2d(self.conv2d, h5file, path, 'Conv2d_1x1')
 
     def forward(self, input_ids, past=None):
         mixed = torch.cat((self.tower_conv1(input_ids),
                            self.tower_conv2(input_ids)), dim=1)
 
         input_ids += self.scale * self.conv2d(mixed)
+
+        if callable(self.activation):
+            input_ids = self.activation(input_ids)
 
         return input_ids
 
@@ -254,11 +268,13 @@ class ReductionA(nn.Module):
 
     def __init__(self, h5file, path):
         super().__init__()
+        self.h5file = h5file
+        self.path = path
 
         # scope Branch_0
         layers = OrderedDict({
             'Conv2d_1a_3x3': nn.Conv2d(256, 384, kernel_size=3, stride=2, padding=0, bias=True),
-            'relu1': nn.ReLU()
+            'relu1': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file, path + '/Branch_0')
         self.tower_conv1 = nn.Sequential(layers)
@@ -266,16 +282,18 @@ class ReductionA(nn.Module):
         # scope Branch_1
         layers = OrderedDict({
             'Conv2d_0a_1x1': nn.Conv2d(256, 192, kernel_size=1, stride=1, padding=0, bias=True),
-            'relu1': nn.ReLU(),
+            'relu1': nn.ReLU(inplace=True),
             'Conv2d_0b_3x3': nn.Conv2d(192, 192, kernel_size=3,  stride=1, padding=1, bias=True),
-            'relu2': nn.ReLU(),
+            'relu2': nn.ReLU(inplace=True),
             'Conv2d_1a_3x3': nn.Conv2d(192, 256, kernel_size=3,  stride=2, padding=0, bias=True),
-            'relu3': nn.ReLU()
+            'relu3': nn.ReLU(inplace=True)
         })
         initialize_layers(layers, h5file,  path + '/Branch_1')
         self.tower_conv2 = nn.Sequential(layers)
 
         self.max_pool = nn.MaxPool2d(3, stride=2, padding=0)
+
+        test_custom_module(self)
 
     def forward(self, input_ids, past=None):
         input_ids = torch.cat([self.tower_conv1(input_ids),
@@ -292,6 +310,9 @@ class ReductionB(nn.Module):
 
     def __init__(self, h5file, path):
         super().__init__()
+        self.h5file = h5file
+        self.path = path
+
         in_channels = 896
 
         # scope Branch_0
@@ -337,10 +358,48 @@ class ReductionB(nn.Module):
         return input_ids
 
 
+class ImageProcessing:
+    """
+    :param image: input image
+    :param eps: eps=1e-3
+    :param data_format:
+    An optional string from: "NHWC", "NCHW". Defaults to "NHWC".
+    Specify the data format of the input and output data. With the default format "NHWC", the data is stored in the
+    order of: batch_shape + [height, width, channels]. Alternatively, the format could be "NCHW", the data storage
+    order of: batch_shape + [channels, height, width].
+    :return:
+    """
+    def __init__(self, eps=1e-3, data_format="NHWC"):
+        self.data_format = data_format
+        self.eps = torch.tensor(eps)
+
+    def forward_image(self, image):
+        if image.ndim not in (3, 4):
+            raise ValueError('Dimensionality of the input image must be 3 or 4')
+
+        if image.ndim == 3:
+            image = np.expand_dims(image, axis=0)
+
+        if self.data_format == "NHWC":
+            image = image.transpose([0, 3, 1, 2])
+
+        return self.forward(torch.from_numpy(image).float())
+
+    def forward(self, image):
+        min_value = torch.min(image)
+        max_value = torch.max(image)
+        dynamic_range = torch.max(max_value - min_value, self.eps)
+        image = (2*image - (max_value + min_value))/dynamic_range
+
+        return image
+
+
 class FaceNet(nn.Module):
     def __init__(self, h5file):
         super().__init__()
         self.h5file = h5file
+
+        self.preprocessing = ImageProcessing()
 
         layers = OrderedDict({
             'Conv2d_1a_3x3': nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=0, bias=True),
@@ -384,12 +443,12 @@ class FaceNet(nn.Module):
         layers = OrderedDict()
         for idx in range(5):
             path = f'InceptionResnetV1/Repeat_2/block8_{idx+1}'
-            layers[f'block8_{idx+1}'] = Block8(h5file, path=path, scale=0.20)
-            layers[f'block8_{idx+1}_relu'] = nn.ReLU()
+            layers[f'block8_{idx+1}'] = Block8(h5file, path=path, scale=0.20, activation=True)
+
+        self.repeat_block8 = nn.Sequential(layers)
 
         path = 'InceptionResnetV1/Block8'
-        layers[f'block8_{5}'] = Block8(h5file, path, scale=1.0)
-        self.block8 = nn.Sequential(layers)
+        self.block8 = Block8(h5file, path=path, scale=1.0, activation=False)
 
         self.avg_pool2d = nn.AvgPool2d(3, stride=1, padding=0)
         self.flatten = nn.Flatten()
@@ -397,7 +456,11 @@ class FaceNet(nn.Module):
         self.linear = nn.Linear(1792, 512, bias=False)
         initialize_linear(self.linear, h5file, 'InceptionResnetV1', 'Bottleneck')
 
-        self.test()
+    def forward_image(self, image):
+        input_ids = self.preprocessing.forward_image(image)
+        input_ids = self.forward(input_ids)
+        input_ids = input_ids/(torch.norm(input_ids) + 1e-10)
+        return input_ids
 
     def forward(self, input_ids, past=None):
         input_ids = self.sequential.forward(input_ids)
@@ -405,29 +468,40 @@ class FaceNet(nn.Module):
         input_ids = self.reduction_a.forward(input_ids)
         input_ids = self.block17.forward(input_ids)
         input_ids = self.reduction_b.forward(input_ids)
+        input_ids = self.repeat_block8.forward(input_ids)
         input_ids = self.block8.forward(input_ids)
-
         input_ids = self.avg_pool2d.forward(input_ids)
         input_ids = self.flatten.forward(input_ids)
-
         input_ids = self.linear.forward(input_ids)
 
         return input_ids
 
     def test(self):
-        layers = list(self.sequential.named_modules())[1:]
-        input_name = layers[0][0]
-        output_name = layers[-1][0]
+        print('\napply tests\n')
+        test_layer(self.sequential, self.h5file, 'InceptionResnetV1/sequential', output_name='sequential')
+        test_layer(self.block35, self.h5file, 'InceptionResnetV1/block35', output_name='block35')
+        test_custom_module(self.reduction_a)
+        test_layer(self.block17, self.h5file, 'InceptionResnetV1/block17', output_name='block17')
+        test_custom_module(self.reduction_b)
+        test_layer(self.repeat_block8, self.h5file, 'InceptionResnetV1/Block8/repeat', output_name='block8/repeat')
+        test_custom_module(self.block8)
+        test_layer(self.avg_pool2d, self.h5file, 'InceptionResnetV1/AvgPool')
+        test_layer(self.flatten, self.h5file, 'InceptionResnetV1/Flatten')
+        test_layer(self.linear, self.h5file, 'InceptionResnetV1/Bottleneck')
 
-        inp = h5utils.read(self.h5file, f'checkpoints/{scope_name}/{input_name}/input')
-        inp = numpy_to_torch(inp)
-        out = self.sequential(inp)
-        out1 = out.detach().cpu().numpy()
+        print()
+        test_layer(self.preprocessing.forward, self.h5file, 'InceptionResnetV1/preprocessing', output_name='preprocessing')
+        test_layer(self, self.h5file, 'InceptionResnetV1/inference', output_name=self.__class__.__name__)
 
-        out2 = h5utils.read(self.h5file, f'checkpoints/{scope_name}/{output_name}/output')
-        out2 = np.transpose(out2, axes=[0, 3, 1, 2])
+        input_path = 'InceptionResnetV1/embedding/checkpoint/input'
+        output_path = 'InceptionResnetV1/embedding/checkpoint/output'
 
-        norm = np.max(np.abs(out1 - out2))
-        print('sequential: {} -> {} norm: {}'.format(inp.shape, out.shape, norm))
+        inp = h5utils.read(self.h5file, input_path)
+        out = self.forward_image(inp)
 
+        out1 = torch_to_numpy(out)
+        out2 = h5utils.read(self.h5file, output_path)
+        norm = np.linalg.norm(out1 - out2)**2
+
+        print(f'error: {norm}, forward_image: {inp.shape} -> {out.shape}')
 

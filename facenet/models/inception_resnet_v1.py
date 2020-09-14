@@ -37,9 +37,82 @@ default_model_config = YAMLConfig(config_file).config
 scope_name = 'InceptionResnetV1'
 
 nodes = {
-    'inference_output': {
-        'name': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0',
-        'type': dtypes.float32.as_datatype_enum
+    'image': {
+        'path': f'{scope_name}/preprocessing',
+        'input': 'image:0',
+        'output': 'input:0'
+    },
+
+    'sequential': {
+        'path': f'{scope_name}/sequential',
+        'input': 'input:0',
+        'output': f'{scope_name}/Conv2d_4b_3x3/Relu:0'
+    },
+
+    'block35': {
+        'path': f'{scope_name}/block35',
+        'input': f'{scope_name}/Conv2d_4b_3x3/Relu:0',
+        'output': f'{scope_name}/Repeat/block35_5/Relu:0'
+    },
+
+    'reduction_a': {
+        'path': f'{scope_name}/Mixed_6a',
+        'input': f'{scope_name}/Repeat/block35_5/Relu:0',
+        'output': f'{scope_name}/Mixed_6a/concat:0'
+        },
+
+    'block17': {
+        'path': f'{scope_name}/block17',
+        'input': f'{scope_name}/Mixed_6a/concat:0',
+        'output': f'{scope_name}/Repeat_1/block17_10/Relu:0'
+    },
+
+    'reduction_b': {
+        'path': f'{scope_name}/Mixed_7a',
+        'input': f'{scope_name}/Repeat_1/block17_10/Relu:0',
+        'output': f'{scope_name}/Mixed_7a/concat:0'
+    },
+
+    'block8/repeat': {
+        'path': f'{scope_name}/Block8/repeat',
+        'input': f'{scope_name}/Mixed_7a/concat:0',
+        'output': f'{scope_name}/Repeat_2/block8_5/Relu:0'
+    },
+
+    'block8': {
+        'path': f'{scope_name}/Block8',
+        'input': f'{scope_name}/Repeat_2/block8_5/Relu:0',
+        'output': f'{scope_name}/Block8/add:0'
+    },
+
+    'AvgPool': {
+        'path': f'{scope_name}/AvgPool',
+        'input': f'{scope_name}/Block8/add:0',
+        'output': f'{scope_name}/Logits/AvgPool_1a_8x8/AvgPool:0'
+    },
+
+    'flatten': {
+        'path': f'{scope_name}/Flatten',
+        'input': f'{scope_name}/Logits/AvgPool_1a_8x8/AvgPool:0',
+        'output': f'{scope_name}/Logits/Flatten/flatten/Reshape:0'
+    },
+
+    'logits': {
+        'path': f'{scope_name}/Bottleneck',
+        'input': f'{scope_name}/Logits/Flatten/flatten/Reshape:0',
+        'output': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
+    },
+
+    'inference': {
+        'path': f'{scope_name}/inference',
+        'input': 'input:0',
+        'output': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
+        },
+
+    'embedding': {
+        'path': f'{scope_name}/embedding',
+        'input': 'image:0',
+        'output': 'embedding:0'
         }
     }
 
@@ -230,8 +303,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
           
                     end_points['PreLogitsFlatten'] = net
                 
-                net = slim.fully_connected(net, bottleneck_layer_size,
-                                           activation_fn=None, scope='Bottleneck', reuse=False)
+                net = slim.fully_connected(net, bottleneck_layer_size, activation_fn=None, scope='Bottleneck', reuse=False)
   
     return net, end_points
 
