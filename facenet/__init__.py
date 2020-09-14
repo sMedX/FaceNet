@@ -25,6 +25,11 @@ nodes = {
     'output': {
         'name': 'embedding:0',
         'type': dtypes.float32.as_datatype_enum
+    },
+
+    'image_size': {
+        'name': 'image_size:0',
+        'type': dtypes.uint8.as_datatype_enum
     }
 }
 
