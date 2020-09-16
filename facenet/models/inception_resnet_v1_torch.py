@@ -369,7 +369,7 @@ class ImageProcessing:
     order of: batch_shape + [channels, height, width].
     :return:
     """
-    def __init__(self, h5file, eps=1e-3, data_format="NHWC"):
+    def __init__(self, h5file, eps=1e-3, data_format='NHWC'):
         self.data_format = data_format
         self.eps = torch.tensor(eps)
         self.image_size = h5utils.read(h5file, 'checkpoint/image_size:0')
@@ -387,13 +387,22 @@ class ImageProcessing:
         if any(image.shape[2:] != self.image_size):
             raise ValueError(f'Shape of the input image must be {self.image_size}')
 
-        return self.forward(torch.from_numpy(image).float())
+        return self.forward(torch.from_numpy(image))
 
     def forward(self, image):
-        min_value = torch.min(image)
-        max_value = torch.max(image)
+        image = image.float()
+
+        # like as tf.math.reduce_min(image_batch, axis=[-1, -2, -3], keepdims=True)
+        shape = [image.shape[0], 1, 1, 1]
+        min_value = torch.zeros(shape, dtype=image.dtype)
+        max_value = torch.zeros(shape, dtype=image.dtype)
+
+        for i in range(image.shape[0]):
+            min_value[i] = torch.min(image[i])
+            max_value[i] = torch.max(image[i])
+
         dynamic_range = torch.max(max_value - min_value, self.eps)
-        image = (2*image - (max_value + min_value))/dynamic_range
+        image = (2*image - (min_value + max_value))/dynamic_range
 
         return image
 
@@ -463,7 +472,7 @@ class FaceNet(nn.Module):
     def forward_image(self, image):
         input_ids = self.preprocessing.forward_image(image)
         input_ids = self.forward(input_ids)
-        input_ids = input_ids/(torch.norm(input_ids) + 1e-10)
+        input_ids = input_ids/(torch.norm(input_ids, dim=1, keepdim=True) + 1e-10)
         return input_ids
 
     def forward(self, input_ids, past=None):
