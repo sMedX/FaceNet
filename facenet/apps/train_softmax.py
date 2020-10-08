@@ -29,9 +29,9 @@ import importlib
 from tqdm import tqdm
 from pathlib import Path
 import tensorflow.compat.v1 as tf
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 
-from facenet import ioutils, dataset, statistics, config, h5utils, facenet, tfutils
+from facenet import nodes, ioutils, dataset, statistics, config, h5utils, facenet, tfutils
 
 
 @click.command()
@@ -77,7 +77,8 @@ def main(**options):
 
     print('Building training graph')
 
-    image_batch = facenet.image_processing(placeholders.image_batch, options.image)
+    image_processing = facenet.ImageProcessing(options.image)
+    image_batch = image_processing(placeholders.image_batch)
 
     prelogits, _ = network.inference(image_batch,
                                      config=options.model.config,
@@ -88,7 +89,8 @@ def main(**options):
                                   weights_regularizer=slim.l2_regularizer(options.model.config.weight_decay),
                                   scope='Logits', reuse=False)
 
-    embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
+    output_node_name = nodes['output']['name']
+    embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name=output_node_name)
 
     # Norm for the prelogits
     eps = 1e-4

@@ -23,7 +23,7 @@ import pathlib
 import tensorflow.compat.v1 as tf
 from tensorflow.python.framework import dtypes
 
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 from typing import Optional
 from collections.abc import Callable
 from facenet.config import YAMLConfig
