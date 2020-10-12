@@ -39,7 +39,7 @@ scope_name = 'InceptionResnetV1'
 nodes = {
     'image': {
         'path': f'{scope_name}/preprocessing',
-        'input': 'image:0',
+        'input': 'input:0',
         'output': 'input:0'
     },
 
@@ -111,8 +111,8 @@ nodes = {
 
     'embedding': {
         'path': f'{scope_name}/embedding',
-        'input': 'image:0',
-        'output': 'embedding:0'
+        'input': 'input:0',
+        'output': 'embeddings:0'
         }
     }
 

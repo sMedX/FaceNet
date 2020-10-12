@@ -22,6 +22,9 @@ nodes = {
         'type': dtypes.float32.as_datatype_enum
     },
 
+}
+
+config_nodes = {
     'image_size': {
         'name': 'image_size:0',
         'type': dtypes.uint8.as_datatype_enum
@@ -43,8 +46,8 @@ class FaceNet:
         tfutils.load_model(config.path)
 
         # Get input and output tensors
-        input_node_name = '{}:0'.format(nodes['input']['name'])
-        output_node_name = '{}:0'.format(nodes['output']['name'])
+        input_node_name = nodes['input']['name'] + ':0'
+        output_node_name = nodes['output']['name'] + ':0'
 
         graph = tf.get_default_graph()
         self._phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')

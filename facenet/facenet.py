@@ -88,7 +88,7 @@ class ImageProcessing:
         self.eps = 1e-3
 
     def __call__(self, image_batch, **kwargs):
-        image_batch = tf.identity(image_batch, self.input_node_name)
+        image_batch = tf.identity(image_batch, name=self.input_node_name)
         image_batch = tf.cast(image_batch, dtype=tf.float32, name='float_image')
         image_batch = tf.image.resize(image_batch, size=self.image_size, name='resized_image')
 
@@ -103,6 +103,8 @@ class ImageProcessing:
             image_batch = tf.image.per_image_standardization(image_batch)
         else:
             raise ValueError('Invalid image normalization algorithm')
+
+        image_batch = tf.identity(image_batch, name=self.__class__.__name__ + '_output')
 
         return image_batch
 
