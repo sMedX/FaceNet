@@ -130,7 +130,7 @@ def save_frozen_graph(model_dir, output_file=None, suffix='', strip=True, optimi
 
 def export_h5(model_dir, image_batch=None, module=None):
 
-    from facenet import nodes
+    from facenet import nodes, config_nodes
     input_tensor_name = nodes['input']['name'] + ':0'
 
     with tf.Graph().as_default():
@@ -164,6 +164,13 @@ def export_h5(model_dir, image_batch=None, module=None):
 
             for key, item in nodes.items():
                 name = item['name'] + ':0'
+                out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
+                print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
+                h5utils.write(h5file, f'checkpoint/{name}', out)
+                nrof_ops += 1
+
+            for key, item in config_nodes.items():
+                name = item['name']
                 out = sess.run(graph.get_tensor_by_name(name), feed_dict=feed_dict)
                 print(f'{nrof_ops}) {name} {out.shape} {out.dtype}')
                 h5utils.write(h5file, f'checkpoint/{name}', out)

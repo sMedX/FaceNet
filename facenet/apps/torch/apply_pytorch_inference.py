@@ -23,8 +23,10 @@ def main(**options):
     model = module.FaceNet(h5file)
     model.test()
 
-    image = h5utils.read(h5file, 'checkpoint/image:0')[0]
+    image = h5utils.read(h5file, 'checkpoint/input:0')
+
     embedding = model.forward_image(image)
+
     print(embedding.shape)
 
 
