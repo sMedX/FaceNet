@@ -11,5 +11,3 @@ pyyaml
 click
 tqdm
 cached_property
-
-torch~=1.6.0
