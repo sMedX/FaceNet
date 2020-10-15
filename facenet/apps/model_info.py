@@ -9,7 +9,7 @@ import click
 from pathlib import Path
 import numpy as np
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from facenet import tfutils, config, nodes
 
@@ -18,28 +18,18 @@ from facenet import tfutils, config, nodes
 @click.option('--path', default=config.default_model, type=Path, help='Path to model.')
 def main(**options):
 
-    input_node_name = '{}:0'.format(nodes['input']['name'][0])
-    output_node_name = '{}:0'.format(nodes['output']['name'][0])
+    input_node_name = nodes['input']['name'] + ':0'
+    output_node_name = nodes['output']['name'] + ':0'
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
             tfutils.load_model(options['path'], input_map=None)
 
-            graph = tf.compat.v1.get_default_graph()
-
-            # for i, op in enumerate(graph.get_operations()):
-            #     print(i, op.name, op.type)
-            #     print('\tinputs ', op.inputs)
-            #     print('\toutputs', op.outputs)
+            graph = tf.get_default_graph()
 
             print()
             print('length of list of graph operations', len(graph.get_operations()))
-            print('length of list of global variables', len(tf.compat.v1.global_variables()))
-
-            nrof_vars = 0
-            for var in tf.compat.v1.global_variables():
-                nrof_vars += np.prod(var.shape)
-            print('number of variables', nrof_vars)
+            print('length of list of global variables', len(tf.global_variables()))
 
             image_placeholder = graph.get_tensor_by_name(input_node_name)
             print('image :', image_placeholder)
@@ -48,14 +38,35 @@ def main(**options):
             print('output:', embedding)
 
             phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
+            print('output:', phase_train_placeholder)
 
-            feed_dict = {
-                image_placeholder: np.zeros([1, 160, 160, 3], dtype=np.uint8),
-                phase_train_placeholder: False
-            }
+            print('output list of trainable variables')
+            fname = options['path'].joinpath('variables.txt')
+            with open(fname, 'w') as f:
+                for i, var in enumerate(tf.trainable_variables()):
+                    f.write(f'{i}) {var}\n')
 
-            out = sess.run(embedding, feed_dict=feed_dict)
-            print(out.shape)
+    print('output list of operations from frozen graph')
+    with tf.Graph().as_default():
+        with tf.Session() as sess:
+            tfutils.load_frozen_graph(options['path'])
+            graph = tf.get_default_graph()
+
+            fname = options['path'].joinpath('operations.txt')
+
+            with open(fname, 'w') as f:
+                for i, op in enumerate(graph.get_operations()):
+                    f.write(f'{i}) {op.name} {op.type}\n')
+
+                    f.write(f'---  inputs [{len(op.inputs)}] {op.inputs}\n')
+                    for input_tensor in op.inputs:
+                        f.write(f'            {input_tensor}\n')
+
+                    f.write(f'--- outputs [{len(op.outputs)}] {op.outputs[0]}\n')
+                    for output in op.outputs[1:]:
+                        f.write(f'            {output}\n')
+
+                    f.write(f'---  values {op.values}\n')
 
 
 if __name__ == '__main__':

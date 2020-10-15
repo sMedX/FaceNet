@@ -13,8 +13,11 @@ import tensorflow as tf
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
-default_model = src_dir.joinpath('models', '20200820-121641')
+default_model = src_dir.joinpath('models', '20201008-183421')
 default_batch_size = 64
+image_size = 160
+
+data_dir = Path(__file__).parents[1].joinpath('data')
 
 file_extension = '.png'
 

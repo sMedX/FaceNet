@@ -21,7 +21,9 @@ As described in http://arxiv.org/abs/1602.07261.
 
 import pathlib
 import tensorflow.compat.v1 as tf
-import tensorflow.contrib.slim as slim
+from tensorflow.python.framework import dtypes
+
+import tf_slim as slim
 from typing import Optional
 from collections.abc import Callable
 from facenet.config import YAMLConfig
@@ -31,6 +33,88 @@ model_name = pathlib.Path(__file__).stem
 config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
 
 default_model_config = YAMLConfig(config_file).config
+
+scope_name = 'InceptionResnetV1'
+
+nodes = {
+    'image': {
+        'path': f'{scope_name}/preprocessing',
+        'input': 'input:0',
+        'output': 'input:0'
+    },
+
+    'sequential': {
+        'path': f'{scope_name}/sequential',
+        'input': 'input:0',
+        'output': f'{scope_name}/Conv2d_4b_3x3/Relu:0'
+    },
+
+    'block35': {
+        'path': f'{scope_name}/block35',
+        'input': f'{scope_name}/Conv2d_4b_3x3/Relu:0',
+        'output': f'{scope_name}/Repeat/block35_5/Relu:0'
+    },
+
+    'reduction_a': {
+        'path': f'{scope_name}/Mixed_6a',
+        'input': f'{scope_name}/Repeat/block35_5/Relu:0',
+        'output': f'{scope_name}/Mixed_6a/concat:0'
+        },
+
+    'block17': {
+        'path': f'{scope_name}/block17',
+        'input': f'{scope_name}/Mixed_6a/concat:0',
+        'output': f'{scope_name}/Repeat_1/block17_10/Relu:0'
+    },
+
+    'reduction_b': {
+        'path': f'{scope_name}/Mixed_7a',
+        'input': f'{scope_name}/Repeat_1/block17_10/Relu:0',
+        'output': f'{scope_name}/Mixed_7a/concat:0'
+    },
+
+    'block8/repeat': {
+        'path': f'{scope_name}/Block8/repeat',
+        'input': f'{scope_name}/Mixed_7a/concat:0',
+        'output': f'{scope_name}/Repeat_2/block8_5/Relu:0'
+    },
+
+    'block8': {
+        'path': f'{scope_name}/Block8',
+        'input': f'{scope_name}/Repeat_2/block8_5/Relu:0',
+        'output': f'{scope_name}/Block8/add:0'
+    },
+
+    'AvgPool': {
+        'path': f'{scope_name}/AvgPool',
+        'input': f'{scope_name}/Block8/add:0',
+        'output': f'{scope_name}/Logits/AvgPool_1a_8x8/AvgPool:0'
+    },
+
+    'flatten': {
+        'path': f'{scope_name}/Flatten',
+        'input': f'{scope_name}/Logits/AvgPool_1a_8x8/AvgPool:0',
+        'output': f'{scope_name}/Logits/Flatten/flatten/Reshape:0'
+    },
+
+    'logits': {
+        'path': f'{scope_name}/Bottleneck',
+        'input': f'{scope_name}/Logits/Flatten/flatten/Reshape:0',
+        'output': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
+    },
+
+    'inference': {
+        'path': f'{scope_name}/inference',
+        'input': 'input:0',
+        'output': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
+        },
+
+    'embedding': {
+        'path': f'{scope_name}/embedding',
+        'input': 'input:0',
+        'output': 'embeddings:0'
+        }
+    }
 
 
 # Inception-Resnet-A
@@ -145,7 +229,7 @@ def reduction_b(net, config):
 def inception_resnet_v1(inputs, config, is_training=True,
                         dropout_keep_prob=0.8,
                         reuse=None,
-                        scope='InceptionResnetV1'):
+                        scope=scope_name):
     """Creates the Inception Resnet V1 model.
     Args:
       inputs: a 4-D tensor of size [batch_size, height, width, 3].
@@ -161,7 +245,7 @@ def inception_resnet_v1(inputs, config, is_training=True,
     end_points = {}
     bottleneck_layer_size = config.embedding_size
 
-    with tf.variable_scope(scope, 'InceptionResnetV1', [inputs], reuse=reuse):
+    with tf.variable_scope(scope, scope, [inputs], reuse=reuse):
         with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
             with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
                 # 149 x 149 x 32
@@ -219,13 +303,12 @@ def inception_resnet_v1(inputs, config, is_training=True,
           
                     end_points['PreLogitsFlatten'] = net
                 
-                net = slim.fully_connected(net, bottleneck_layer_size,
-                                           activation_fn=None, scope='Bottleneck', reuse=False)
+                net = slim.fully_connected(net, bottleneck_layer_size, activation_fn=None, scope='Bottleneck', reuse=False)
   
     return net, end_points
 
 
-def inference(images, config=None, phase_train=True, reuse=None):
+def inference(inputs, config=None, phase_train=True, reuse=None):
 
     if config is None:
         config = default_model_config
@@ -247,8 +330,7 @@ def inference(images, config=None, phase_train=True, reuse=None):
                         normalizer_fn=slim.batch_norm,
                         normalizer_params=batch_norm_params):
 
-        return inception_resnet_v1(images,
-                                   config,
+        return inception_resnet_v1(inputs, config,
                                    is_training=phase_train,
                                    dropout_keep_prob=config.keep_probability,
                                    reuse=reuse)

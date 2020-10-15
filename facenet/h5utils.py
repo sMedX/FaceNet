@@ -50,9 +50,8 @@ def write(file, name, data, mode='a'):
 
     with h5py.File(file, mode=mode) as hf:
         if name in hf:
-            hf[name][...] = data
-        else:
-            hf.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
+            del hf[name]
+        hf.create_dataset(name, data=data, compression='gzip', dtype=data.dtype)
 
 
 def read(file, name, default=None):
@@ -60,7 +59,10 @@ def read(file, name, default=None):
         if name in hf:
             return hf[name][...]
         else:
-            return default
+            if default is not None:
+                return default
+            else:
+                raise KeyError(f'Invalid key {name} in H5 file {file}')
 
 
 def keys(file):
@@ -71,3 +73,16 @@ def keys(file):
 def visit(file, func=print):
     with h5py.File(str(file), mode='r') as f:
         f.visit(func)
+
+
+def visititems(file, func=None):
+    items = []
+    if func is None:
+        def func(name, obj):
+            if isinstance(obj, h5py.Dataset):
+                items.append({'name': name, 'shape': obj.shape, 'type': obj.dtype})
+
+    with h5py.File(str(file), mode='r') as f:
+        f.visititems(func)
+
+    return items

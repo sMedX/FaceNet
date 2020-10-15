@@ -27,12 +27,11 @@ import click
 import time
 import importlib
 from tqdm import tqdm
-from functools import partial
 from pathlib import Path
 import tensorflow.compat.v1 as tf
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 
-from facenet import ioutils, dataset, statistics, config, h5utils, facenet, tfutils
+from facenet import nodes, ioutils, dataset, statistics, config, h5utils, facenet, tfutils
 
 
 @click.command()
@@ -55,7 +54,7 @@ def main(**options):
     ioutils.write_text_log(options.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    map_func = partial(facenet.load_images, config=options.image)
+    map_func = facenet.ImageLoader(config=options.image)
     ds = {
         'train': facenet.make_train_dataset(dbase, map_func, options),
         'validate': facenet.make_validate_dataset(dbase_val, map_func, options),
@@ -78,7 +77,8 @@ def main(**options):
 
     print('Building training graph')
 
-    image_batch = facenet.image_processing(placeholders.image_batch, options.image)
+    image_processing = facenet.ImageProcessing(options.image)
+    image_batch = image_processing(placeholders.image_batch)
 
     prelogits, _ = network.inference(image_batch,
                                      config=options.model.config,
@@ -89,7 +89,8 @@ def main(**options):
                                   weights_regularizer=slim.l2_regularizer(options.model.config.weight_decay),
                                   scope='Logits', reuse=False)
 
-    embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name='embedding')
+    output_node_name = nodes['output']['name']
+    embedding = tf.nn.l2_normalize(prelogits, 1, 1e-10, name=output_node_name)
 
     # Norm for the prelogits
     eps = 1e-4
@@ -188,7 +189,7 @@ def main(**options):
 
                 print(validation)
 
-    tfutils.save_freeze_graph(model_dir=options.model.path, optimize=True)
+    tfutils.save_frozen_graph(model_dir=options.model.path, optimize=True)
 
     ioutils.write_elapsed_time(options.h5file, start_time)
     ioutils.write_elapsed_time(options.txtfile, start_time)

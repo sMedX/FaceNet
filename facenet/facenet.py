@@ -26,7 +26,8 @@ import tensorflow as tf
 from tqdm import tqdm
 from functools import partial
 
-from facenet import ioutils, h5utils, FaceNet
+from facenet import nodes, ioutils, h5utils, FaceNet
+from facenet import config as default_config
 
 
 class Placeholders:
@@ -62,40 +63,50 @@ class Placeholders:
         }
 
 
-def load_images(path, config):
-    height = config.size
-    width = config.size
+class ImageLoader:
+    def __init__(self, config=None):
+        if config is None:
+            self.height = default_config.image_size
+            self.width = default_config.image_size
+        else:
+            self.height = config.size
+            self.width = config.size
 
-    contents = tf.io.read_file(path)
-    image = tf.image.decode_image(contents, channels=3)
-    image = tf.image.resize_image_with_crop_or_pad(image, height, width)
-    return image
+    def __call__(self, path):
+        contents = tf.io.read_file(path)
+        image = tf.image.decode_image(contents, channels=3)
+        image = tf.image.resize_image_with_crop_or_pad(image, self.height, self.width)
+        return image
 
 
-def image_processing(image_batch, config):
-    eps = 1e-3
+class ImageProcessing:
+    def __init__(self, config):
+        self.input_node_name = nodes['input']['name']
 
-    image_batch = tf.identity(image_batch, 'image')
-    image_batch = tf.cast(image_batch, dtype=tf.float32, name='float_image')
+        self.config = config
+        self.image_size = tf.constant([self.config.size, self.config.size], name='image_size')
+        self.eps = 1e-3
 
-    image_size = tf.constant([config.size, config.size], name='image_size')
-    image_batch = tf.image.resize(image_batch, size=image_size, name='resized_image')
+    def __call__(self, image_batch, **kwargs):
+        image_batch = tf.identity(image_batch, name=self.input_node_name)
+        image_batch = tf.cast(image_batch, dtype=tf.float32, name='float_image')
+        image_batch = tf.image.resize(image_batch, size=self.image_size, name='resized_image')
 
-    if config.normalization == 0:
-        min_value = tf.math.reduce_min(image_batch, axis=[-1, -2, -3], keepdims=True)
-        max_value = tf.math.reduce_max(image_batch, axis=[-1, -2, -3], keepdims=True)
-        dynamic_range = tf.math.maximum(max_value - min_value, eps)
+        if self.config.normalization == 0:
+            min_value = tf.math.reduce_min(image_batch, axis=[-1, -2, -3], keepdims=True)
+            max_value = tf.math.reduce_max(image_batch, axis=[-1, -2, -3], keepdims=True)
+            dynamic_range = tf.math.maximum(max_value - min_value, self.eps)
 
-        image_batch = (2*image_batch - (max_value + min_value))/dynamic_range
+            image_batch = (2 * image_batch - (min_value + max_value)) / dynamic_range
 
-    elif config.normalization == 1:
-        image_batch = tf.image.per_image_standardization(image_batch)
-    else:
-        raise ValueError('Invalid image normalization algorithm')
+        elif self.config.normalization == 1:
+            image_batch = tf.image.per_image_standardization(image_batch)
+        else:
+            raise ValueError('Invalid image normalization algorithm')
 
-    image_batch = tf.identity(image_batch, 'input')
+        image_batch = tf.identity(image_batch, name=self.__class__.__name__ + '_output')
 
-    return image_batch
+        return image_batch
 
 
 def make_train_dataset(dbase, map_func, args):

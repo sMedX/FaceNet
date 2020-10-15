@@ -24,7 +24,7 @@ import pathlib
 from typing import Optional
 from collections.abc import Callable
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 from facenet.config import YAMLConfig
 
 model_dir = pathlib.Path(__file__).parent

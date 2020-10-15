@@ -13,13 +13,21 @@ from facenet import tfutils, ioutils
 
 nodes = {
     'input': {
-        'name': ['image'],
-        'type': [dtypes.uint8.as_datatype_enum]
+        'name': 'input',
+        'type': dtypes.uint8.as_datatype_enum
         },
 
     'output': {
-        'name': ['embedding'],
-        'type': [dtypes.float32.as_datatype_enum]
+        'name': 'embeddings',
+        'type': dtypes.float32.as_datatype_enum
+    },
+
+}
+
+config_nodes = {
+    'image_size': {
+        'name': 'image_size:0',
+        'type': dtypes.uint8.as_datatype_enum
     }
 }
 
@@ -38,8 +46,8 @@ class FaceNet:
         tfutils.load_model(config.path)
 
         # Get input and output tensors
-        input_node_name = '{}:0'.format(nodes['input']['name'][0])
-        output_node_name = '{}:0'.format(nodes['output']['name'][0])
+        input_node_name = nodes['input']['name'] + ':0'
+        output_node_name = nodes['output']['name'] + ':0'
 
         graph = tf.get_default_graph()
         self._phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
