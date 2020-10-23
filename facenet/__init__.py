@@ -43,7 +43,7 @@ class FaceNet:
         print(emb)
         """
         self._session = tf.Session()
-        tfutils.load_model(config.path)
+        tfutils.load_frozen_graph(config.path)
 
         # Get input and output tensors
         input_node_name = nodes['input']['name'] + ':0'

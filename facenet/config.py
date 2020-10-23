@@ -104,16 +104,11 @@ class YAMLConfig:
 class Embeddings(YAMLConfig):
     def __init__(self, args_):
         YAMLConfig.__init__(self, args_['config'])
-        if not self.seed:
-            self.seed = 0
-        random.seed(self.seed)
-        np.random.seed(self.seed)
-
-        if not self.model:
-            self.model = default_model
+        if not self.model.path:
+            self.model.path = default_model
 
         if not self.tfrecord:
-            self.tfrecord = Path(self.dataset.path + self.model.stem + '.tfrecord')
+            self.tfrecord = Path(self.dataset.path + self.model.path.stem + '.tfrecord')
         self.tfrecord = Path(self.tfrecord).expanduser()
 
         if not self.file:

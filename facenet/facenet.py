@@ -65,12 +65,8 @@ class Placeholders:
 
 class ImageLoader:
     def __init__(self, config=None):
-        if config is None:
-            self.height = default_config.image_size
-            self.width = default_config.image_size
-        else:
-            self.height = config.size
-            self.width = config.size
+        self.height = config.size
+        self.width = config.size
 
     def __call__(self, path):
         contents = tf.io.read_file(path)
@@ -326,8 +322,8 @@ class EvaluationOfEmbeddings:
 
         print('Running forward pass on images')
 
-        map_func = partial(load_images, args=self.config.image)
-        dataset = make_validate_dataset(dbase, map_func, self.config, shuffle=False)
+        loader = ImageLoader(config=self.config.image)
+        dataset = make_validate_dataset(dbase, loader, self.config, shuffle=False)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
