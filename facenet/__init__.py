@@ -48,6 +48,7 @@ class FaceNet:
         # Get input and output tensors
         input_node_name = nodes['input']['name'] + ':0'
         output_node_name = nodes['output']['name'] + ':0'
+        output_node_name = 'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0'
 
         graph = tf.get_default_graph()
         self._phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')

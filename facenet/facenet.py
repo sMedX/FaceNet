@@ -311,6 +311,14 @@ def learning_rate_value(epoch, config):
             return lr_
 
 
+def split_embeddings(embeddings, labels):
+    list_of_embeddings = []
+    for label in np.unique(labels):
+        emb_array = embeddings[label == labels]
+        list_of_embeddings.append(emb_array)
+    return list_of_embeddings
+
+
 class EvaluationOfEmbeddings:
     def __init__(self, dbase, config):
         self.config = config
