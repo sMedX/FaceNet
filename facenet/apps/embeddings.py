@@ -26,27 +26,6 @@ def main(**options):
     embeddings.write_report(options.file)
     print(embeddings)
 
-    def stats(x):
-        norm = np.linalg.norm(x, axis=1)
-        mean_norm = np.mean(norm)
-        # print(np.min(norm), np.mean(norm), np.max(norm))
-        return np.min(norm)/mean_norm - 1, np.max(norm)/mean_norm - 1
-
-    stats(embeddings.embeddings)
-    embs = facenet.split_embeddings(embeddings.embeddings, embeddings.labels)
-    min_ = []
-    max_ = []
-
-    for idx, emb in enumerate(embs):
-        x, y = stats(emb)
-        min_.append(x)
-        max_.append(y)
-        print(f'{idx}) ', x, y)
-
-    print()
-    print(min(min_), max(max_))
-    exit(0)
-
     with tf.io.TFRecordWriter(str(options.tfrecord)) as writer:
         for embedding, label, file in zip(embeddings.embeddings, dbase.labels, dbase.files):
             feature = {
