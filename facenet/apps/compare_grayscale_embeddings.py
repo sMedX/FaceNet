@@ -6,10 +6,10 @@
 
 import click
 from pathlib import Path
-import tensorflow as tf
 
-from facenet import dataset, config, facenet, tfutils, ioutils, DefaultConfig, FaceNet
 import numpy as np
+
+from facenet import dataset, config, ioutils, DefaultConfig, FaceNet
 
 
 @click.command()
@@ -25,8 +25,7 @@ def main(**options):
 
     # create model
     conf = DefaultConfig(path=options['model'],
-                         output='embeddings:0')
-                         # output='InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0')
+                         output='embeddings:0')     # 'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0')
     face_net = FaceNet(conf)
 
     for file in dbase.files:
