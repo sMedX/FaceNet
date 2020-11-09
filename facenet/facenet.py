@@ -121,21 +121,19 @@ def make_train_dataset(dbase, map_func, args):
     return ds
 
 
-def make_validate_dataset(ds, map_func, args, shuffle=True):
-    if shuffle:
-        data = list(zip(ds.files, ds.labels))
-        np.random.shuffle(data)
-        files, labels = map(list, zip(*data))
-    else:
-        files, labels = ds.files, ds.labels
+def make_test_dataset(dbase, config, shuffle=True):
+    loader = ImageLoader(config=config.image)
 
-    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    files, labels = dbase.files, dbase.labels
+
+    images = tf.data.Dataset.from_tensor_slices(files).map(loader)
     labels = tf.data.Dataset.from_tensor_slices(labels)
+    dataset = tf.data.Dataset.zip((images, labels))
 
-    ds = tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
-    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+    dataset = dataset.batch(batch_size=config.batch_size)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-    return ds
+    return dataset
 
 
 def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch, info):
