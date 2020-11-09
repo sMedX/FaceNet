@@ -18,7 +18,7 @@ default_batch_size = 64
 image_size = 160
 
 data_dir = Path(__file__).parents[1].joinpath('data')
-faces_dir = data_dir.joinpath('data', 'faces')
+faces_dir = data_dir.joinpath('faces')
 
 
 file_extension = '.png'
