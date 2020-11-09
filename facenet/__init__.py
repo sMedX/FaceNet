@@ -4,6 +4,8 @@
 # MIT License
 # Copyright (c) 2020 sMedX
 
+from pathlib import Path
+
 import tensorflow.compat.v1 as tf
 from tensorflow.python.framework import dtypes
 
@@ -32,6 +34,11 @@ config_nodes = {
 }
 
 
+class DefaultConfig:
+    def __init__(self, path):
+        self.path = path
+
+
 class FaceNet:
     def __init__(self, config):
         """
@@ -42,6 +49,9 @@ class FaceNet:
         emb = facenet.image_to_embedding(np.zeros([160, 160, 3]))
         print(emb)
         """
+        if isinstance(config, Path):
+            config = DefaultConfig(config)
+
         self._session = tf.Session()
         tfutils.load_frozen_graph(config.path)
 
