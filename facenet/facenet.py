@@ -329,7 +329,7 @@ class EvaluationOfEmbeddings:
         print('Running forward pass on images')
 
         loader = ImageLoader(config=self.config.image)
-        dataset = make_validate_dataset(dbase, loader, self.config, shuffle=False)
+        dataset = make_test_dataset(dbase, loader, self.config)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:

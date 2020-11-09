@@ -210,7 +210,7 @@ def write_to_file(file, s, mode='w'):
 
 
 def write_text_log(file, info):
-    info = 64 * '-' + '\n' + info
+    info = 64 * '-' + '\n' + str(info)
 
     with file.open(mode='a') as f:
         f.write(info)

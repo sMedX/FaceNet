@@ -128,6 +128,26 @@ class Embeddings(YAMLConfig):
         ioutils.store_revision_info(self.file, sys.argv)
 
 
+class TrainClassifier(YAMLConfig):
+    def __init__(self, config):
+        YAMLConfig.__init__(self, config['config'])
+
+        self.model.path = Path(self.model.path).expanduser() / subdir()
+
+        if not self.model_dir:
+            self.model_dir = default_model
+
+        if not self.batch_size:
+            self.batch_size = default_batch_size
+
+        self.log_dir = self.model.path / 'logs'
+        self.log_file = self.log_dir / 'report.txt'
+
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.log_dir.joinpath('arguments.yaml'))
+        ioutils.store_revision_info(self.log_dir, sys.argv)
+
+
 class Validate(YAMLConfig):
     def __init__(self, args_):
         YAMLConfig.__init__(self, args_['config'])
@@ -152,8 +172,8 @@ class Validate(YAMLConfig):
             self.dataset.min_nrof_images = 1
 
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.file.parent)
-        ioutils.store_revision_info(self.file, sys.argv)
+        ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
+        ioutils.store_revision_info(self.logs, sys.argv)
 
 
 class TrainOptions(YAMLConfig):
