@@ -8,7 +8,7 @@ from pathlib import Path
 from facenet import ioutils, h5utils
 
 
-class Config:
+class DefaultConfig:
     def __init__(self, path, h5file=None, nrof_classes=None, min_nrof_images=1, max_nrof_images=None):
         self.path = path
         # Path to h5 file with information about valid images.
@@ -77,6 +77,9 @@ class ImageClass:
 
 class DBase:
     def __init__(self, config, classes=None, ext=''):
+        if isinstance(config, Path):
+            config = DefaultConfig(config)
+
         self.path = config.path
         self.h5file = config.h5file
 
