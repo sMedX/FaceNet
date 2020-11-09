@@ -80,6 +80,9 @@ class DBase:
         if isinstance(config, Path):
             config = DefaultConfig(config)
 
+        if not config.min_nrof_images:
+            config.min_nrof_images = 1
+
         self.path = config.path
         self.h5file = config.h5file
 
