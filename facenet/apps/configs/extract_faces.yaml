@@ -14,7 +14,7 @@ detector: frcnnv3
 image_size: 160
 
 # Margin for the crop around the bounding box (height, width) in pixels.', default=0.20
-margin: [0.20, 0.10]
+margin: [0, 0]
 
 # Detect and align multiple faces per image, default=False
 detect_multiple_faces: false
