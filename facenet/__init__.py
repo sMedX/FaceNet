@@ -35,8 +35,16 @@ config_nodes = {
 
 
 class DefaultConfig:
-    def __init__(self, path):
+    def __init__(self, path, input=None, output=None):
         self.path = path
+
+        if input is None:
+            input = nodes['input']['name'] + ':0'
+        self.input = input
+
+        if output is None:
+            output = nodes['output']['name'] + ':0'
+        self.output = output
 
 
 class FaceNet:
@@ -55,15 +63,11 @@ class FaceNet:
         self._session = tf.Session()
         tfutils.load_frozen_graph(config.path)
 
-        # Get input and output tensors
-        input_node_name = nodes['input']['name'] + ':0'
-        output_node_name = nodes['output']['name'] + ':0'
-        output_node_name = 'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0'
-
+        # input and output tensors
         graph = tf.get_default_graph()
         self._phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
-        self._image_placeholder = graph.get_tensor_by_name(input_node_name)
-        self._embeddings = graph.get_tensor_by_name(output_node_name)
+        self._image_placeholder = graph.get_tensor_by_name(config.input)
+        self._embeddings = graph.get_tensor_by_name(config.output)
 
         self._feed_dict = {
             self._image_placeholder: None,
