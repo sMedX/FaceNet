@@ -132,10 +132,10 @@ class TrainClassifier(YAMLConfig):
     def __init__(self, config):
         YAMLConfig.__init__(self, config['config'])
 
-        self.model.path = Path(self.model.path).expanduser() / subdir()
+        self.classifier.path = Path(self.classifier.path).expanduser() / subdir()
 
-        if not self.model_dir:
-            self.model_dir = default_model
+        if not self.model.path:
+            self.model.path = default_model
 
         if not self.batch_size:
             self.batch_size = default_batch_size
