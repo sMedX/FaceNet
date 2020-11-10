@@ -8,8 +8,7 @@ import click
 from pathlib import Path
 import tensorflow as tf
 
-from facenet import dataset, config, facenet, tfutils
-import numpy as np
+from facenet import dataset, config, facenet, tfutils, ioutils
 
 
 @click.command()
@@ -19,11 +18,11 @@ def main(**options):
     options = config.Embeddings(options)
 
     dbase = dataset.DBase(options.dataset)
-    dbase.write_report(options.file)
+    ioutils.write_text_log(options.log_file, dbase)
     print(dbase)
 
     embeddings = facenet.EvaluationOfEmbeddings(dbase, options)
-    embeddings.write_report(options.file)
+    ioutils.write_text_log(options.log_file, dbase)
     print(embeddings)
 
     with tf.io.TFRecordWriter(str(options.tfrecord)) as writer:
@@ -31,7 +30,7 @@ def main(**options):
             feature = {
                 'embedding': tfutils.float_feature(embedding.tolist()),
                 'label': tfutils.int64_feature(label),
-                # 'file': tfutils.bytes_feature(file.encode())
+                'file': tfutils.bytes_feature(file.encode())
                 }
             example = tf.train.Example(features=tf.train.Features(feature=feature))
             writer.write(example.SerializeToString())

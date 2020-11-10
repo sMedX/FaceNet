@@ -113,19 +113,15 @@ class Embeddings(YAMLConfig):
             self.tfrecord = Path(self.dataset.path + self.model.path.stem + '.tfrecord')
         self.tfrecord = Path(self.tfrecord).expanduser()
 
-        if not self.file:
-            self.file = self.tfrecord.with_suffix('.txt')
-        self.file = Path(self.file).expanduser()
+        self.log_dir = self.tfrecord.parent
+        self.log_file = self.tfrecord.with_suffix('.txt')
 
         if not self.batch_size:
             self.batch_size = default_batch_size
 
-        if not self.dataset.min_nrof_images:
-            self.dataset.min_nrof_images = 1
-
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.file.parent)
-        ioutils.store_revision_info(self.file, sys.argv)
+        ioutils.write_arguments(self, Path(self.log_dir, self.tfrecord.stem + '_arguments.yaml'))
+        ioutils.store_revision_info(self.log_dir, sys.argv)
 
 
 class TrainClassifier(YAMLConfig):
