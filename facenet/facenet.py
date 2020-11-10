@@ -347,6 +347,15 @@ class EvaluationOfEmbeddings:
                 'model: {}\n'.format(self.config.model) +
                 'embedding size: {}\n'.format(self.embeddings.shape))
 
+    def split(self):
+        list_of_embeddings = []
+
+        for label in np.unique(self.labels):
+            emb_array = self.embeddings[label == self.labels]
+            list_of_embeddings.append(emb_array)
+        return list_of_embeddings
+
+
 
 class Summary:
     def __init__(self, summary_writer, h5file, tag=''):
