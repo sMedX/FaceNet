@@ -12,6 +12,7 @@ from tensorflow.python.framework import dtypes
 import numpy as np
 from typing import Iterable
 from facenet import tfutils, ioutils
+from facenet.config import YAMLConfig
 
 nodes = {
     'input': {
@@ -34,19 +35,6 @@ config_nodes = {
 }
 
 
-class DefaultConfig:
-    def __init__(self, path, input=None, output=None):
-        self.path = path
-
-        if input is None:
-            input = nodes['input']['name'] + ':0'
-        self.input = input
-
-        if output is None:
-            output = nodes['output']['name'] + ':0'
-        self.output = output
-
-
 class FaceNet:
     def __init__(self, config):
         """
@@ -57,8 +45,11 @@ class FaceNet:
         emb = facenet.image_to_embedding(np.zeros([160, 160, 3]))
         print(emb)
         """
-        if isinstance(config, Path):
-            config = DefaultConfig(config)
+        if not config.input:
+            config.input = nodes['input']['name'] + ':0'
+
+        if not config.output:
+            config.output = nodes['output']['name'] + ':0'
 
         self._session = tf.Session()
         tfutils.load_frozen_graph(config.path)

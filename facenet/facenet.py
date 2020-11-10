@@ -121,7 +121,7 @@ def make_train_dataset(dbase, map_func, args):
     return ds
 
 
-def make_test_dataset(dbase, config, shuffle=True):
+def make_test_dataset(dbase, config):
     loader = ImageLoader(config=config.image)
 
     files, labels = dbase.files, dbase.labels
@@ -327,9 +327,7 @@ class EvaluationOfEmbeddings:
         facenet = FaceNet(self.config.model)
 
         print('Running forward pass on images')
-
-        loader = ImageLoader(config=self.config.image)
-        dataset = make_test_dataset(dbase, loader, self.config)
+        dataset = make_test_dataset(dbase, self.config)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
@@ -348,10 +346,6 @@ class EvaluationOfEmbeddings:
         return ('{}\n'.format(self.__class__.__name__) +
                 'model: {}\n'.format(self.config.model) +
                 'embedding size: {}\n'.format(self.embeddings.shape))
-
-    def write_report(self, file):
-        info = 64 * '-' + '\n' + str(self)
-        ioutils.write_to_file(file, info, mode='a')
 
 
 class Summary:
