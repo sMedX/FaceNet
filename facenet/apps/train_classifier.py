@@ -16,8 +16,13 @@ import numpy as np
 from facenet import dataset, config, facenet, tfutils, ioutils
 
 
+# evaluation of similarity
+def similarity(x, y):
+    return 2*(1 - x @ y)
+
+
 class ConfusionMatrix:
-    def __init__(self, embeddings, threshold):
+    def __init__(self, embeddings, threshold=1):
         nrof_classes = len(embeddings)
         nrof_positive_class_pairs = nrof_classes
         nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1)/2
@@ -104,7 +109,7 @@ def binary_cross_entropy_loss(embeddings, options):
     pos_weight = len(labels)/sum(labels) - 1
 
     # initialize cross entropy loss
-    distances = 2 * (1 - embeddings @ tf.transpose(embeddings))
+    distances = similarity(embeddings, tf.transpose(embeddings))
     distances = tf.gather_nd(distances, triu_indices)
 
     logits = tf.multiply(alpha, tf.subtract(threshold, distances))
@@ -164,6 +169,9 @@ def main(**options):
                 postfix = f"variables {outs['vars']}, loss {outs['loss']}"
                 bar.set_postfix_str(postfix)
                 bar.update()
+
+    conf_mat = ConfusionMatrix(embeddings, threshold=outs['vars'][1])
+    print(conf_mat)
 
 
 if __name__ == '__main__':
