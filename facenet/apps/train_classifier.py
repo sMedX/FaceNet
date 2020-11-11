@@ -16,6 +16,47 @@ import numpy as np
 from facenet import dataset, config, facenet, tfutils, ioutils
 
 
+class ConfusionMatrix:
+    def __init__(self, embeddings, threshold):
+        nrof_classes = len(embeddings)
+        nrof_positive_class_pairs = nrof_classes
+        nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1)/2
+
+        tp = tn = fp = fn = 0
+
+        for i in range(nrof_classes):
+            for k in range(i+1):
+                sims = similarity(embeddings[i], np.transpose(embeddings[k]))
+                mean = np.mean(sims < threshold)
+
+                if i == k:
+                    tp += mean
+                    fn += 1 - mean
+                else:
+                    fp += mean
+                    tn += 1 - mean
+
+        tp /= nrof_positive_class_pairs
+        fn /= nrof_positive_class_pairs
+
+        fp /= nrof_negative_class_pairs
+        tn /= nrof_negative_class_pairs
+
+        self.threshold = threshold
+        self.accuracy = (tp + tn) / (tp + fp + tn + fn)
+        self.precision = tp / (tp + fp)
+        self.tp_rate = tp / (tp + fn)
+        self.tn_rate = tn / (tn + fp)
+
+    def __repr__(self):
+        return ('\n'.format(self.__class__.__name__) +
+                'threshold {}\n'.format(self.threshold) +
+                'accuracy  {}\n'.format(self.accuracy) +
+                'precision {}\n'.format(self.precision) +
+                'tp rate   {}\n'.format(self.tp_rate) +
+                'tn rate   {}\n'.format(self.tn_rate))
+
+
 def binary_cross_entropy_input_pipeline(embeddings, options):
     print('Building binary cross-entropy pipeline.')
 
