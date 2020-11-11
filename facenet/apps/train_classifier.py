@@ -19,26 +19,29 @@ from facenet import dataset, config, facenet, tfutils, ioutils
 def binary_cross_entropy_input_pipeline(embeddings, options):
     print('Building binary cross-entropy pipeline.')
 
+    if not options.nrof_classes_per_batch:
+        options.nrof_classes_per_batch = len(embeddings)
+
     batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
 
     def generator():
         while True:
             embs = []
             for embeddings_per_class in random.sample(embeddings, options.nrof_classes_per_batch):
-                embs += random.sample(embeddings_per_class, options.nrof_examples_per_class)
+                embs += random.sample(embeddings_per_class.tolist(), options.nrof_examples_per_class)
             yield embs
 
-    ds = tf.data.Dataset.from_generator(generator, output_types=tf.string)
+    ds = tf.data.Dataset.from_generator(generator, output_types=tf.float32)
     ds = ds.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+
     ds = ds.batch(batch_size)
+    next_elem = ds.make_one_shot_iterator().get_next()
 
-    image_batch, label_batch = ds.make_one_shot_iterator().get_next()
-
-    return image_batch, label_batch
+    return next_elem
 
 
 def binary_cross_entropy_loss(embeddings, options):
-    alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
+    alpha = tf.Variable(initial_value=1., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
     loss_vars = {'alpha': alpha, 'threshold': threshold}
@@ -87,16 +90,15 @@ def main(**options):
     print(embeddings)
 
     embeddings = embeddings.split()
-    image_batch, label_batch = binary_cross_entropy_input_pipeline(embeddings, options)
+    next_elem = binary_cross_entropy_input_pipeline(embeddings, options)
 
-    cross_entropy, loss_vars = binary_cross_entropy_loss(embeddings, options)
+    embeddings_size = embeddings[0].shape[1]
+    embeddings_batch = tf.placeholder(tf.float32, shape=[None, embeddings_size], name='embeddings_batch')
+    cross_entropy, loss_vars = binary_cross_entropy_loss(embeddings_batch, options)
 
     # define train operations
     global_step = tf.Variable(0, trainable=False, name='global_step')
     learning_rate = 0.01
-
-    # optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
-    # train_ops = optimizer.minimize(loss=cross_entropy, global_step=global_step)
 
     train_ops = facenet.train_op(options.train, cross_entropy, global_step, learning_rate, tf.global_variables())
 
@@ -111,16 +113,16 @@ def main(**options):
     with tf.Session() as session:
         session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
-        with tqdm(total=options.train.nrof_epochs) as bar:
-            for _ in range(options.train.nrof_epochs):
-                _, outs = session.run([train_ops, tensor_ops])
+        with tqdm(total=options.train.epoch.max_nrof_epochs) as bar:
+            for _ in range(options.train.max_nrof_epochs):
+                embeddings_batch_np = session.run(next_elem)
+                feed_dict = {embeddings_batch: embeddings_batch_np}
+
+                _, outs = session.run([train_ops, tensor_ops], feed_dict=feed_dict)
 
                 postfix = f"variables {outs['vars']}, loss {outs['loss']}"
                 bar.set_postfix_str(postfix)
                 bar.update()
-
-                # variables = session.run(tf.trainable_variables())
-                # model.assign(variables)
 
 
 if __name__ == '__main__':
