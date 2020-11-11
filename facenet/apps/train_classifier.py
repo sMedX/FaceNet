@@ -7,11 +7,34 @@
 import click
 from tqdm import tqdm
 from pathlib import Path
+import itertools
 
 import tensorflow as tf
+import random
+import numpy as np
 
 from facenet import dataset, config, facenet, tfutils, ioutils
-import numpy as np
+
+
+def binary_cross_entropy_input_pipeline(embeddings, options):
+    print('Building binary cross-entropy pipeline.')
+
+    batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
+
+    def generator():
+        while True:
+            embs = []
+            for embeddings_per_class in random.sample(embeddings, options.nrof_classes_per_batch):
+                embs += random.sample(embeddings_per_class, options.nrof_examples_per_class)
+            yield embs
+
+    ds = tf.data.Dataset.from_generator(generator, output_types=tf.string)
+    ds = ds.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+    ds = ds.batch(batch_size)
+
+    image_batch, label_batch = ds.make_one_shot_iterator().get_next()
+
+    return image_batch, label_batch
 
 
 def binary_cross_entropy_loss(embeddings, options):
@@ -64,7 +87,7 @@ def main(**options):
     print(embeddings)
 
     embeddings = embeddings.split()
-    image_batch, label_batch = facenet.binary_cross_entropy_input_pipeline(dbase, options)
+    image_batch, label_batch = binary_cross_entropy_input_pipeline(embeddings, options)
 
     cross_entropy, loss_vars = binary_cross_entropy_loss(embeddings, options)
 
