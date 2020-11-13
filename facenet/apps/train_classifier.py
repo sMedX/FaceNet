@@ -144,14 +144,21 @@ def main(**options):
 
     # define train operations
     global_step = tf.Variable(0, trainable=False, name='global_step')
-    learning_rate = 0.01
 
-    train_ops = facenet.train_op(options.train, cross_entropy, global_step, learning_rate, tf.global_variables())
+    initial_learning_rate = tf.constant(0.01, dtype=tf.float32)
+    decay_rate = tf.constant(0.1, dtype=tf.float32)
+    decay_steps = tf.constant(options.train.epoch.size, dtype=global_step.dtype)
+
+    lr_factor = tf.math.pow(decay_rate, tf.cast(tf.math.floor(global_step / decay_steps), dtype=decay_rate.dtype))
+    lr_schedule = initial_learning_rate * lr_factor
+
+    train_ops = facenet.train_op(options.train, cross_entropy, global_step, lr_schedule, tf.global_variables())
 
     tensor_ops = {
         'global_step': global_step,
         'loss': cross_entropy,
         'vars': tf.trainable_variables(),
+        'learning_rate': lr_schedule
     }
 
     print('start training')
@@ -159,19 +166,23 @@ def main(**options):
     with tf.Session() as session:
         session.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
 
-        with tqdm(total=options.train.epoch.max_nrof_epochs) as bar:
-            for _ in range(options.train.max_nrof_epochs):
-                embeddings_batch_np = session.run(next_elem)
-                feed_dict = {embeddings_batch: embeddings_batch_np}
+        for epoch in range(options.train.epoch.max_nrof_epochs):
+            with tqdm(total=options.train.epoch.size) as bar:
+                for _ in range(options.train.epoch.size):
+                    embeddings_batch_np = session.run(next_elem)
+                    feed_dict = {embeddings_batch: embeddings_batch_np}
 
-                _, outs = session.run([train_ops, tensor_ops], feed_dict=feed_dict)
+                    _, outs = session.run([train_ops, tensor_ops], feed_dict=feed_dict)
 
-                postfix = f"variables {outs['vars']}, loss {outs['loss']}"
-                bar.set_postfix_str(postfix)
-                bar.update()
+                    postfix = f"variables {outs['vars']}, loss {outs['loss']}"
+                    bar.set_postfix_str(postfix)
+                    bar.update()
 
-    conf_mat = ConfusionMatrix(embeddings, threshold=outs['vars'][1])
-    print(conf_mat)
+            info = f"epoch [{epoch+1}/{options.train.epoch.max_nrof_epochs}], learning rate {outs['learning_rate']}"
+            print(info)
+
+            conf_mat = ConfusionMatrix(embeddings, threshold=outs['vars'][1])
+            print(conf_mat)
 
 
 if __name__ == '__main__':
