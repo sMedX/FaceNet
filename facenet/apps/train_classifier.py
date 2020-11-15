@@ -87,7 +87,7 @@ def binary_cross_entropy_input_pipeline(embeddings, options):
 
 
 def binary_cross_entropy_loss(embeddings, options):
-    alpha = tf.Variable(initial_value=1., dtype=tf.float32, name='alpha')
+    alpha = tf.Variable(initial_value=10., dtype=tf.float32, name='alpha')
     threshold = tf.Variable(initial_value=1., dtype=tf.float32, name='threshold')
 
     loss_vars = {'alpha': alpha, 'threshold': threshold}
@@ -145,20 +145,25 @@ def main(**options):
     # define train operations
     global_step = tf.Variable(0, trainable=False, name='global_step')
 
-    initial_learning_rate = tf.constant(0.01, dtype=tf.float32)
-    decay_rate = tf.constant(0.1, dtype=tf.float32)
-    decay_steps = tf.constant(options.train.epoch.size, dtype=global_step.dtype)
+    dtype = tf.float64
+    initial_learning_rate = tf.constant(options.train.learning_rate_schedule.initial_value, dtype=dtype)
+    decay_rate = tf.constant(options.train.learning_rate_schedule.decay_rate, dtype=dtype)
 
-    lr_factor = tf.math.pow(decay_rate, tf.cast(tf.math.floor(global_step / decay_steps), dtype=decay_rate.dtype))
-    lr_schedule = initial_learning_rate * lr_factor
+    if not options.train.learning_rate_schedule.decay_steps:
+        decay_steps = tf.constant(options.train.epoch.size, dtype=dtype)
+    else:
+        decay_steps = tf.constant(options.train.learning_rate_schedule.decay_steps, dtype=dtype)
 
-    train_ops = facenet.train_op(options.train, cross_entropy, global_step, lr_schedule, tf.global_variables())
+    lr_decay_factor = tf.math.pow(decay_rate, tf.math.floor(tf.cast(global_step, dtype=dtype) / decay_steps))
+    learning_rate = initial_learning_rate * lr_decay_factor
+
+    train_ops = facenet.train_op(options.train, cross_entropy, global_step, learning_rate, tf.global_variables())
 
     tensor_ops = {
         'global_step': global_step,
         'loss': cross_entropy,
         'vars': tf.trainable_variables(),
-        'learning_rate': lr_schedule
+        'learning_rate': learning_rate
     }
 
     print('start training')
