@@ -210,17 +210,20 @@ def write_to_file(file, s, mode='w'):
 
 
 def write_text_log(file, info):
-    info = 64 * '-' + '\n' + str(info)
+    info_str = 64 * '-' + '\n' + str(info)
+
+    if info_str[-1] != '\n':
+        info_str += '\n'
 
     with file.open(mode='a') as f:
-        f.write(info)
+        f.write(info_str)
 
 
 def glob_single_file(model_dir, pattern):
     files = list(model_dir.glob(pattern))
 
     if len(files) != 1:
-        raise ValueError('There should not be more than {} files in the model directory {}.'.format(count, model_dir))
+        raise ValueError(f'There should not be more than single files in the model directory {model_dir}.')
 
     return files[0]
 

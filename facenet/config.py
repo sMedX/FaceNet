@@ -136,7 +136,7 @@ class TrainClassifier(YAMLConfig):
         if not self.batch_size:
             self.batch_size = default_batch_size
 
-        self.log_dir = self.model.path / 'logs'
+        self.log_dir = self.classifier.path / 'logs'
         self.log_file = self.log_dir / 'report.txt'
 
         # write arguments and store some git revision info in a text files in the log directory

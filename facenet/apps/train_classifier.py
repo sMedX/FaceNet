@@ -189,6 +189,11 @@ def main(**options):
             conf_mat = ConfusionMatrix(embeddings, threshold=outs['vars'][1])
             print(conf_mat)
 
+            ioutils.write_text_log(options.log_file, info)
+            ioutils.write_text_log(options.log_file, conf_mat)
+
+    print(f'Model has been saved to the directory: {options.classifier.path}')
+
 
 if __name__ == '__main__':
     main()
