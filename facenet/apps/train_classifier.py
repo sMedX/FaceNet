@@ -16,21 +16,42 @@ import numpy as np
 from facenet import dataset, config, facenet, tfutils, ioutils
 
 
-alpha = tf.Variable(initial_value=10.0, dtype=tf.float32, name='alpha')
-threshold = tf.Variable(initial_value=1.0, dtype=tf.float32, name='threshold')
-theta = tf.Variable(initial_value=0.0, dtype=tf.float32, name='threshold')
+class FaceToFaceNormalizedModel:
+    def __init__(self):
+        self.trainable_variables = {
+            'alpha': tf.Variable(initial_value=10.0, dtype=tf.float32, name='alpha'),
+            'threshold': tf.Variable(initial_value=1.0, dtype=tf.float32, name='threshold')
+        }
 
+    def __call__(self, x, y=None):
+        alpha = self.variable('alpha')
+        threshold = self.variable('threshold')
+        logits = tf.multiply(alpha, tf.subtract(threshold, self.distances(x, y)))
+        return logits
 
-def similarity(x, y):
-    return 2*(1 - x @ y)
+    def __repr__(self):
+        return (f'{self.__class__.__name__}\n' +
+                f"threshold {self.variable('threshold', mode='numpy')}\n")
 
+    def variable(self, name, mode=None):
+        var = self.trainable_variables[name]
+        if mode == 'numpy':
+            var = tf.get_default_session().run(var)
+        return var
 
-class Classifier:
-    def __init__(self, threshold):
-        self.threshold = threshold
+    def distances(self, x, y):
+        if y is None:
+            y = x
 
-    def __call__(self, emb1, emb2):
-        return similarity(emb1, np.transpose(emb2)) < self.threshold
+        if isinstance(x, np.ndarray):
+            dist = 2 * (1 - x @ np.transpose(y))
+        else:
+            dist = 2 * (1 - x @ tf.transpose(y))
+
+        return dist
+
+    def predict(self, x, y=None):
+        return self.distances(x, y) < self.variable('threshold', mode='numpy')
 
 
 class ConfusionMatrix:
@@ -43,13 +64,13 @@ class ConfusionMatrix:
 
         for i in range(nrof_classes):
             for k in range(i):
-                outs = classifier(embeddings[i], embeddings[k])
+                outs = classifier.predict(embeddings[i], embeddings[k])
                 mean = np.mean(outs)
 
                 fp += mean
                 tn += 1 - mean
 
-            outs = classifier(embeddings[i], embeddings[i])
+            outs = classifier.predict(embeddings[i])
             mean = np.mean(outs)
 
             tp += mean
@@ -61,19 +82,19 @@ class ConfusionMatrix:
         fp /= nrof_negative_class_pairs
         tn /= nrof_negative_class_pairs
 
-        self.threshold = threshold
+        self.classifier = classifier
         self.accuracy = (tp + tn) / (tp + fp + tn + fn)
         self.precision = tp / (tp + fp)
         self.tp_rate = tp / (tp + fn)
         self.tn_rate = tn / (tn + fp)
 
     def __repr__(self):
-        return ('\n'.format(self.__class__.__name__) +
-                'threshold {}\n'.format(self.threshold) +
-                'accuracy  {}\n'.format(self.accuracy) +
-                'precision {}\n'.format(self.precision) +
-                'tp rate   {}\n'.format(self.tp_rate) +
-                'tn rate   {}\n'.format(self.tn_rate))
+        return (f'{self.__class__.__name__}\n' +
+                f'{str(self.classifier)}\n' +
+                f'accuracy  {self.accuracy}\n' +
+                f'precision {self.precision}\n' +
+                f'tp rate   {self.tp_rate}\n' +
+                f'tn rate   {self.tn_rate}\n')
 
 
 def binary_cross_entropy_input_pipeline(embeddings, options):
@@ -93,14 +114,14 @@ def binary_cross_entropy_input_pipeline(embeddings, options):
 
     ds = tf.data.Dataset.from_generator(generator, output_types=tf.float32)
     ds = ds.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
-
     ds = ds.batch(batch_size)
+
     next_elem = ds.make_one_shot_iterator().get_next()
 
     return next_elem
 
 
-def binary_cross_entropy_loss(embeddings, options):
+def binary_cross_entropy_loss(logits, options):
     # define upper-triangle indices
     batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
     triu_indices = [(i, k) for i, k in zip(*np.triu_indices(batch_size, k=1))]
@@ -117,13 +138,10 @@ def binary_cross_entropy_loss(embeddings, options):
 
     pos_weight = len(labels)/sum(labels) - 1
 
-    # initialize cross entropy loss
-    distances = similarity(embeddings, tf.transpose(embeddings))
-    distances = tf.gather_nd(distances, triu_indices)
-
-    logits = tf.multiply(alpha, tf.subtract(threshold, distances))
+    logits = tf.gather_nd(logits, triu_indices)
     labels = tf.constant(labels, dtype=logits.dtype)
 
+    # initialize cross entropy loss
     cross_entropy = tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight)
     loss = tf.reduce_mean(cross_entropy)
 
@@ -149,7 +167,10 @@ def main(**options):
 
     embeddings_size = embeddings[0].shape[1]
     embeddings_batch = tf.placeholder(tf.float32, shape=[None, embeddings_size], name='embeddings_batch')
-    cross_entropy = binary_cross_entropy_loss(embeddings_batch, options)
+
+    model = FaceToFaceNormalizedModel()
+    logits = model(embeddings_batch)
+    cross_entropy = binary_cross_entropy_loss(logits, options)
 
     # define train operations
     global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -195,10 +216,8 @@ def main(**options):
             info = f"epoch [{epoch+1}/{options.train.epoch.max_nrof_epochs}], learning rate {outs['learning_rate']}"
             print(info)
 
-            classifier = Classifier(threshold=outs['vars'][1])
-            conf_mat = ConfusionMatrix(embeddings, classifier=classifier)
+            conf_mat = ConfusionMatrix(embeddings, model)
             print(conf_mat)
-
             ioutils.write_text_log(options.log_file, info)
             ioutils.write_text_log(options.log_file, conf_mat)
 
