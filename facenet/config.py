@@ -109,18 +109,25 @@ class Embeddings(YAMLConfig):
         if not self.model.path:
             self.model.path = default_model
 
-        if not self.tfrecord:
-            self.tfrecord = Path(self.dataset.path + self.model.path.stem + '.tfrecord')
-        self.tfrecord = Path(self.tfrecord).expanduser()
+        # if not self.output:
+        suffix = self.output
+        if suffix[0] != '.':
+            suffix = '.' + suffix
 
-        self.log_dir = self.tfrecord.parent
-        self.log_file = self.tfrecord.with_suffix('.txt')
+        self.output = Path(self.dataset.path + self.model.path.stem).with_suffix(suffix)
+        self.output = Path(self.output).expanduser()
+
+        if self.output.suffix not in ['.h5', '.tfrecord']:
+            raise ValueError('Invalid suffix for output file, must either be h5 or tfrecord.')
+
+        self.log_dir = self.output.parent
+        self.log_file = self.output.with_suffix('.txt')
 
         if not self.batch_size:
             self.batch_size = default_batch_size
 
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, Path(self.log_dir, self.tfrecord.stem + '_arguments.yaml'))
+        ioutils.write_arguments(self, Path(self.log_dir, self.output.stem + '_arguments.yaml'))
         ioutils.store_revision_info(self.log_dir, sys.argv)
 
 

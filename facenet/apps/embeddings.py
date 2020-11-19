@@ -8,7 +8,7 @@ import click
 from pathlib import Path
 import tensorflow as tf
 
-from facenet import dataset, config, facenet, tfutils, ioutils
+from facenet import dataset, config, facenet, tfutils, ioutils, h5utils
 
 
 @click.command()
@@ -25,18 +25,22 @@ def main(**options):
     ioutils.write_text_log(options.log_file, dbase)
     print(embeddings)
 
-    with tf.io.TFRecordWriter(str(options.tfrecord)) as writer:
-        for embedding, label, file in zip(embeddings.embeddings, dbase.labels, dbase.files):
-            feature = {
-                'embedding': tfutils.float_feature(embedding.tolist()),
-                'label': tfutils.int64_feature(label),
-                'file': tfutils.bytes_feature(file.encode())
-                }
-            example = tf.train.Example(features=tf.train.Features(feature=feature))
-            writer.write(example.SerializeToString())
+    if options.output.suffix == '.h5':
+        h5utils.write(options.output, 'embeddings', embeddings.embeddings)
+        h5utils.write(options.output, 'labels', embeddings.labels)
+    else:
+        with tf.io.TFRecordWriter(str(options.output)) as writer:
+            for embedding, label, file in zip(embeddings.embeddings, dbase.labels, dbase.files):
+                feature = {
+                    'embedding': tfutils.float_feature(embedding.tolist()),
+                    'label': tfutils.int64_feature(label),
+                    'file': tfutils.bytes_feature(file.encode())
+                    }
+                example = tf.train.Example(features=tf.train.Features(feature=feature))
+                writer.write(example.SerializeToString())
 
-    print('file of TFRecords: {}'.format(options.tfrecord))
-    print('number of tf examples: {}'.format(dbase.nrof_images))
+    print('output file:', options.output)
+    print('number of examples:', dbase.nrof_images)
 
 
 if __name__ == '__main__':
