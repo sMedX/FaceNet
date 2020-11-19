@@ -218,6 +218,8 @@ def write_text_log(file, info):
     with file.open(mode='a') as f:
         f.write(info_str)
 
+    print(info_str)
+
 
 def glob_single_file(model_dir, pattern):
     files = list(model_dir.glob(pattern))
