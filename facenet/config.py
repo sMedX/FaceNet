@@ -135,6 +135,13 @@ class TrainClassifier(YAMLConfig):
     def __init__(self, config):
         YAMLConfig.__init__(self, config['config'])
 
+        if not self.seed:
+            self.seed = 0
+
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        tf.set_random_seed(self.seed)
+
         self.classifier.path = Path(self.classifier.path).expanduser() / subdir()
 
         if not self.model.path:
