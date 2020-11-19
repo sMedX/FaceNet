@@ -114,17 +114,14 @@ def equal_batches_input_pipeline(embeddings, config):
     """""
     if not config.nrof_classes_per_batch:
         config.nrof_classes_per_batch = len(embeddings)
-    else:
-        config.nrof_classes_per_batch = config.nrof_classes_per_batch
 
     if not config.nrof_examples_per_class:
         config.nrof_examples_per_class = round(0.1*sum([len(embs) for embs in embeddings]) / len(embeddings))
-    else:
-        config.nrof_examples_per_class = config.nrof_examples_per_class
+        config.nrof_examples_per_class = max(config.nrof_examples_per_class, 1)
 
     print('building equal batches input pipeline.')
     print('number of classes per batch ', config.nrof_classes_per_batch)
-    print('number of examples per batch', config.nrof_examples_per_class)
+    print('number of examples per class', config.nrof_examples_per_class)
 
     def generator():
         while True:
