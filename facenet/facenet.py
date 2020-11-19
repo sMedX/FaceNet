@@ -23,6 +23,7 @@
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+from pathlib import Path
 
 import random
 
@@ -351,6 +352,58 @@ def split_embeddings(embeddings, labels):
         emb_array = embeddings[label == labels]
         list_of_embeddings.append(emb_array)
     return list_of_embeddings
+
+
+class Embeddings:
+    def __init__(self, config):
+        self.config = config
+        self.file = Path(config.path).expanduser()
+
+        embeddings = h5utils.read(self.file, 'embeddings')
+        labels = h5utils.read(self.file, 'labels')
+
+        self.embeddings = split_embeddings(embeddings, labels)
+
+        if self.config.nrof_classes:
+            if self.nrof_classes > self.config.nrof_classes:
+                labels = [_ for _ in range(self.nrof_classes)]
+                labels = random.sample(labels, self.config.nrof_classes)
+
+                self.embeddings = [self.embeddings[label] for label in labels]
+
+        if self.config.max_nrof_images:
+            for idx, emb in enumerate(self.embeddings):
+                nrof_images = emb.shape[0]
+
+                if nrof_images > self.config.max_nrof_images:
+                    labels = [_ for _ in range(nrof_images)]
+                    labels = random.sample(labels, self.config.max_nrof_images)
+
+                    self.embeddings[idx] = self.embeddings[idx][labels, :]
+
+    def __repr__(self):
+        """Representation of the database"""
+        data = [len(e) for e in self.embeddings]
+
+        info = (f'{self.__class__.__name__}\n' +
+                f'{self.file}\n' +
+                f'Number of classes {self.nrof_classes} \n' +
+                f'Number of images {self.nrof_images}\n' +
+                f'Minimal number of images in class {min(data)}\n' +
+                f'Maximal number of images in class {max(data)}\n')
+        return info
+
+    @property
+    def nrof_classes(self):
+        return len(self.embeddings)
+
+    @property
+    def nrof_images(self):
+        return sum([len(e) for e in self.embeddings])
+
+    @property
+    def length(self):
+        return self.embeddings[0].shape[1]
 
 
 class EvaluationOfEmbeddings:

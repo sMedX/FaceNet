@@ -11,7 +11,7 @@ from pathlib import Path
 import tensorflow as tf
 import numpy as np
 
-from facenet import dataset, config, facenet, ioutils
+from facenet import config, facenet, ioutils
 
 
 class FaceToFaceDistanceModel:
@@ -72,7 +72,9 @@ class FaceToFaceDistanceModel:
 
         # first order of theta - (x - x1, x - x1) + (y - y1, y - y1)
         # second order of theta - (y1 - x1, x1 - x) + (y1 - x1, y - y1) + (x1 - x, y - y1)
-        dist = 2 * (1 - x1 @ y1) + theta * theta * (dx * dx + dy * dy) + 2 * theta * (x1 @ y1 - x @ y / length2)
+        x1_y1 = x1 @ y1
+
+        dist = 2 * (1 - x1_y1) + theta * theta * (dx * dx + dy * dy) + 2 * theta * (x1_y1 - x @ y / length2)
 
         return dist
 
@@ -198,19 +200,12 @@ def binary_cross_entropy_loss(logits, options):
 def main(**options):
     options = config.TrainClassifier(options)
 
-    dbase = dataset.DBase(options.dataset)
-    ioutils.write_text_log(options.log_file, dbase)
-    print(dbase)
-
-    embeddings = facenet.EvaluationOfEmbeddings(dbase, options)
+    embeddings = facenet.Embeddings(options.embeddings)
     ioutils.write_text_log(options.log_file, embeddings)
-    print(embeddings)
 
-    embeddings = embeddings.split()
-    next_elem = facenet.equal_batches_input_pipeline(embeddings, options)
+    next_elem = facenet.equal_batches_input_pipeline(embeddings.embeddings, options)
 
-    embeddings_size = embeddings[0].shape[1]
-    embeddings_batch = tf.placeholder(tf.float32, shape=[None, embeddings_size], name='embeddings_batch')
+    embeddings_batch = tf.placeholder(tf.float32, shape=[None, embeddings.length], name='embeddings_batch')
 
     model = FaceToFaceDistanceModel()
     logits = model(embeddings_batch)
@@ -260,7 +255,7 @@ def main(**options):
             info = f"epoch [{epoch + 1}/{options.train.epoch.max_nrof_epochs}], learning rate {outs['learning_rate']}"
             print(info)
 
-            conf_mat = ConfusionMatrix(embeddings, model)
+            conf_mat = ConfusionMatrix(embeddings.embeddings, model)
             print(conf_mat)
             ioutils.write_text_log(options.log_file, info)
             ioutils.write_text_log(options.log_file, conf_mat)
