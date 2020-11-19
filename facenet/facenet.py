@@ -118,7 +118,7 @@ def equal_batches_input_pipeline(embeddings, config):
         config.nrof_classes_per_batch = config.nrof_classes_per_batch
 
     if not config.nrof_examples_per_class:
-        config.nrof_examples_per_class = sum([len(embs) for embs in embeddings]) // len(embeddings)
+        config.nrof_examples_per_class = round(0.1*sum([len(embs) for embs in embeddings]) / len(embeddings))
     else:
         config.nrof_examples_per_class = config.nrof_examples_per_class
 
