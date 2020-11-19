@@ -20,14 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import math
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from functools import partial
+
+import random
 
 from facenet import nodes, ioutils, h5utils, FaceNet
-from facenet import config as default_config
 
 
 class Placeholders:
@@ -103,6 +102,44 @@ class ImageProcessing:
         image_batch = tf.identity(image_batch, name=self.__class__.__name__ + '_output')
 
         return image_batch
+
+
+def equal_batches_input_pipeline(embeddings, config):
+    """
+    Building equal batches input pipeline, for example, used in binary cross-entropy pipeline.
+
+    :param embeddings: 
+    :param config: 
+    :return: 
+    """""
+    print('Building equal batches input pipeline.')
+
+    if not config.nrof_classes_per_batch:
+        config.nrof_classes_per_batch = len(embeddings)
+    else:
+        config.nrof_classes_per_batch = config.nrof_classes_per_batch
+
+    if not config.nrof_examples_per_class:
+        config.nrof_examples_per_class = sum([len(embs) for embs in embeddings]) // len(embeddings)
+    else:
+        config.nrof_examples_per_class = config.nrof_examples_per_class
+
+    def generator():
+        while True:
+            embs = []
+            for embeddings_per_class in random.sample(embeddings, config.nrof_classes_per_batch):
+                embs += random.sample(embeddings_per_class.tolist(), config.nrof_examples_per_class)
+            yield embs
+
+    ds = tf.data.Dataset.from_generator(generator, output_types=tf.float32)
+    ds = ds.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+
+    batch_size = config.nrof_classes_per_batch * config.nrof_examples_per_class
+    ds = ds.batch(batch_size)
+
+    next_elem = ds.make_one_shot_iterator().get_next()
+
+    return next_elem
 
 
 def make_train_dataset(dbase, map_func, args):

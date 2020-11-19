@@ -7,13 +7,77 @@
 import click
 from tqdm import tqdm
 from pathlib import Path
-import itertools
 
 import tensorflow as tf
-import random
 import numpy as np
 
-from facenet import dataset, config, facenet, tfutils, ioutils
+from facenet import dataset, config, facenet, ioutils
+
+
+class FaceToFaceDistanceModel:
+    def __init__(self):
+        self.trainable_variables = {
+            'alpha': tf.Variable(initial_value=10, dtype=tf.float32, name='alpha'),
+            'threshold': tf.Variable(initial_value=1, dtype=tf.float32, name='threshold'),
+            'theta': tf.Variable(initial_value=0.3, dtype=tf.float32, name='theta')
+        }
+
+    def __call__(self, x, y=None):
+        alpha = self.variable('alpha')
+        threshold = self.variable('threshold')
+        logits = tf.multiply(alpha, tf.subtract(threshold, self.distance(x, y)))
+        return logits
+
+    def __repr__(self):
+        variables = {}
+        for name in self.trainable_variables.keys():
+            variables[name] = self.variable(name, mode='numpy')
+
+        return (f'{self.__class__.__name__}\n'
+                f'variables {variables}\n')
+
+    def variable(self, name, mode=None):
+        var = self.trainable_variables[name]
+        if mode == 'numpy':
+            var = tf.get_default_session().run(var)
+        return var
+
+    def distance(self, x, y):
+        if y is None:
+            y = x
+
+        if isinstance(x, np.ndarray):
+            theta = self.variable('theta', mode='numpy')
+
+            y = np.transpose(y)
+
+            norm_x = np.linalg.norm(x, axis=1, keepdims=True)
+            norm_y = np.linalg.norm(y, axis=0, keepdims=True)
+        else:
+            theta = self.variable('theta')
+
+            y = tf.transpose(y)
+
+            norm_x = tf.linalg.norm(x, axis=1, keepdims=True)
+            norm_y = tf.linalg.norm(y, axis=0, keepdims=True)
+
+        length = (norm_x + norm_y) / 2
+        length2 = length * length
+
+        x1 = x / norm_x
+        y1 = y / norm_y
+
+        dx = 1 - norm_x / length  # length of (x - x1)
+        dy = 1 - norm_y / length  # length of (y - y1)
+
+        # first order of theta - (x - x1, x - x1) + (y - y1, y - y1)
+        # second order of theta - (y1 - x1, x1 - x) + (y1 - x1, y - y1) + (x1 - x, y - y1)
+        dist = 2 * (1 - x1 @ y1) + theta * theta * (dx * dx + dy * dy) + 2 * theta * (x1 @ y1 - x @ y / length2)
+
+        return dist
+
+    def predict(self, x, y=None):
+        return self.distance(x, y) < self.variable('threshold', mode='numpy')
 
 
 class FaceToFaceNormalizedModel:
@@ -26,12 +90,16 @@ class FaceToFaceNormalizedModel:
     def __call__(self, x, y=None):
         alpha = self.variable('alpha')
         threshold = self.variable('threshold')
-        logits = tf.multiply(alpha, tf.subtract(threshold, self.distances(x, y)))
+        logits = tf.multiply(alpha, tf.subtract(threshold, self.distance(x, y)))
         return logits
 
     def __repr__(self):
-        return (f'{self.__class__.__name__}\n' +
-                f"threshold {self.variable('threshold', mode='numpy')}\n")
+        variables = {}
+        for name in self.trainable_variables.keys():
+            variables[name] = self.variable(name, mode='numpy')
+
+        return (f'{self.__class__.__name__}\n'
+                f'variables {variables}\n')
 
     def variable(self, name, mode=None):
         var = self.trainable_variables[name]
@@ -39,7 +107,7 @@ class FaceToFaceNormalizedModel:
             var = tf.get_default_session().run(var)
         return var
 
-    def distances(self, x, y):
+    def distance(self, x, y):
         if y is None:
             y = x
 
@@ -51,14 +119,14 @@ class FaceToFaceNormalizedModel:
         return dist
 
     def predict(self, x, y=None):
-        return self.distances(x, y) < self.variable('threshold', mode='numpy')
+        return self.distance(x, y) < self.variable('threshold', mode='numpy')
 
 
 class ConfusionMatrix:
     def __init__(self, embeddings, classifier):
         nrof_classes = len(embeddings)
         nrof_positive_class_pairs = nrof_classes
-        nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1)/2
+        nrof_negative_class_pairs = nrof_classes * (nrof_classes - 1) / 2
 
         tp = tn = fp = fn = 0
 
@@ -97,30 +165,6 @@ class ConfusionMatrix:
                 f'tn rate   {self.tn_rate}\n')
 
 
-def binary_cross_entropy_input_pipeline(embeddings, options):
-    print('Building binary cross-entropy pipeline.')
-
-    if not options.nrof_classes_per_batch:
-        options.nrof_classes_per_batch = len(embeddings)
-
-    batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
-
-    def generator():
-        while True:
-            embs = []
-            for embeddings_per_class in random.sample(embeddings, options.nrof_classes_per_batch):
-                embs += random.sample(embeddings_per_class.tolist(), options.nrof_examples_per_class)
-            yield embs
-
-    ds = tf.data.Dataset.from_generator(generator, output_types=tf.float32)
-    ds = ds.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
-    ds = ds.batch(batch_size)
-
-    next_elem = ds.make_one_shot_iterator().get_next()
-
-    return next_elem
-
-
 def binary_cross_entropy_loss(logits, options):
     # define upper-triangle indices
     batch_size = options.nrof_classes_per_batch * options.nrof_examples_per_class
@@ -136,7 +180,7 @@ def binary_cross_entropy_loss(logits, options):
             # label 0 means across class distance
             labels.append(0)
 
-    pos_weight = len(labels)/sum(labels) - 1
+    pos_weight = len(labels) / sum(labels) - 1
 
     logits = tf.gather_nd(logits, triu_indices)
     labels = tf.constant(labels, dtype=logits.dtype)
@@ -163,12 +207,12 @@ def main(**options):
     print(embeddings)
 
     embeddings = embeddings.split()
-    next_elem = binary_cross_entropy_input_pipeline(embeddings, options)
+    next_elem = facenet.equal_batches_input_pipeline(embeddings, options)
 
     embeddings_size = embeddings[0].shape[1]
     embeddings_batch = tf.placeholder(tf.float32, shape=[None, embeddings_size], name='embeddings_batch')
 
-    model = FaceToFaceNormalizedModel()
+    model = FaceToFaceDistanceModel()
     logits = model(embeddings_batch)
     cross_entropy = binary_cross_entropy_loss(logits, options)
 
@@ -213,7 +257,7 @@ def main(**options):
                     bar.set_postfix_str(postfix)
                     bar.update()
 
-            info = f"epoch [{epoch+1}/{options.train.epoch.max_nrof_epochs}], learning rate {outs['learning_rate']}"
+            info = f"epoch [{epoch + 1}/{options.train.epoch.max_nrof_epochs}], learning rate {outs['learning_rate']}"
             print(info)
 
             conf_mat = ConfusionMatrix(embeddings, model)
