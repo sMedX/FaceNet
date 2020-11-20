@@ -11,117 +11,7 @@ from pathlib import Path
 import tensorflow as tf
 import numpy as np
 
-from facenet import config, facenet, ioutils
-
-
-class FaceToFaceDistanceModel:
-    def __init__(self):
-        self.trainable_variables = {
-            'alpha': tf.Variable(initial_value=10, dtype=tf.float32, name='alpha'),
-            'threshold': tf.Variable(initial_value=1, dtype=tf.float32, name='threshold'),
-            'theta': tf.Variable(initial_value=0.3, dtype=tf.float32, name='theta')
-        }
-
-    def __call__(self, x, y=None):
-        alpha = self.variable('alpha')
-        threshold = self.variable('threshold')
-        logits = tf.multiply(alpha, tf.subtract(threshold, self.distance(x, y)))
-        return logits
-
-    def __repr__(self):
-        variables = {}
-        for name in self.trainable_variables.keys():
-            variables[name] = self.variable(name, mode='numpy')
-
-        return (f'{self.__class__.__name__}\n'
-                f'variables {variables}\n')
-
-    def variable(self, name, mode=None):
-        var = self.trainable_variables[name]
-        if mode == 'numpy':
-            var = tf.get_default_session().run(var)
-        return var
-
-    def distance(self, x, y):
-        if y is None:
-            y = x
-
-        if isinstance(x, np.ndarray):
-            theta = self.variable('theta', mode='numpy')
-
-            y = np.transpose(y)
-
-            norm_x = np.linalg.norm(x, axis=1, keepdims=True)
-            norm_y = np.linalg.norm(y, axis=0, keepdims=True)
-        else:
-            theta = self.variable('theta')
-
-            y = tf.transpose(y)
-
-            norm_x = tf.linalg.norm(x, axis=1, keepdims=True)
-            norm_y = tf.linalg.norm(y, axis=0, keepdims=True)
-
-        length = (norm_x + norm_y) / 2
-        length2 = length * length
-
-        x1 = x / norm_x
-        y1 = y / norm_y
-
-        dx = 1 - norm_x / length  # length of (x - x1)
-        dy = 1 - norm_y / length  # length of (y - y1)
-
-        # first order of theta - (x - x1, x - x1) + (y - y1, y - y1)
-        # second order of theta - (y1 - x1, x1 - x) + (y1 - x1, y - y1) + (x1 - x, y - y1)
-        x1_y1 = x1 @ y1
-
-        dist = 2 * (1 - x1_y1) + theta * theta * (dx * dx + dy * dy) + 2 * theta * (x1_y1 - x @ y / length2)
-
-        return dist
-
-    def predict(self, x, y=None):
-        return self.distance(x, y) < self.variable('threshold', mode='numpy')
-
-
-class FaceToFaceNormalizedModel:
-    def __init__(self):
-        self.trainable_variables = {
-            'alpha': tf.Variable(initial_value=10.0, dtype=tf.float32, name='alpha'),
-            'threshold': tf.Variable(initial_value=1.0, dtype=tf.float32, name='threshold')
-        }
-
-    def __call__(self, x, y=None):
-        alpha = self.variable('alpha')
-        threshold = self.variable('threshold')
-        logits = tf.multiply(alpha, tf.subtract(threshold, self.distance(x, y)))
-        return logits
-
-    def __repr__(self):
-        variables = {}
-        for name in self.trainable_variables.keys():
-            variables[name] = self.variable(name, mode='numpy')
-
-        return (f'{self.__class__.__name__}\n'
-                f'variables {variables}\n')
-
-    def variable(self, name, mode=None):
-        var = self.trainable_variables[name]
-        if mode == 'numpy':
-            var = tf.get_default_session().run(var)
-        return var
-
-    def distance(self, x, y):
-        if y is None:
-            y = x
-
-        if isinstance(x, np.ndarray):
-            dist = 2 * (1 - x @ np.transpose(y))
-        else:
-            dist = 2 * (1 - x @ tf.transpose(y))
-
-        return dist
-
-    def predict(self, x, y=None):
-        return self.distance(x, y) < self.variable('threshold', mode='numpy')
+from facenet import config, facenet, faceclass, ioutils
 
 
 class ConfusionMatrix:
@@ -203,11 +93,18 @@ def main(**options):
     embeddings = facenet.Embeddings(options.embeddings)
     ioutils.write_text_log(options.log_file, embeddings)
 
-    next_elem = facenet.equal_batches_input_pipeline(embeddings.embeddings, options)
+    embarray = embeddings.data(normalize=options.embeddings.normalize)
+
+    next_elem = facenet.equal_batches_input_pipeline(embarray, options)
 
     embeddings_batch = tf.placeholder(tf.float32, shape=[None, embeddings.length], name='embeddings_batch')
 
-    model = FaceToFaceDistanceModel()
+    # define classifier
+    if options.embeddings.normalize:
+        model = faceclass.FaceToFaceNormalizedEmbeddingsClassifier()
+    else:
+        model = faceclass.FaceToFaceDistanceClassifier()
+
     logits = model(embeddings_batch)
     cross_entropy = binary_cross_entropy_loss(logits, options)
 
@@ -255,7 +152,7 @@ def main(**options):
             info = f"epoch [{epoch + 1}/{options.train.epoch.max_nrof_epochs}], learning rate {outs['learning_rate']}"
             print(info)
 
-            conf_mat = ConfusionMatrix(embeddings.embeddings, model)
+            conf_mat = ConfusionMatrix(embarray, model)
             print(conf_mat)
             ioutils.write_text_log(options.log_file, info)
             ioutils.write_text_log(options.log_file, conf_mat)

@@ -405,6 +405,16 @@ class Embeddings:
     def length(self):
         return self.embeddings[0].shape[1]
 
+    def data(self, normalize=False):
+
+        embeddings = self.embeddings
+
+        if normalize:
+            for idx in range(self.nrof_classes):
+                embeddings[idx] /= np.linalg.norm(self.embeddings[idx], axis=1, keepdims=True)
+
+        return embeddings
+
 
 class EvaluationOfEmbeddings:
     def __init__(self, dbase, config):
