@@ -49,7 +49,10 @@ class FaceNet:
             config.input = nodes['input']['name'] + ':0'
 
         if not config.output:
-            config.output = nodes['output']['name'] + ':0'
+            if config.normalize:
+                config.output = nodes['output']['name'] + ':0'
+            else:
+                config.output = 'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0'
 
         self._session = tf.Session()
         tfutils.load_frozen_graph(config.path)
