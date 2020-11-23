@@ -7,10 +7,17 @@ import tensorflow as tf
 
 class FaceToFaceDistanceClassifier:
     def __init__(self):
+        """
+        normalized distance between embeddings
+        l = (norm(x) + norm(y))/2
+        x1 = x / norm(x), y1 = y / norm(y)
+        x = x / l, y = y / l
+        distance = (x-y,x-y)
+        """
         self.variables = {
             'alpha': tf.Variable(10, dtype=tf.float32, name='alpha'),
             'threshold': tf.Variable(1, dtype=tf.float32, name='threshold'),
-            'theta': tf.Variable(0.5, dtype=tf.float32, name='theta')
+            'theta': tf.Variable(1, dtype=tf.float32, name='theta')
         }
 
     def __call__(self, x, y=None):
@@ -55,14 +62,13 @@ class FaceToFaceDistanceClassifier:
         x1 = x / norm_x
         y1 = y / norm_y
 
-        length = (norm_x + norm_y) / 2
-        dl = 1 - (norm_x / length) * (norm_y / length)
-
+        # length = (norm_x + norm_y) / 2
+        # dl = 1 - (norm_x / length) * (norm_y / length)
         # first order of theta - (x - x1, x - x1) + (y - y1, y - y1)
         # second order of theta - (y1 - x1, x1 - x) + (y1 - x1, y - y1) + (x1 - x, y - y1)
+        # dist = 2 * (1 - x1 @ y1) + 2 * theta * dl * x1 @ y1 + 2 * theta * theta * dl
 
-        x1_y1 = x1 @ y1
-        dist = 2 * (1 - x1_y1) + 2 * theta * dl * x1_y1 + 2 * theta * theta * dl
+        dist = 2 * (1 - x1 @ y1) + theta * theta * pow(2*(norm_x - norm_y)/(norm_x + norm_y), 2)
 
         return dist
 
