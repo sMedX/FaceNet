@@ -11,8 +11,8 @@ class FaceToFaceDistanceClassifier:
         normalized distance between embeddings
         l = (norm(x) + norm(y))/2
         x1 = x / norm(x), y1 = y / norm(y)
-        x = x / l, y = y / l
-        distance = (x-y,x-y)
+
+        distance = (x1-y1,x1-y1) + pow((norm(x)-norm(y))/l, 2)
         """
         self.variables = {
             'alpha': tf.Variable(10, dtype=tf.float32, name='alpha'),
@@ -68,7 +68,7 @@ class FaceToFaceDistanceClassifier:
         # second order of theta - (y1 - x1, x1 - x) + (y1 - x1, y - y1) + (x1 - x, y - y1)
         # dist = 2 * (1 - x1 @ y1) + 2 * theta * dl * x1 @ y1 + 2 * theta * theta * dl
 
-        dist = 2 * (1 - x1 @ y1) + theta * theta * pow(2*(norm_x - norm_y)/(norm_x + norm_y), 2)
+        dist = 2 * (1 - x1 @ y1) + theta*pow(2*(norm_x - norm_y)/(norm_x + norm_y), 2)
 
         return dist
 
