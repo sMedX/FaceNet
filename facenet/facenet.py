@@ -20,14 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import math
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from functools import partial
+from pathlib import Path
+
+import random
 
 from facenet import nodes, ioutils, h5utils, FaceNet
-from facenet import config as default_config
 
 
 class Placeholders:
@@ -65,12 +65,8 @@ class Placeholders:
 
 class ImageLoader:
     def __init__(self, config=None):
-        if config is None:
-            self.height = default_config.image_size
-            self.width = default_config.image_size
-        else:
-            self.height = config.size
-            self.width = config.size
+        self.height = config.size
+        self.width = config.size
 
     def __call__(self, path):
         contents = tf.io.read_file(path)
@@ -109,6 +105,43 @@ class ImageProcessing:
         return image_batch
 
 
+def equal_batches_input_pipeline(embeddings, config):
+    """
+    Building equal batches input pipeline, for example, used in binary cross-entropy pipeline.
+
+    :param embeddings: 
+    :param config: 
+    :return: 
+    """""
+    if not config.nrof_classes_per_batch:
+        config.nrof_classes_per_batch = len(embeddings)
+
+    if not config.nrof_examples_per_class:
+        config.nrof_examples_per_class = round(0.1*sum([len(embs) for embs in embeddings]) / len(embeddings))
+        config.nrof_examples_per_class = max(config.nrof_examples_per_class, 1)
+
+    print('building equal batches input pipeline.')
+    print('number of classes per batch ', config.nrof_classes_per_batch)
+    print('number of examples per class', config.nrof_examples_per_class)
+
+    def generator():
+        while True:
+            embs = []
+            for embeddings_per_class in random.sample(embeddings, config.nrof_classes_per_batch):
+                embs += random.sample(embeddings_per_class.tolist(), config.nrof_examples_per_class)
+            yield embs
+
+    ds = tf.data.Dataset.from_generator(generator, output_types=tf.float32)
+    ds = ds.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+
+    batch_size = config.nrof_classes_per_batch * config.nrof_examples_per_class
+    ds = ds.batch(batch_size)
+
+    next_elem = ds.make_one_shot_iterator().get_next()
+
+    return next_elem
+
+
 def make_train_dataset(dbase, map_func, args):
     data = list(zip(dbase.files, dbase.labels))
     np.random.shuffle(data)
@@ -125,21 +158,19 @@ def make_train_dataset(dbase, map_func, args):
     return ds
 
 
-def make_validate_dataset(ds, map_func, args, shuffle=True):
-    if shuffle:
-        data = list(zip(ds.files, ds.labels))
-        np.random.shuffle(data)
-        files, labels = map(list, zip(*data))
-    else:
-        files, labels = ds.files, ds.labels
+def make_test_dataset(dbase, config):
+    loader = ImageLoader(config=config.image)
 
-    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    files, labels = dbase.files, dbase.labels
+
+    images = tf.data.Dataset.from_tensor_slices(files).map(loader)
     labels = tf.data.Dataset.from_tensor_slices(labels)
+    dataset = tf.data.Dataset.zip((images, labels))
 
-    ds = tf.data.Dataset.zip((images, labels)).batch(batch_size=args.batch_size)
-    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+    dataset = dataset.batch(batch_size=config.batch_size)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-    return ds
+    return dataset
 
 
 def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch, info):
@@ -315,6 +346,76 @@ def learning_rate_value(epoch, config):
             return lr_
 
 
+def split_embeddings(embeddings, labels):
+    list_of_embeddings = []
+    for label in np.unique(labels):
+        emb_array = embeddings[label == labels]
+        list_of_embeddings.append(emb_array)
+    return list_of_embeddings
+
+
+class Embeddings:
+    def __init__(self, config):
+        self.config = config
+        self.file = Path(config.path).expanduser()
+
+        embeddings = h5utils.read(self.file, 'embeddings')
+        labels = h5utils.read(self.file, 'labels')
+
+        self.embeddings = split_embeddings(embeddings, labels)
+
+        if self.config.nrof_classes:
+            if self.nrof_classes > self.config.nrof_classes:
+                labels = [_ for _ in range(self.nrof_classes)]
+                labels = random.sample(labels, self.config.nrof_classes)
+
+                self.embeddings = [self.embeddings[label] for label in labels]
+
+        if self.config.max_nrof_images:
+            for idx, emb in enumerate(self.embeddings):
+                nrof_images = emb.shape[0]
+
+                if nrof_images > self.config.max_nrof_images:
+                    labels = [_ for _ in range(nrof_images)]
+                    labels = random.sample(labels, self.config.max_nrof_images)
+
+                    self.embeddings[idx] = self.embeddings[idx][labels, :]
+
+    def __repr__(self):
+        """Representation of the database"""
+        data = [len(e) for e in self.embeddings]
+
+        info = (f'{self.__class__.__name__}\n' +
+                f'{self.file}\n' +
+                f'Number of classes {self.nrof_classes} \n' +
+                f'Number of images {self.nrof_images}\n' +
+                f'Minimal number of images in class {min(data)}\n' +
+                f'Maximal number of images in class {max(data)}\n')
+        return info
+
+    @property
+    def nrof_classes(self):
+        return len(self.embeddings)
+
+    @property
+    def nrof_images(self):
+        return sum([len(e) for e in self.embeddings])
+
+    @property
+    def length(self):
+        return self.embeddings[0].shape[1]
+
+    def data(self, normalize=False):
+
+        embeddings = self.embeddings
+
+        if normalize:
+            for idx in range(self.nrof_classes):
+                embeddings[idx] /= np.linalg.norm(self.embeddings[idx], axis=1, keepdims=True)
+
+        return embeddings
+
+
 class EvaluationOfEmbeddings:
     def __init__(self, dbase, config):
         self.config = config
@@ -325,9 +426,7 @@ class EvaluationOfEmbeddings:
         facenet = FaceNet(self.config.model)
 
         print('Running forward pass on images')
-
-        map_func = partial(load_images, args=self.config.image)
-        dataset = make_validate_dataset(dbase, map_func, self.config, shuffle=False)
+        dataset = make_test_dataset(dbase, self.config)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
@@ -347,9 +446,14 @@ class EvaluationOfEmbeddings:
                 'model: {}\n'.format(self.config.model) +
                 'embedding size: {}\n'.format(self.embeddings.shape))
 
-    def write_report(self, file):
-        info = 64 * '-' + '\n' + str(self)
-        ioutils.write_to_file(file, info, mode='a')
+    def split(self):
+        list_of_embeddings = []
+
+        for label in np.unique(self.labels):
+            emb_array = self.embeddings[label == self.labels]
+            list_of_embeddings.append(emb_array)
+        return list_of_embeddings
+
 
 
 class Summary:

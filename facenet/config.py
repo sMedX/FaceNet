@@ -18,6 +18,8 @@ default_batch_size = 64
 image_size = 160
 
 data_dir = Path(__file__).parents[1].joinpath('data')
+faces_dir = data_dir.joinpath('faces')
+
 
 file_extension = '.png'
 
@@ -104,31 +106,56 @@ class YAMLConfig:
 class Embeddings(YAMLConfig):
     def __init__(self, args_):
         YAMLConfig.__init__(self, args_['config'])
-        if not self.seed:
-            self.seed = 0
-        random.seed(self.seed)
-        np.random.seed(self.seed)
+        if not self.model.path:
+            self.model.path = default_model
 
-        if not self.model:
-            self.model = default_model
+        # if not self.output:
+        suffix = self.output
+        if suffix[0] != '.':
+            suffix = '.' + suffix
 
-        if not self.tfrecord:
-            self.tfrecord = Path(self.dataset.path + self.model.stem + '.tfrecord')
-        self.tfrecord = Path(self.tfrecord).expanduser()
+        self.output = Path(self.dataset.path + self.model.path.stem).with_suffix(suffix)
+        self.output = Path(self.output).expanduser()
 
-        if not self.file:
-            self.file = self.tfrecord.with_suffix('.txt')
-        self.file = Path(self.file).expanduser()
+        if self.output.suffix not in ['.h5', '.tfrecord']:
+            raise ValueError('Invalid suffix for output file, must either be h5 or tfrecord.')
+
+        self.log_dir = self.output.parent
+        self.log_file = self.output.with_suffix('.txt')
 
         if not self.batch_size:
             self.batch_size = default_batch_size
 
-        if not self.dataset.min_nrof_images:
-            self.dataset.min_nrof_images = 1
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, Path(self.log_dir, self.output.stem + '_arguments.yaml'))
+        ioutils.store_revision_info(self.log_dir, sys.argv)
+
+
+class TrainClassifier(YAMLConfig):
+    def __init__(self, config):
+        YAMLConfig.__init__(self, config['config'])
+
+        if not self.seed:
+            self.seed = 0
+
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        tf.set_random_seed(self.seed)
+
+        self.classifier.path = Path(self.classifier.path).expanduser() / subdir()
+
+        if not self.model.path:
+            self.model.path = default_model
+
+        if not self.batch_size:
+            self.batch_size = default_batch_size
+
+        self.log_dir = self.classifier.path / 'logs'
+        self.log_file = self.log_dir / 'report.txt'
 
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.file.parent)
-        ioutils.store_revision_info(self.file, sys.argv)
+        ioutils.write_arguments(self, self.log_dir.joinpath('arguments.yaml'))
+        ioutils.store_revision_info(self.log_dir, sys.argv)
 
 
 class Validate(YAMLConfig):
@@ -155,8 +182,8 @@ class Validate(YAMLConfig):
             self.dataset.min_nrof_images = 1
 
         # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.file.parent)
-        ioutils.store_revision_info(self.file, sys.argv)
+        ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
+        ioutils.store_revision_info(self.logs, sys.argv)
 
 
 class TrainOptions(YAMLConfig):

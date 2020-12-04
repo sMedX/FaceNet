@@ -4,12 +4,15 @@
 # MIT License
 # Copyright (c) 2020 sMedX
 
+from pathlib import Path
+
 import tensorflow.compat.v1 as tf
 from tensorflow.python.framework import dtypes
 
 import numpy as np
 from typing import Iterable
 from facenet import tfutils, ioutils
+from facenet.config import YAMLConfig
 
 nodes = {
     'input': {
@@ -42,17 +45,23 @@ class FaceNet:
         emb = facenet.image_to_embedding(np.zeros([160, 160, 3]))
         print(emb)
         """
+        if not config.input:
+            config.input = nodes['input']['name'] + ':0'
+
+        if not config.output:
+            if config.normalize:
+                config.output = nodes['output']['name'] + ':0'
+            else:
+                config.output = 'InceptionResnetV1/Bottleneck/BatchNorm/Reshape_1:0'
+
         self._session = tf.Session()
-        tfutils.load_model(config.path)
+        tfutils.load_frozen_graph(config.path)
 
-        # Get input and output tensors
-        input_node_name = nodes['input']['name'] + ':0'
-        output_node_name = nodes['output']['name'] + ':0'
-
+        # input and output tensors
         graph = tf.get_default_graph()
         self._phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
-        self._image_placeholder = graph.get_tensor_by_name(input_node_name)
-        self._embeddings = graph.get_tensor_by_name(output_node_name)
+        self._image_placeholder = graph.get_tensor_by_name(config.input)
+        self._embeddings = graph.get_tensor_by_name(config.output)
 
         self._feed_dict = {
             self._image_placeholder: None,
