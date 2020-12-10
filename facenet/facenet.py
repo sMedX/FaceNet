@@ -333,15 +333,14 @@ def get_triplet_batch(triplets, batch_index, batch_size):
 
 
 def learning_rate_value(epoch, config):
-    if config.value is not None:
+    if config.value:
         return config.value
-
-    if epoch >= config.schedule[-1][0]:
-        return None
 
     for (epoch_, lr_) in config.schedule:
         if epoch < epoch_:
             return lr_
+
+    return config.schedule[-1][1]
 
 
 def split_embeddings(embeddings, labels):

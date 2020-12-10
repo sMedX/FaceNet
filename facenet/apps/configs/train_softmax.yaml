@@ -46,7 +46,9 @@ train:
 
   # learning rate value or schedule file
   learning_rate:
-    # Learning rate schedule
+    # Learning rate value
+    value:
+    # Learning rate schedule is used if value is not specified
     schedule:
       - [100, 0.05]
       - [200, 0.005]
