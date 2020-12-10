@@ -155,10 +155,11 @@ def main(**options):
 
         # Training and validation loop
         for epoch in range(options.train.epoch.nrof_epochs):
-            info = '(model {}, epoch [{}/{}])'.format(options.model.path.stem, epoch+1, options.train.epoch.nrof_epochs)
+            info = f'(model {options.model.path.stem}, epoch [{epoch+1}/{options.train.epoch.nrof_epochs}])'
+            print('\nRunning training', info)
 
             # train for one epoch
-            train(sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], info, options.train)
+            train(sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], options.train)
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, options.model.path, epoch)
@@ -197,8 +198,7 @@ def main(**options):
     return options.model.path
 
 
-def train(sess, placeholders, epoch, tensor_dict, summary, batch, info, options):
-    print('\nRunning training', info)
+def train(sess, placeholders, epoch, tensor_dict, summary, batch, options):
     start_time = time.monotonic()
 
     learning_rate = facenet.learning_rate_value(epoch, options.learning_rate)
