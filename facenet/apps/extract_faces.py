@@ -17,29 +17,19 @@ from facenet import facenet, config
 @click.command()
 @click.option('--config', default=config.default_app_config(__file__), type=Path,
               help='Path to yaml config file with used options of the application.')
-def main(**args_):
-    args = config.YAMLConfig(args_['config'])
+def main(**options):
+    options = config.ExtractFaces(options)
 
-    if not args.outdir:
-        args.outdir = '{}_{}extracted_{}'.format(Path(args.dataset.path), args.detector, args.image_size)
-    args.outdir = Path(args.outdir).expanduser()
-    ioutils.makedirs(args.outdir)
+    dbase = dataset.DBase(options.dataset)
+    ioutils.write_text_log(options.logfile, dbase)
+    print('input dataset:', dbase)
 
-    if not args.h5file:
-        args.h5file = args.outdir.joinpath('statistics.h5')
-    args.h5file = Path(args.h5file).expanduser()
-
-    # write arguments and store some git revision info in a text files in the log directory
-    ioutils.write_arguments(args, args.outdir.joinpath('arguments.yaml'))
-    ioutils.store_revision_info(args.outdir, sys.argv)
-
-    dbase = dataset.DBase(args.dataset)
-    print(dbase)
-    print('output directory', args.outdir)
-    print('output h5 file  ', args.h5file)
+    print('output directory', options.outdir)
+    print('output h5 file  ', options.h5file)
 
     print('Creating networks and loading parameters')
-    detector = FaceDetector(detector=args.detector)
+    detector = FaceDetector(detector=options.detector)
+    ioutils.write_text_log(options.logfile, detector)
     print(detector)
 
     nrof_extracted_faces = 0
@@ -49,7 +39,7 @@ def main(**args_):
         for i, cls in enumerate(dbase.classes):
 
             # define output class directory
-            output_class_dir = args.outdir.joinpath(cls.name)
+            output_class_dir = options.outdir.joinpath(cls.name)
             ioutils.makedirs(output_class_dir)
 
             for k, image_path in enumerate(cls.files):
@@ -71,14 +61,14 @@ def main(**args_):
                         # print('Unable to find face "{}"'.format(image_path))
                         continue
 
-                    if nrof_faces > 1 and args.detect_multiple_faces is False:
+                    if nrof_faces > 1 and options.detect_multiple_faces is False:
                         # print('The number of detected faces more than one "{}"'.format(image_path))
                         continue
 
                     nrof_extracted_faces += 1
 
                     for n, box in enumerate(boxes):
-                        output = image_processing(img, box, args.image_size, margin=args.margin)
+                        output = image_processing(img, box, options.image)
 
                         out_filename_n = out_filename
                         if n > 0:
@@ -86,14 +76,14 @@ def main(**args_):
 
                         ioutils.write_image(output, out_filename_n)
                         size = np.uint32((box.height, box.width))
-                        h5utils.write(args.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
+                        h5utils.write(options.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
             bar.update()
 
-    out_config = args.dataset
-    out_config.path = args.outdir
+    out_config = options.dataset
+    out_config.path = options.outdir
     out_dir = str(dataset.DBase(out_config))
 
-    report_file = args.outdir.joinpath('report.txt')
+    report_file = options.outdir.joinpath('report.txt')
     with Path(report_file).open('w') as f:
         f.write('{}\n'.format(datetime.now()))
         f.write('{}\n'.format(str(dbase)))

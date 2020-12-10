@@ -14,11 +14,15 @@ from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 
+default_dataset = Path('~/datasets/vggface2/train')
+
 default_train_dataset = Path('~/datasets/vggface2/train_extracted_160')
 default_test_dataset = Path('~/datasets/vggface2/test_extracted_160')
 
 default_model = src_dir.joinpath('models', '20201008-183421')
 default_batch_size = 100
+
+image_margin = 0
 image_size = 160
 image_normalization = 0
 
@@ -106,6 +110,40 @@ class YAMLConfig:
 
     def exists(self, name):
         return True if name in self.__dict__.keys() else False
+
+
+class ExtractFaces(YAMLConfig):
+    def __init__(self, options):
+        YAMLConfig.__init__(self, options['config'])
+
+        if not self.dataset.path:
+            self.dataset.path = default_dataset
+
+        if not self.image.size:
+            self.image.size = image_size
+
+        if not self.outdir:
+            self.outdir = f'{Path(self.dataset.path)}_extracted_{self.image.size}'
+        self.outdir = Path(self.outdir).expanduser()
+
+        if not self.detector:
+            self.detector = 'frcnnv3'
+
+        if not self.image.size:
+            self.image.size = image_size
+
+        if not self.image.margin:
+            self.image.margin = image_margin
+
+        ioutils.makedirs(self.outdir)
+
+        self.logdir = self.outdir
+        self.logfile = self.outdir / 'log.txt'
+        self.h5file = self.outdir / 'statistics.h5'
+
+        # write arguments and store some git revision info in a text files in the log directory
+        ioutils.write_arguments(self, self.logdir.joinpath(options['config'].name))
+        ioutils.store_revision_info(self.logdir, sys.argv)
 
 
 class Embeddings(YAMLConfig):

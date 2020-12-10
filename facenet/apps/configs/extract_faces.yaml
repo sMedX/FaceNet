@@ -1,20 +1,17 @@
 # coding:utf-8
 
-# Directory with unaligned images.
+# Directory to dataset with unaligned images.
 dataset:
   path:
 
-# Directory with extracted face thumbnails.
+# Directory to output extracted face thumbnails.
 outdir:
 
 # Detector to extract faces, pypimtcnn or frcnnv3, default=frcnnv3
-detector: frcnnv3
+detector:
 
-# Image size (height, width) in pixels, default=160
-image_size: 160
-
-# Margin for the crop around the bounding box (height, width) in pixels.', default=0.20
-margin: [0, 0]
-
-# Detect and align multiple faces per image, default=False
-detect_multiple_faces: false
+image:
+  # Image size (height, width) in pixels, default=160
+  size:
+  # Margin for the crop around the bounding box (height, width) in pixels.', default=0.0
+  margin:
