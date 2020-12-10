@@ -9,14 +9,16 @@ model:
 output: h5
 
 dataset:
-  # Path to the data directory containing aligned face patches
+  # Path to the directory with aligned face images to train facenet.
   path:
-  # Path to h5 file with information about valid images
+  # Path to h5 file with information about valid images.
   h5file:
-  # Minimal number of classes per class to download from data set
+  # Number of classes to download from data set
+  nrof_classes:
+  # Minimal number of images per class to download from class
   min_nrof_images:
-  # Maximal number of classes per class to download from data set
-  max_nrof_classes:
+  # Maximal number of images per class to download from class
+  max_nrof_images:
 
 image:
   # Image size (height, width) in pixels.
