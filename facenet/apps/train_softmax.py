@@ -102,9 +102,6 @@ def main(**options):
                                                    dbase.nrof_classes)
     tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * options.loss.center_factor)
 
-    # define learning rate tensor
-    learning_rate = placeholders.learning_rate
-
     # Calculate the average cross entropy loss across the batch
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=placeholders.label_batch,
                                                                    logits=logits, name='cross_entropy_per_example')
@@ -119,6 +116,7 @@ def main(**options):
     total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
 
     # Build a Graph that trains the model with one batch of examples and updates the model parameters
+    learning_rate = placeholders.learning_rate
     train_op = facenet.train_op(options.train, total_loss, global_step, learning_rate, tf.global_variables())
 
     # Create a saver

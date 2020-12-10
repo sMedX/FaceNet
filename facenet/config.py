@@ -218,8 +218,7 @@ class TrainOptions(YAMLConfig):
             network = importlib.import_module(self.model.module)
             self.model.update_from_file(network.config_file)
 
-        # learning rate options
-        if self.train.learning_rate.schedule:
+        if not self.train.epoch.nrof_epochs:
             self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
 
         if self.validate:

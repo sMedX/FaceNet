@@ -39,10 +39,10 @@ train:
 
   # Number of batches per epoch.
   epoch:
+    # Maximal number of epochs to train facenet
+    nrof_epochs:
     # Number of batches per epoch.
     size: 1000
-    # Maximal number of epochs to run
-    nrof_epochs: 1000
 
   # learning rate value or schedule file
   learning_rate:
