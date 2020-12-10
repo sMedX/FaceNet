@@ -54,10 +54,10 @@ def main(**options):
     ioutils.write_text_log(options.txtfile, str(dbase_val))
     print('validate dbase', dbase_val)
 
-    map_func = facenet.ImageLoader(config=options.image)
+    loader = facenet.ImageLoader(config=options.image)
     ds = {
-        'train': facenet.make_train_dataset(dbase, map_func, options),
-        'validate': facenet.make_test_dataset(dbase_val, map_func, options),
+        'train': facenet.make_train_dataset(dbase, loader, options),
+        'validate': facenet.make_test_dataset(dbase_val, loader, options),
     }
 
     iterator = {
