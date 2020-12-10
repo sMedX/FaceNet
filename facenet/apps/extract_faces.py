@@ -2,16 +2,14 @@
 # MIT License
 # Copyright (c) 2020 Ruslan N. Kosarev
 
-import sys
 import click
 from pathlib import Path
 import numpy as np
-from datetime import datetime
 from tqdm import tqdm
 
 from facenet import dataset, ioutils, h5utils
 from facenet.detectors.face_detector import image_processing, FaceDetector
-from facenet import facenet, config
+from facenet import config
 
 
 @click.command()
@@ -79,22 +77,15 @@ def main(**options):
                         h5utils.write(options.h5file, h5utils.filename2key(out_filename_n, 'size'), size)
             bar.update()
 
-    out_config = options.dataset
-    out_config.path = options.outdir
-    out_dir = str(dataset.DBase(out_config))
+    out_dbase = dataset.DBase(dataset.DefaultConfig(options.outdir))
+    ioutils.write_text_log(options.logfile, out_dbase)
 
-    report_file = options.outdir.joinpath('report.txt')
-    with Path(report_file).open('w') as f:
-        f.write('{}\n'.format(datetime.now()))
-        f.write('{}\n'.format(str(dbase)))
-        f.write('{}\n'.format(out_dir))
-        f.write('\n')
-        f.write('Number of files that cannot be read {}\n'.format(nrof_unread_files))
-        f.write('Number of extracted faces {}\n'.format(nrof_extracted_faces))
+    ioutils.write_text_log(options.logfile, f'Number of files that cannot be read {nrof_unread_files}')
+    ioutils.write_text_log(options.logfile, f'Number of extracted faces {nrof_extracted_faces}')
 
     print('\n')
     print('Number of extracted faces', nrof_extracted_faces)
-    print('Report has been written to the file', report_file)
+    print('Logs have been written to the file', options.logfile)
 
 
 if __name__ == '__main__':
