@@ -14,12 +14,13 @@ from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
 
-default_train_dataset = '~/datasets/vggface2/train_extracted_160'
-default_test_dataset = '~/datasets/vggface2/test_extracted_160'
+default_train_dataset = Path('~/datasets/vggface2/train_extracted_160')
+default_test_dataset = Path('~/datasets/vggface2/test_extracted_160')
 
 default_model = src_dir.joinpath('models', '20201008-183421')
 default_batch_size = 100
 image_size = 160
+image_normalization = 0
 
 data_dir = Path(__file__).parents[1].joinpath('data')
 faces_dir = data_dir.joinpath('faces')
@@ -118,7 +119,10 @@ class Embeddings(YAMLConfig):
         if suffix[0] != '.':
             suffix = '.' + suffix
 
-        self.output = Path(self.dataset.path + self.model.path.stem).with_suffix(suffix)
+        if not self.dataset.path:
+            self.dataset.path = default_train_dataset
+
+        self.output = Path(str(self.dataset.path) + self.model.path.stem).with_suffix(suffix)
         self.output = Path(self.output).expanduser()
 
         if self.output.suffix not in ['.h5', '.tfrecord']:
@@ -129,6 +133,12 @@ class Embeddings(YAMLConfig):
 
         if not self.batch_size:
             self.batch_size = default_batch_size
+
+        if not self.image.size:
+            self.image.size = image_size
+
+        if not self.image.normalization:
+            self.image.normalization = image_normalization
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, Path(self.log_dir, self.output.stem + '_arguments.yaml'))

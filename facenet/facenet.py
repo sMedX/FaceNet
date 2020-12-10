@@ -27,11 +27,11 @@ from pathlib import Path
 
 import random
 
-from facenet import nodes, ioutils, h5utils, FaceNet
+from facenet import nodes, h5utils, FaceNet
 
 
 class Placeholders:
-    def __init__(self, image_size):
+    def __init__(self):
         self.image_batch = tf.placeholder(tf.uint8, shape=[None, None, None, 3], name='image_batch')
         self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size')
@@ -423,7 +423,8 @@ class EvaluationOfEmbeddings:
         facenet = FaceNet(self.config.model)
 
         print('Running forward pass on images')
-        dataset = make_test_dataset(dbase, self.config)
+        loader = ImageLoader(config=config.image)
+        dataset = make_test_dataset(dbase, loader, self.config)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
