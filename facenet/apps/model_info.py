@@ -7,15 +7,14 @@
 
 import click
 from pathlib import Path
-import numpy as np
 
 import tensorflow.compat.v1 as tf
 
-from facenet import tfutils, config, nodes
+from facenet import tfutils, nodes
 
 
 @click.command()
-@click.option('--path', default=config.default_model, type=Path, help='Path to model.')
+@click.option('--path', type=Path, help='Path to directory with model.')
 def main(**options):
 
     input_node_name = nodes['input']['name'] + ':0'
@@ -23,7 +22,7 @@ def main(**options):
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            tfutils.load_model(options['path'], input_map=None)
+            tfutils.load_model(options['path'])
 
             graph = tf.get_default_graph()
 

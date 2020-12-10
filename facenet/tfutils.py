@@ -42,6 +42,7 @@ def get_model_filenames(model_dir):
     meta_file = meta_files[0]
     ckpt = tf.train.get_checkpoint_state(model_dir)
     ckpt_file = Path(ckpt.model_checkpoint_path).name
+
     return meta_file, ckpt_file
 
 
@@ -297,11 +298,11 @@ def load_frozen_graph(path, input_map=None):
 def load_model(path, input_map=None):
     path = Path(path).expanduser()
 
-    print('Model directory: {}'.format(path))
+    print(f'Model directory: {path}')
     meta_file, ckpt_file = get_model_filenames(path)
 
-    print('Metagraph file : {}'.format(meta_file))
-    print('Checkpoint file: {}'.format(ckpt_file))
+    print(f'Metagraph file : {meta_file}')
+    print(f'Checkpoint file: {ckpt_file}')
 
     saver = tf.compat.v1.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
     with tf.compat.v1.Session() as sess:
