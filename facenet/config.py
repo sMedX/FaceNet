@@ -13,6 +13,10 @@ import tensorflow as tf
 from facenet import ioutils
 
 src_dir = Path(__file__).parents[1]
+
+default_train_dataset = '~/datasets/vggface2/train_extracted_160'
+default_test_dataset = '~/datasets/vggface2/test_extracted_160'
+
 default_model = src_dir.joinpath('models', '20201008-183421')
 default_batch_size = 100
 image_size = 160
