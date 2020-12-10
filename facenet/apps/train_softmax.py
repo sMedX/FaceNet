@@ -158,7 +158,7 @@ def main(**options):
             info = '(model {}, epoch [{}/{}])'.format(options.model.path.stem, epoch+1, options.train.epoch.nrof_epochs)
 
             # train for one epoch
-            train(options, sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], info)
+            train(sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], info, options.train)
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, options.model.path, epoch)
@@ -197,20 +197,18 @@ def main(**options):
     return options.model.path
 
 
-def train(args, sess, placeholders, epoch, tensor_dict, summary, batch, info):
+def train(sess, placeholders, epoch, tensor_dict, summary, batch, info, options):
     print('\nRunning training', info)
     start_time = time.monotonic()
 
-    learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
+    learning_rate = facenet.learning_rate_value(epoch, options.learning_rate)
     if not learning_rate:
         return False
 
     outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
-    epoch_size = args.train.epoch.size
-
-    with tqdm(total=epoch_size) as bar:
-        for batch_number in range(epoch_size):
+    with tqdm(total=options.epoch.size) as bar:
+        for batch_number in range(options.epoch.size):
             image_batch, label_batch = sess.run(batch)
 
             feed_dict = placeholders.train_feed_dict(image_batch, label_batch, learning_rate)
