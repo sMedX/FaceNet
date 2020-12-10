@@ -47,11 +47,11 @@ def main(**options):
 
     # ------------------------------------------------------------------------------------------------------------------
     dbase = dataset.DBase(options.dataset)
-    ioutils.write_text_log(options.txtfile, str(dbase))
+    ioutils.write_text_log(options.txtfile, dbase)
     print('train dbase:', dbase)
 
     dbase_val = dataset.DBase(options.validate.dataset)
-    ioutils.write_text_log(options.txtfile, str(dbase_val))
+    ioutils.write_text_log(options.txtfile, dbase_val)
     print('validate dbase', dbase_val)
 
     loader = facenet.ImageLoader(config=options.image)
