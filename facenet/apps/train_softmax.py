@@ -57,7 +57,7 @@ def main(**options):
     map_func = facenet.ImageLoader(config=options.image)
     ds = {
         'train': facenet.make_train_dataset(dbase, map_func, options),
-        'validate': facenet.make_validate_dataset(dbase_val, map_func, options),
+        'validate': facenet.make_test_dataset(dbase_val, map_func, options),
     }
 
     iterator = {

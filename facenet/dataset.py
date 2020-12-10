@@ -87,11 +87,14 @@ class DBase:
         self.h5file = config.h5file
 
         if classes is None:
+            if not self.path:
+                raise ValueError('Path to download dataset does not specified.')
+
             self.path = Path(self.path).expanduser()
             print('Download data set from {}'.format(self.path))
 
             if not self.path.exists():
-                raise ValueError('Directory {} does not exit'.format(self.path))
+                raise ValueError(f'Directory {self.path} does not exist')
 
             if self.h5file:
                 self.h5file = Path(self.h5file).expanduser()

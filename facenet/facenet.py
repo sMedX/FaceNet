@@ -142,7 +142,7 @@ def equal_batches_input_pipeline(embeddings, config):
     return next_elem
 
 
-def make_train_dataset(dbase, map_func, args):
+def make_train_dataset(dbase, map_func, config):
     data = list(zip(dbase.files, dbase.labels))
     np.random.shuffle(data)
     files, labels = map(list, zip(*data))
@@ -151,16 +151,14 @@ def make_train_dataset(dbase, map_func, args):
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
     ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=10*args.batch_size, reshuffle_each_iteration=True).repeat()
-    ds = ds.batch(batch_size=args.batch_size)
+    ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True).repeat()
+    ds = ds.batch(batch_size=config.batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     return ds
 
 
-def make_test_dataset(dbase, config):
-    loader = ImageLoader(config=config.image)
-
+def make_test_dataset(dbase, loader, config):
     files, labels = dbase.files, dbase.labels
 
     images = tf.data.Dataset.from_tensor_slices(files).map(loader)
