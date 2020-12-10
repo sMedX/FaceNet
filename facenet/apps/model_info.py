@@ -10,11 +10,11 @@ from pathlib import Path
 
 import tensorflow.compat.v1 as tf
 
-from facenet import tfutils, nodes
+from facenet import tfutils, config, nodes
 
 
 @click.command()
-@click.option('--path', type=Path, help='Path to directory with model.')
+@click.option('--path', default=config.default_model, type=Path, help='Path to directory with model.')
 def main(**options):
 
     input_node_name = nodes['input']['name'] + ':0'
