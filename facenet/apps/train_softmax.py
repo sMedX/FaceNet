@@ -103,9 +103,7 @@ def main(**options):
     tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * options.loss.center_factor)
 
     # define learning rate tensor
-    learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
-                                               options.train.learning_rate.decay_epochs * options.train.epoch.size,
-                                               options.train.learning_rate.decay_factor, staircase=True)
+    learning_rate = placeholders.learning_rate
 
     # Calculate the average cross entropy loss across the batch
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=placeholders.label_batch,

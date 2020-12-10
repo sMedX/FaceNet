@@ -46,13 +46,7 @@ train:
 
   # learning rate value or schedule file
   learning_rate:
-    # Initial learning rate value
-    value:
-    # Number of epochs between learning rate decay
-    decay_epochs: 100
-    # Learning rate decay factor
-    decay_factor: 1.0
-    # Learning rate schedule that is used when value is none
+    # Learning rate schedule
     schedule:
       - [100, 0.05]
       - [200, 0.005]
