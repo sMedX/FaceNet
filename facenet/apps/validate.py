@@ -27,7 +27,6 @@ def main(**options):
     print(embeddings)
 
     validate = statistics.FaceToFaceValidation(embeddings.embeddings, dbase.labels, options.validate)
-    # validate.write_report(options.txtfile)
     ioutils.write_text_log(options.txtfile, validate)
     print(validate)
 
