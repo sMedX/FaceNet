@@ -7,7 +7,7 @@ dataset:
 # Directory to output extracted face thumbnails.
 outdir:
 
-# Detector to extract faces, pypimtcnn or frcnnv3, default=frcnnv3
+# Detector to extract faces, pypimtcnn or frcnnv3, default is frcnnv3
 detector:
 
 image:
