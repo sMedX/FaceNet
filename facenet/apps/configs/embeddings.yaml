@@ -1,9 +1,10 @@
 # coding:utf-8
 
-# Path to directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
 model:
+  # Path to directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
   path:
-  normalize: false
+  # If true normalize output embeddings to 1
+  normalize: true
 
 # type of the output file (h5 or tfrecord)
 output: h5
@@ -24,6 +25,6 @@ image:
   # Image size (height, width) in pixels.
   size:
   # Performs normalization of the input images
-  normalization: 0
+  normalization:
 
 

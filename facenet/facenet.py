@@ -433,7 +433,9 @@ class EvaluationOfEmbeddings:
             for _ in tqdm(range(nrof_batches)):
                 image_batch, label_batch = sess.run(iterator)
 
-                self.embeddings.append(facenet.evaluate(image_batch))
+                embeddings = facenet.evaluate(image_batch)
+
+                self.embeddings.append(embeddings)
                 self.labels.append(label_batch)
 
         self.embeddings = np.concatenate(self.embeddings)

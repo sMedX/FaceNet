@@ -173,8 +173,9 @@ class TrainClassifier(YAMLConfig):
 
 
 class Validate(YAMLConfig):
-    def __init__(self, args_):
-        YAMLConfig.__init__(self, args_['config'])
+    def __init__(self, options):
+        YAMLConfig.__init__(self, options['config'])
+
         if not self.seed:
             self.seed = 0
         random.seed(self.seed)
@@ -184,16 +185,22 @@ class Validate(YAMLConfig):
         if not self.model.path:
             self.model.path = default_model
 
-        if not self.file:
-            self.file = Path(self.model.path).expanduser().joinpath('report.txt')
-        else:
-            self.file = Path(self.file).expanduser()
+        self.model.normalize = True
+
+        self.logs = self.model.path.joinpath('logs')
+        self.txtfile = self.logs.joinpath('report.txt')
 
         if not self.batch_size:
             self.batch_size = default_batch_size
 
-        if not self.dataset.min_nrof_images:
-            self.dataset.min_nrof_images = 1
+        if not self.dataset.path:
+            self.dataset.path = default_test_dataset
+
+        if not self.image.size:
+            self.image.size = image_size
+
+        if not self.image.normalization:
+            self.image.normalization = image_normalization
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))

@@ -1,12 +1,10 @@
 # coding:utf-8
 
-# Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
 model:
-
-# Number of images to process in a batch
-batch_size: 100
-
-seed: 0
+  # Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+  path:
+  # If true normalize output embeddings to 1
+  normalize:
 
 dataset:
   # Path to the data directory containing aligned face patches
@@ -16,26 +14,22 @@ dataset:
   # Number of classes to download from data set
   nrof_classes:
   # Minimal number of classes per class to download from data set
-  min_nrof_images: 1
+  min_nrof_images:
   # Maximal number of classes per class to download from data set
   max_nrof_images:
 
 validate:
-  # File to write statistical report
-  file: none
   # Number of folds to use for cross validation. Mainly used for testing
   nrof_folds: 10
   # Distance metric  0: euclidean, 1: cosine similarity
-  metric: 1
+  metric: 0
   # Target false alarm rate (face pairs that was incorrectly classified as the same)
   far_target: 0.001
 
 image:
-  # Performs standardization of images
-  standardization: true
-  # Concatenates embeddings for the image and its horizontally flipped counterpart
-  use_flipped_images: false
   # Image size (height, width) in pixels.
-  size: 160
+  size:
+  # Performs normalization of the input images
+  normalization:
 
 
