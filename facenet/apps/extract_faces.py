@@ -13,10 +13,11 @@ from facenet import config
 
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__), type=Path,
+@click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options of the application.')
 def main(**options):
-    options = config.ExtractFaces(options)
+
+    options = config.extract_faces(__file__, options)
 
     dbase = dataset.DBase(options.dataset)
     ioutils.write_text_log(options.logfile, dbase)

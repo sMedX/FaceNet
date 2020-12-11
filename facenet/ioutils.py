@@ -41,13 +41,13 @@ def write_elapsed_time(files, start_time):
                 f.write('elapsed time: {:.3f}\n'.format(elapsed_time))
 
 
-def store_revision_info(output_filename, arg_string, mode='a'):
+def store_revision_info(output_filename, mode='a'):
     output_filename = Path(output_filename)
 
     if output_filename.is_dir():
         output_filename = output_filename.joinpath(output_filename, 'revision_info.txt')
 
-    arg_string = ' '.join(arg_string)
+    arg_string = ' '.join(sys.argv)
 
     git_hash_ = git_hash()
     git_diff_ = git_diff()

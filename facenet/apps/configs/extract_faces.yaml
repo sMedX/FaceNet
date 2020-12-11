@@ -2,16 +2,10 @@
 
 # Directory to dataset with unaligned images.
 dataset:
-  path:
+  path: ~/datasets/vggface2/train
 
 # Directory to output extracted face thumbnails.
 outdir:
 
 # Detector to extract faces, pypimtcnn or frcnnv3, default is frcnnv3
-detector:
-
-image:
-  # Image size (height, width) in pixels, default=160
-  size:
-  # Margin for the crop around the bounding box (height, width) in pixels.', default=0.0
-  margin:
+detector: frcnnv3

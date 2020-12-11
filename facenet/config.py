@@ -1,57 +1,87 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
-import sys
 import yaml
 from pathlib import Path
 from datetime import datetime
 import importlib
-import numpy as np
 import random
+
+import omegaconf
+from omegaconf import OmegaConf
+
+import numpy as np
 import tensorflow as tf
 
 from facenet import ioutils
 
-src_dir = Path(__file__).parents[1]
+# src_dir = Path(__file__).parents[1]
 
-default_dataset = Path('~/datasets/vggface2/train')
+# directory for default configs
+default_config_dir = Path(__file__).parents[0].joinpath('apps', 'configs')
+default_config = default_config_dir.joinpath('config.yaml')
 
-default_train_dataset = Path('~/datasets/vggface2/train_extracted_160')
-default_test_dataset = Path('~/datasets/vggface2/test_extracted_160')
+# directory for user's configs
+user_config_dir = Path(__file__).parents[1].joinpath('configs')
+user_config = user_config_dir.joinpath('config.yaml')
 
-default_model = src_dir.joinpath('models', '20201008-183421')
-default_batch_size = 100
+# default_dataset = Path('~/datasets/vggface2/train')
+#
+# default_train_dataset = Path('~/datasets/vggface2/train_extracted_160')
+# default_test_dataset = Path('~/datasets/vggface2/test_extracted_160')
+#
+# default_model = src_dir.joinpath('models', '20201008-183421')
+# default_batch_size = 100
 
-image_margin = 0
-image_size = 160
-image_normalization = 0
+# image_margin = 0
+# image_size = 160
+# image_normalization = 0
 
-data_dir = Path(__file__).parents[1].joinpath('data')
-faces_dir = data_dir.joinpath('faces')
-
-
-file_extension = '.png'
+# data_dir = Path(__file__).parents[1].joinpath('data')
+# faces_dir = data_dir.joinpath('faces')
+#
+# file_extension = '.png'
 
 
 def subdir():
     return datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 
 
-def default_app_config(apps_file_name):
-    config_dir = Path(Path(apps_file_name).parent).joinpath('configs')
-    config_name = Path(apps_file_name).stem
-    return config_dir.joinpath(config_name + '.yaml')
+def config_paths(app_file_name, custom_config_file):
+    config_name = Path(app_file_name).stem + '.yaml'
+
+    paths = [
+        default_config,
+        default_config_dir.joinpath(config_name),
+        user_config,
+        user_config_dir.joinpath(config_name)
+    ]
+
+    if custom_config_file is not None:
+        paths.append(custom_config_file)
+
+    return tuple(paths)
 
 
-class YAMLConfig:
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.set_random_seed(seed)
+
+
+class Config:
     """Object representing YAML settings as a dict-like object with values as fields
     """
 
-    def __init__(self, item):
-        if isinstance(item, dict):
-            self.update_from_dict(item)
-        else:
-            self.update_from_file(item)
+    def __init__(self, dct):
+        """Update config from dict
+        :param dct: input object
+        """
+        for key, item in dct.items():
+            if isinstance(item, (omegaconf.dictconfig.DictConfig, dict)):
+                setattr(self, key, Config(item))
+            else:
+                setattr(self, key, item)
 
     def __repr__(self):
         shift = 3 * ' '
@@ -59,51 +89,19 @@ class YAMLConfig:
         def get_str(obj, ident=''):
             s = ''
             for key, item in obj.items():
-                if isinstance(item, YAMLConfig):
-                    s += '{}{}: \n{}'.format(ident, key, get_str(item, ident=ident + shift))
+                if isinstance(item, Config):
+                    s += f'{ident}{key}: \n{get_str(item, ident=ident + shift)}'
                 else:
-                    s += '{}{}: {}\n'.format(ident, key, str(item))
+                    s += f'{ident}{key}: {str(item)}\n'
             return s
 
         return get_str(self)
 
     def __getattr__(self, name):
-        return self.__dict__.get(name, YAMLConfig({}))
+        return self.__dict__.get(name, Config({}))
 
     def __bool__(self):
         return bool(self.__dict__)
-
-    @staticmethod
-    def check_item(s):
-        if not isinstance(s, str):
-            return s
-        if s.lower() == 'none':
-            return None
-        if s.lower() == 'false':
-            return False
-        if s.lower() == 'true':
-            return True
-        return s
-
-    def update_from_dict(self, dct):
-        """Update config from dict
-
-        :param dct: dict
-        """
-        for key, item in dct.items():
-            if isinstance(item, dict):
-                setattr(self, key, YAMLConfig(item))
-            else:
-                setattr(self, key, self.check_item(item))
-
-    def update_from_file(self, path):
-        """Update config from YAML file
-        """
-        if not path.exists():
-            raise ValueError('file {} does not exist'.format(path))
-
-        with path.open('r') as f:
-            self.update_from_dict(yaml.safe_load(f.read()))
 
     def items(self):
         return self.__dict__.items()
@@ -112,43 +110,64 @@ class YAMLConfig:
         return True if name in self.__dict__.keys() else False
 
 
-class ExtractFaces(YAMLConfig):
-    def __init__(self, options):
-        YAMLConfig.__init__(self, options['config'])
-
-        if not self.dataset.path:
-            self.dataset.path = default_dataset
-
-        if not self.image.size:
-            self.image.size = image_size
-
-        if not self.outdir:
-            self.outdir = f'{Path(self.dataset.path)}_extracted_{self.image.size}'
-        self.outdir = Path(self.outdir).expanduser()
-
-        if not self.detector:
-            self.detector = 'frcnnv3'
-
-        if not self.image.size:
-            self.image.size = image_size
-
-        if not self.image.margin:
-            self.image.margin = image_margin
-
-        ioutils.makedirs(self.outdir)
-
-        self.logdir = self.outdir
-        self.logfile = self.outdir / 'log.txt'
-        self.h5file = self.outdir / 'statistics.h5'
-
-        # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.logdir.joinpath(options['config'].name))
-        ioutils.store_revision_info(self.logdir, sys.argv)
+class LoadConfigError(Exception):
+    pass
 
 
-class Embeddings(YAMLConfig):
+def load_config(app_file_name, options):
+    """Load configuration from the set of config files
+    :param app_file_name
+    :param options: Optional path to the custom config file
+    :return: The validated config in Config model instance
+    """
+
+    paths = config_paths(app_file_name, options['config'])
+
+    cfg = OmegaConf.create()
+    new_cfg = None
+
+    for config_path in paths:
+        if not config_path.is_file():
+            continue
+
+        try:
+            new_cfg = OmegaConf.load(config_path)
+            cfg = OmegaConf.merge(cfg, new_cfg)
+        except Exception as err:
+            raise LoadConfigError(f"Cannot load configuration from '{config_path}'\n{err}")
+
+    if new_cfg is None:
+        raise LoadConfigError("The configuration has not been loaded.")
+
+    cfg = Config(cfg)
+
+    return cfg
+
+
+def extract_faces(app_file_name, options):
+    cfg = load_config(app_file_name, options)
+
+    if not cfg.outdir:
+        cfg.outdir = f'{Path(cfg.dataset.path)}_extracted_{cfg.image.size}'
+
+    cfg.outdir = Path(cfg.outdir).expanduser()
+    cfg.logdir = cfg.outdir
+    cfg.logfile = cfg.outdir / 'log.txt'
+    cfg.h5file = cfg.outdir / 'statistics.h5'
+
+    # set seed for random number generators
+    set_seed(cfg.seed)
+
+    # write arguments and store some git revision info in a text files in the log directory
+    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
+    ioutils.store_revision_info(cfg.logdir)
+
+    return cfg
+
+
+class Embeddings(Config):
     def __init__(self, args_):
-        YAMLConfig.__init__(self, args_['config'])
+        Config.__init__(self, args_['config'])
         if not self.model.path:
             self.model.path = default_model
 
@@ -180,12 +199,12 @@ class Embeddings(YAMLConfig):
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, Path(self.log_dir, self.output.stem + '_arguments.yaml'))
-        ioutils.store_revision_info(self.log_dir, sys.argv)
+        ioutils.store_revision_info(self.log_dir)
 
 
-class TrainClassifier(YAMLConfig):
+class TrainClassifier(Config):
     def __init__(self, config):
-        YAMLConfig.__init__(self, config['config'])
+        Config.__init__(self, config['config'])
 
         if not self.seed:
             self.seed = 0
@@ -207,12 +226,12 @@ class TrainClassifier(YAMLConfig):
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.log_dir.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.log_dir, sys.argv)
+        ioutils.store_revision_info(self.log_dir)
 
 
-class Validate(YAMLConfig):
+class Validate(Config):
     def __init__(self, options):
-        YAMLConfig.__init__(self, options['config'])
+        Config.__init__(self, options['config'])
 
         if not self.seed:
             self.seed = 0
@@ -242,12 +261,12 @@ class Validate(YAMLConfig):
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.logs, sys.argv)
+        ioutils.store_revision_info(self.logs)
 
 
-class TrainOptions(YAMLConfig):
+class TrainOptions(Config):
     def __init__(self, args_, subdir=None):
-        YAMLConfig.__init__(self, args_['config'])
+        Config.__init__(self, args_['config'])
 
         if not self.seed:
             self.seed = 0
@@ -290,4 +309,4 @@ class TrainOptions(YAMLConfig):
 
         # write arguments and store some git revision info in a text files in the log directory
         ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.logs, sys.argv)
+        ioutils.store_revision_info(self.logs)
