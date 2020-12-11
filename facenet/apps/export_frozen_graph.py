@@ -14,7 +14,7 @@ from facenet import tfutils, config, nodes
 
 
 @click.command()
-@click.option('--model_dir', default=config.default_model, type=Path,
+@click.option('--model_dir', default=config.default_model_path, type=Path,
               help='Directory with the meta graph and checkpoint files containing model parameters.')
 @click.option('--as_text', default=0, type=int,
               help='Writes the graph as an ASCII proto.')
