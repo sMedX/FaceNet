@@ -1,4 +1,4 @@
-"""Validate a face recognizer.
+"""Train facenet classifier.
 """
 # MIT License
 #
