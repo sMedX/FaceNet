@@ -379,15 +379,24 @@ class Embeddings:
                     self.embeddings[idx] = self.embeddings[idx][labels, :]
 
     def __repr__(self):
-        """Representation of the database"""
+        """Representation of the embeddings"""
         data = [len(e) for e in self.embeddings]
 
+        embeddings = np.concatenate(self.embeddings, axis=0)
+        norm = np.linalg.norm(embeddings, axis=1)
+
         info = (f'{self.__class__.__name__}\n' +
-                f'{self.file}\n' +
+                f'Input file {self.file}\n' +
                 f'Number of classes {self.nrof_classes} \n' +
                 f'Number of images {self.nrof_images}\n' +
                 f'Minimal number of images in class {min(data)}\n' +
-                f'Maximal number of images in class {max(data)}\n')
+                f'Maximal number of images in class {max(data)}\n' +
+                '\n' +
+                f'Minimal embedding {np.min(norm)}\n' +
+                f'Maximal embedding {np.max(norm)}\n' +
+                f'Mean embedding {np.mean(norm)}\n'
+                )
+
         return info
 
     @property

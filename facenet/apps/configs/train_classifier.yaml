@@ -4,16 +4,6 @@ nrof_classes_per_batch:
 
 nrof_examples_per_class: 5
 
-embeddings:
-  # path to input data file
-  path: ~/datasets/megaface/megaface_frcnnv3extracted_16020201008-183421.h5
-  # Number of classes to download from h5 file
-  nrof_classes:
-  # Number of images to download from h5 file
-  max_nrof_images: 50
-  # Normalize embeddings
-  normalize: false
-
 # Model definition
 classifier:
   # Directory where to write trained models and checkpoints

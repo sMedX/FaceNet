@@ -223,7 +223,7 @@ def train_classifier(app_file_name, options):
 
     cfg.classifier.path = Path(cfg.classifier.path).expanduser() / subdir()
 
-    cfg.logdir = cfg.classifier.path / 'logs'
+    cfg.logdir = cfg.classifier.path
     cfg.logfile = cfg.logdir / 'log.txt'
 
     # set seed for random number generators

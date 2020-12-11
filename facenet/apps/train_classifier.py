@@ -92,6 +92,7 @@ def main(**options):
 
     embeddings = facenet.Embeddings(options.embeddings)
     ioutils.write_text_log(options.logfile, embeddings)
+    print(embeddings)
 
     embarray = embeddings.data(normalize=options.embeddings.normalize)
 
