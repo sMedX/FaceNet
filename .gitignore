@@ -7,11 +7,11 @@ __pycache__/
 *.so
 
 /*.yaml
-/configs/*.yaml
+/configs/*
 
-models/*/*.pb
-models/*/*.meta
-models/*/*.ckpt*
+/models/*
+/models/*
+/models/*
 
 # Distribution / packaging
 .Python
