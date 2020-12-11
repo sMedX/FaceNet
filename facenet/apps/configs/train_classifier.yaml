@@ -7,28 +7,12 @@ nrof_examples_per_class: 5
 embeddings:
   # path to input data file
   path: ~/datasets/megaface/megaface_frcnnv3extracted_16020201008-183421.h5
-
   # Number of classes to download from h5 file
   nrof_classes:
   # Number of images to download from h5 file
   max_nrof_images: 50
   # Normalize embeddings
   normalize: false
-
-model:
-  path:
-
-dataset:
-  # Directory with aligned face patches.
-  path: ~/datasets/megaface/megaface_frcnnv3extracted_160
-  # Path to h5 file with information about valid images.
-  h5file: ~/datasets/megaface/megaface_frcnnv3extracted_160_20190727-080213.h5
-
-  # Number of classes to download from data set
-  nrof_classes:
-  # Number of images to download from data set
-  max_nrof_images: 10
-
 
 # Model definition
 classifier:
@@ -51,15 +35,15 @@ train:
     initial_value: 0.01
     decay_rate:  0.1
 
-image:
-  # Image size (height, width) in pixels.
-  size: 160
-  # Performs fixed standardization of images
-  normalization: 0
-  # Performs random cropping of training images. If false, the center image_size pixels from
-  # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
-  random_crop: false
-  # Performs random horizontal flipping of training images
-  random_flip: false
-  # Performs random rotations of training images
-  random_rotate: false
+#image:
+#  # Image size (height, width) in pixels.
+#  size: 160
+#  # Performs fixed standardization of images
+#  normalization: 0
+#  # Performs random cropping of training images. If false, the center image_size pixels from
+#  # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
+#  random_crop: false
+#  # Performs random horizontal flipping of training images
+#  random_flip: false
+#  # Performs random rotations of training images
+#  random_rotate: false

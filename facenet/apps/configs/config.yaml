@@ -10,7 +10,7 @@ model:
   # Path to default directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
   path: ./models/default
   # If true normalize output embeddings to 1
-  normalize: true
+  normalize: false
 
 
 image:

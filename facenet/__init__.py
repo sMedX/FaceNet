@@ -4,15 +4,14 @@
 # MIT License
 # Copyright (c) 2020 sMedX
 
-from pathlib import Path
+import numpy as np
+from typing import Iterable
 
 import tensorflow.compat.v1 as tf
 from tensorflow.python.framework import dtypes
 
-import numpy as np
-from typing import Iterable
 from facenet import tfutils, ioutils
-from facenet.config import YAMLConfig
+# from facenet.config import Config
 
 nodes = {
     'input': {

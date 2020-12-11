@@ -238,31 +238,22 @@ def validate(app_file_name, options):
     return cfg
 
 
-class TrainClassifier(Config):
-    def __init__(self, config):
-        Config.__init__(self, config['config'])
+def train_classifier(app_file_name, options):
+    cfg = load_config(app_file_name, options)
 
-        if not self.seed:
-            self.seed = 0
+    cfg.classifier.path = Path(cfg.classifier.path).expanduser() / subdir()
 
-        random.seed(self.seed)
-        np.random.seed(self.seed)
-        tf.set_random_seed(self.seed)
+    cfg.logdir = cfg.classifier.path / 'logs'
+    cfg.logfile = cfg.logdir / 'log.txt'
 
-        self.classifier.path = Path(self.classifier.path).expanduser() / subdir()
+    # set seed for random number generators
+    set_seed(cfg.seed)
 
-        if not self.model.path:
-            self.model.path = default_model
+    # write arguments and store some git revision info in a text files in the log directory
+    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
+    ioutils.store_revision_info(cfg.logdir)
 
-        if not self.batch_size:
-            self.batch_size = default_batch_size
-
-        self.log_dir = self.classifier.path / 'logs'
-        self.log_file = self.log_dir / 'report.txt'
-
-        # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.log_dir.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.log_dir)
+    return cfg
 
 
 
