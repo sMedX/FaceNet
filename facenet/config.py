@@ -219,6 +219,25 @@ def embeddings(app_file_name, options):
     return cfg
 
 
+def validate(app_file_name, options):
+    cfg = load_config(app_file_name, options)
+
+    cfg.outdir = Path(cfg.dataset.path + '_' + Path(cfg.model.path).stem)
+    cfg.outdir = Path(cfg.outdir).expanduser()
+
+    cfg.logdir = cfg.outdir
+    cfg.logfile = cfg.outdir.joinpath('validate.txt')
+
+    # set seed for random number generators
+    set_seed(cfg.seed)
+
+    # write arguments and store some git revision info in a text files in the log directory
+    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
+    ioutils.store_revision_info(cfg.logdir)
+
+    return cfg
+
+
 class TrainClassifier(Config):
     def __init__(self, config):
         Config.__init__(self, config['config'])
@@ -246,38 +265,5 @@ class TrainClassifier(Config):
         ioutils.store_revision_info(self.log_dir)
 
 
-class Validate(Config):
-    def __init__(self, options):
-        Config.__init__(self, options['config'])
-
-        if not self.seed:
-            self.seed = 0
-        random.seed(self.seed)
-        np.random.seed(self.seed)
-        tf.set_random_seed(self.seed)
-
-        if not self.model.path:
-            self.model.path = default_model
-
-        self.model.normalize = True
-
-        self.logs = self.model.path.joinpath('logs')
-        self.txtfile = self.logs.joinpath('report.txt')
-
-        if not self.batch_size:
-            self.batch_size = default_batch_size
-
-        if not self.dataset.path:
-            self.dataset.path = default_test_dataset
-
-        if not self.image.size:
-            self.image.size = image_size
-
-        if not self.image.normalization:
-            self.image.normalization = image_normalization
-
-        # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.logs)
 
 

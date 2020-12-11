@@ -13,24 +13,25 @@ start_time = ioutils.get_time()
 
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__), type=Path,
+@click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options for the application.')
 def main(**options):
-    options = config.Validate(options)
+    options = config.validate(__file__, options)
+    options.model.normalize = True
 
     dbase = dataset.DBase(options.dataset)
-    ioutils.write_text_log(options.txtfile, dbase)
+    ioutils.write_text_log(options.logfile, dbase)
     print(dbase)
 
     embeddings = facenet.EvaluationOfEmbeddings(dbase, options)
-    ioutils.write_text_log(options.txtfile, embeddings)
+    ioutils.write_text_log(options.logfile, embeddings)
     print(embeddings)
 
     validate = statistics.FaceToFaceValidation(embeddings.embeddings, dbase.labels, options.validate)
-    ioutils.write_text_log(options.txtfile, validate)
+    ioutils.write_text_log(options.logfile, validate)
     print(validate)
 
-    ioutils.write_elapsed_time(options.file, start_time)
+    ioutils.write_elapsed_time(options.logfile, start_time)
     print('Report has been written to the file', options.file)
 
 

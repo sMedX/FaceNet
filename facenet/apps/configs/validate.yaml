@@ -1,14 +1,8 @@
 # coding:utf-8
 
-model:
-  # Directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-  path:
-  # If true normalize output embeddings to 1
-  normalize:
-
 dataset:
   # Path to the data directory containing aligned face patches
-  path:
+  path: ~/datasets/vggface2/test_extracted_160
   # Path to h5 file with information about valid images
   h5file:
   # Number of classes to download from data set
@@ -25,11 +19,3 @@ validate:
   metric: 0
   # Target false alarm rate (face pairs that was incorrectly classified as the same)
   far_target: 0.001
-
-image:
-  # Image size (height, width) in pixels.
-  size:
-  # Performs normalization of the input images
-  normalization:
-
-
