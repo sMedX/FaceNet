@@ -13,7 +13,7 @@ import facenet.models.inception_resnet_v1 as module
 
 
 @click.command()
-@click.option('--model_dir', default=config.default_model, type=Path,
+@click.option('--model_dir', default=config.default_model_path, type=Path,
               help='Directory with the meta graph and checkpoint files containing model parameters.')
 def main(**options):
     options['config'] = options['model_dir'].joinpath('logs', 'arguments.yaml')
