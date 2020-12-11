@@ -6,14 +6,6 @@ seed: 0
 # Number of images to process in a batch.
 batch_size: 100
 
-model:
-  # Path to default directory containing the meta_file and ckpt_file or a model protobuf (.pb) file,
-  # if path is not defined default_model_path from config.py will be used
-  path:
-  # If true normalize output embeddings to 1
-  normalize: false
-
-
 embeddings:
   # path to input data file
   path: ~/datasets/vggface2/test_extracted_160_default/embeddings.h5

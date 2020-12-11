@@ -205,6 +205,9 @@ def embeddings(app_file_name, options):
 def validate(app_file_name, options):
     cfg = load_config(app_file_name, options)
 
+    if not cfg.model.path:
+        cfg.model.path = default_model_path
+
     cfg.outdir = Path(cfg.dataset.path + '_' + Path(cfg.model.path).stem)
     cfg.outdir = Path(cfg.outdir).expanduser()
 

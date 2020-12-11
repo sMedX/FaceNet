@@ -32,7 +32,7 @@ def main(**options):
     print(validate)
 
     ioutils.write_elapsed_time(options.logfile, start_time)
-    print('Report has been written to the file', options.file)
+    print('Report has been written to the file', options.logfile)
 
 
 if __name__ == '__main__':
