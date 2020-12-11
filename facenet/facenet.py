@@ -464,7 +464,6 @@ class EvaluationOfEmbeddings:
         return list_of_embeddings
 
 
-
 class Summary:
     def __init__(self, summary_writer, h5file, tag=''):
         self._summary_writer = summary_writer

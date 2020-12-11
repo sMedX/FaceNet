@@ -14,10 +14,8 @@ dataset:
 
 # Model definition
 model:
-  # module containing the definition of the inference graph.',
+  # Module containing the definition of the inference graph
   module: facenet.models.inception_resnet_v1
-  # Model config
-  config:
   # Load a pretrained checkpoint before training starts.
   checkpoint:
   # Directory where to write trained models and checkpoints
