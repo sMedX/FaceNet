@@ -1,8 +1,10 @@
 # coding:utf-8
 
-batch_size: 100
-
+# Random seed
 seed: 0
+
+# Number of images to process in a batch.
+batch_size: 100
 
 image:
   # Image size (height, width) in pixels
