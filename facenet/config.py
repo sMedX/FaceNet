@@ -182,11 +182,14 @@ def train_softmax(app_file_name, options):
 def embeddings(app_file_name, options):
     cfg = load_config(app_file_name, options)
 
-    cfg.outdir = Path(cfg.dataset.path + '_' + Path(cfg.model.path).stem)
-    cfg.outdir = Path(cfg.outdir).expanduser()
+    if not cfg.model.path:
+        cfg.model.path = default_model_path
 
     if cfg.suffix not in ('.h5', '.tfrecord'):
         raise ValueError('Invalid suffix for output file, must either be h5 or tfrecord.')
+
+    cfg.outdir = Path(cfg.dataset.path + '_' + Path(cfg.model.path).stem)
+    cfg.outdir = Path(cfg.outdir).expanduser()
 
     cfg.logdir = cfg.outdir
     cfg.logfile = cfg.outdir.joinpath('log.txt')

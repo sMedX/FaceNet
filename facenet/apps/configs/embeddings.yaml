@@ -13,10 +13,10 @@ dataset:
   # Maximal number of images per class to download from class
   max_nrof_images:
 
-image:
-  # Image size (height, width) in pixels.
-  size:
-  # Performs normalization of the input images
-  normalization:
-
+model:
+  # Path to directory containing the meta_file and ckpt_file or a model protobuf (.pb) file, if
+  # path is not defined default_model_path from config.py will be used
+  path:
+  # If true embeddings will be normalized to 1
+  normalization: false
 
