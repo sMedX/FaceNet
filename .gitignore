@@ -8,9 +8,6 @@ __pycache__/
 
 /*.yaml
 /configs/*
-
-/models/*
-/models/*
 /models/*
 
 # Distribution / packaging
