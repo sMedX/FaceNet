@@ -14,9 +14,9 @@ from facenet import tfutils, config, nodes
 
 
 @click.command()
-@click.option('--path', default=config.default_model, type=Path, help='Path to directory with model.')
+@click.option('--path', default=config.default_model_path, type=Path,
+              help='Path to directory with model.')
 def main(**options):
-
     input_node_name = nodes['input']['name'] + ':0'
     output_node_name = nodes['output']['name'] + ':0'
 

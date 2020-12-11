@@ -22,6 +22,9 @@ default_config = default_config_dir.joinpath('config.yaml')
 user_config_dir = Path(__file__).parents[1].joinpath('configs')
 user_config = user_config_dir.joinpath('config.yaml')
 
+# directory for default trained model
+default_model_path = Path(__file__).parents[1].joinpath('models/default')
+
 
 def subdir():
     return datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
