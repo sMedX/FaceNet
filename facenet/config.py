@@ -196,41 +196,27 @@ def train_softmax(app_file_name, options):
     return cfg
 
 
-class Embeddings(Config):
-    def __init__(self, args_):
-        Config.__init__(self, args_['config'])
-        if not self.model.path:
-            self.model.path = default_model
+def embeddings(app_file_name, options):
+    cfg = load_config(app_file_name, options)
 
-        # if not self.output:
-        suffix = self.output
-        if suffix[0] != '.':
-            suffix = '.' + suffix
+    cfg.outdir = Path(cfg.dataset.path + '_' + Path(cfg.model.path).stem)
+    cfg.outdir = Path(cfg.outdir).expanduser()
 
-        if not self.dataset.path:
-            self.dataset.path = default_train_dataset
+    if cfg.suffix not in ('.h5', '.tfrecord'):
+        raise ValueError('Invalid suffix for output file, must either be h5 or tfrecord.')
 
-        self.output = Path(str(self.dataset.path) + self.model.path.stem).with_suffix(suffix)
-        self.output = Path(self.output).expanduser()
+    cfg.logdir = cfg.outdir
+    cfg.logfile = cfg.outdir.joinpath('log.txt')
+    cfg.outfile = cfg.outdir.joinpath('embeddings').with_suffix(cfg.suffix)
 
-        if self.output.suffix not in ['.h5', '.tfrecord']:
-            raise ValueError('Invalid suffix for output file, must either be h5 or tfrecord.')
+    # set seed for random number generators
+    set_seed(cfg.seed)
 
-        self.log_dir = self.output.parent
-        self.log_file = self.output.with_suffix('.txt')
+    # write arguments and store some git revision info in a text files in the log directory
+    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
+    ioutils.store_revision_info(cfg.logdir)
 
-        if not self.batch_size:
-            self.batch_size = default_batch_size
-
-        if not self.image.size:
-            self.image.size = image_size
-
-        if not self.image.normalization:
-            self.image.normalization = image_normalization
-
-        # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, Path(self.log_dir, self.output.stem + '_arguments.yaml'))
-        ioutils.store_revision_info(self.log_dir)
+    return cfg
 
 
 class TrainClassifier(Config):

@@ -6,8 +6,17 @@ seed: 0
 # Number of images to process in a batch.
 batch_size: 100
 
+model:
+  # Path to default directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
+  path: ./models/default
+  # If true normalize output embeddings to 1
+  normalize: true
+
+
 image:
   # Image size (height, width) in pixels
   size: 160
   # Margin for the crop around the bounding box (height, width) in pixels
   margin: 0
+  # Performs normalization of the input images
+  normalization: 0

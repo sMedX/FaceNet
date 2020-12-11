@@ -1,19 +1,11 @@
 # coding:utf-8
 
-model:
-  # Path to directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-  path:
-  # If true normalize output embeddings to 1
-  normalize: true
-
 # type of the output file (h5 or tfrecord)
-output: h5
+suffix: .h5
 
 dataset:
   # Path to the directory with aligned face images to train facenet.
-  path:
-  # Path to h5 file with information about valid images.
-  h5file:
+  path: ~/datasets/vggface2/test_extracted_160
   # Number of classes to download from data set
   nrof_classes:
   # Minimal number of images per class to download from class
