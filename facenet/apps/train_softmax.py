@@ -178,7 +178,7 @@ def main(**options):
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, options.validate.validate, info=info)
 
-                ioutils.write_text_log(options.txtfile, str(validation))
+                ioutils.write_text_log(options.logfile, validation)
                 h5utils.write_dict(options.h5file, validation.dict, group='validate')
 
                 for key, value in validation.dict.items():
@@ -189,7 +189,7 @@ def main(**options):
     tfutils.save_frozen_graph(model_dir=options.model.path, optimize=True)
 
     ioutils.write_elapsed_time(options.h5file, start_time)
-    ioutils.write_elapsed_time(options.txtfile, start_time)
+    ioutils.write_elapsed_time(options.logfile, start_time)
 
     print('Statistics have been saved to the h5 file: {}'.format(options.h5file))
     print('Logs have been saved to the directory: {}'.format(options.logs))
