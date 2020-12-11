@@ -7,6 +7,7 @@ __pycache__/
 *.so
 
 /*.yaml
+/configs/*.yaml
 
 models/*/*.pb
 models/*/*.meta
