@@ -7,8 +7,9 @@ seed: 0
 batch_size: 100
 
 model:
-  # Path to default directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-  path: ./models/default
+  # Path to default directory containing the meta_file and ckpt_file or a model protobuf (.pb) file,
+  # if path is not defined default_model_path from config.py will be used
+  path:
   # If true normalize output embeddings to 1
   normalize: false
 
