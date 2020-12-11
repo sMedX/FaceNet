@@ -6,17 +6,6 @@ seed: 0
 # Number of images to process in a batch.
 batch_size: 100
 
-embeddings:
-  # path to input data file
-  path: ~/datasets/vggface2/test_extracted_160_default/embeddings.h5
-  # Number of classes to download from h5 file
-  nrof_classes:
-  # Number of images to download from h5 file
-  max_nrof_images: 50
-  # Normalize embeddings
-  normalize: false
-
-
 image:
   # Image size (height, width) in pixels
   size: 160
