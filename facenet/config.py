@@ -1,7 +1,6 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
-import yaml
 from pathlib import Path
 from datetime import datetime
 import importlib
@@ -15,8 +14,6 @@ import tensorflow as tf
 
 from facenet import ioutils
 
-# src_dir = Path(__file__).parents[1]
-
 # directory for default configs
 default_config_dir = Path(__file__).parents[0].joinpath('apps', 'configs')
 default_config = default_config_dir.joinpath('config.yaml')
@@ -24,23 +21,6 @@ default_config = default_config_dir.joinpath('config.yaml')
 # directory for user's configs
 user_config_dir = Path(__file__).parents[1].joinpath('configs')
 user_config = user_config_dir.joinpath('config.yaml')
-
-# default_dataset = Path('~/datasets/vggface2/train')
-#
-# default_train_dataset = Path('~/datasets/vggface2/train_extracted_160')
-# default_test_dataset = Path('~/datasets/vggface2/test_extracted_160')
-#
-# default_model = src_dir.joinpath('models', '20201008-183421')
-# default_batch_size = 100
-
-# image_margin = 0
-# image_size = 160
-# image_normalization = 0
-
-# data_dir = Path(__file__).parents[1].joinpath('data')
-# faces_dir = data_dir.joinpath('faces')
-#
-# file_extension = '.png'
 
 
 def subdir():
