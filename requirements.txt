@@ -11,3 +11,4 @@ pyyaml
 click
 tqdm
 cached_property
+omegaconf
