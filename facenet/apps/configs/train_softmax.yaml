@@ -97,7 +97,7 @@ validate:
 
   validate:
     # Distance metric  0: euclidean, 1: cosine similarity
-    metric: 1
+    metric: 0
     # Number of folds to use for cross validation. Mainly used for testing
     nrof_folds: 10
     # Target false alarm rate (face pairs that was incorrectly classified as the same)

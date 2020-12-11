@@ -35,11 +35,11 @@ from facenet import nodes, ioutils, dataset, statistics, config, h5utils, facene
 
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__), type=Path,
+@click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options of the application.')
 def main(**options):
     start_time = time.monotonic()
-    options = config.TrainOptions(options, subdir=config.subdir())
+    options = config.train_softmax(__file__, options)
 
     # import network
     print('import model {}'.format(options.model.module))
@@ -47,11 +47,11 @@ def main(**options):
 
     # ------------------------------------------------------------------------------------------------------------------
     dbase = dataset.DBase(options.dataset)
-    ioutils.write_text_log(options.txtfile, dbase)
+    ioutils.write_text_log(options.logfile, dbase)
     print('train dbase:', dbase)
 
     dbase_val = dataset.DBase(options.validate.dataset)
-    ioutils.write_text_log(options.txtfile, dbase_val)
+    ioutils.write_text_log(options.logfile, dbase_val)
     print('validate dbase', dbase_val)
 
     loader = facenet.ImageLoader(config=options.image)
@@ -73,7 +73,7 @@ def main(**options):
     # ------------------------------------------------------------------------------------------------------------------
     global_step = tf.Variable(0, trainable=False, name='global_step')
 
-    placeholders = facenet.Placeholders(options.image.size)
+    placeholders = facenet.Placeholders()
 
     print('Building training graph')
 

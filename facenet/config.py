@@ -165,6 +165,37 @@ def extract_faces(app_file_name, options):
     return cfg
 
 
+def train_softmax(app_file_name, options):
+    cfg = load_config(app_file_name, options)
+
+    cfg.model.path = Path(cfg.model.path).expanduser().joinpath(subdir())
+
+    cfg.logdir = cfg.model.path.joinpath('logs')
+    cfg.logfile = cfg.logdir.joinpath('statistics.txt')
+    cfg.h5file = cfg.logdir.joinpath('statistics.h5')
+
+    if not cfg.model.config:
+        network = importlib.import_module(cfg.model.module)
+        cfg.model.config = network.default_model_config
+
+    if not cfg.train.epoch.nrof_epochs:
+        cfg.train.epoch.nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
+
+    if cfg.validate:
+        cfg.validate.batch_size = cfg.batch_size
+        cfg.validate.image.size = cfg.image.size
+        cfg.validate.image.standardization = cfg.image.standardization
+
+    # set seed for random number generators
+    set_seed(cfg.seed)
+
+    # write arguments and store some git revision info in a text files in the log directory
+    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
+    ioutils.store_revision_info(cfg.logdir)
+
+    return cfg
+
+
 class Embeddings(Config):
     def __init__(self, args_):
         Config.__init__(self, args_['config'])
@@ -264,49 +295,3 @@ class Validate(Config):
         ioutils.store_revision_info(self.logs)
 
 
-class TrainOptions(Config):
-    def __init__(self, args_, subdir=None):
-        Config.__init__(self, args_['config'])
-
-        if not self.seed:
-            self.seed = 0
-        random.seed(self.seed)
-        np.random.seed(self.seed)
-        tf.set_random_seed(self.seed)
-
-        if not self.batch_size:
-            self.batch_size = default_batch_size
-
-        if subdir is None:
-            self.model.path = Path(self.model.path).expanduser()
-        else:
-            self.model.path = Path(self.model.path).expanduser().joinpath(subdir)
-
-        if not self.dataset.min_nrof_images:
-            self.dataset.min_nrof_images = 1
-
-        if not self.validate.dataset.min_nrof_images:
-            self.validate.dataset.min_nrof_images = 1
-
-        self.logs = self.model.path.joinpath('logs')
-        self.h5file = self.logs.joinpath('report.h5')
-        self.txtfile = self.logs.joinpath('report.txt')
-
-        if self.model.config is None:
-            network = importlib.import_module(self.model.module)
-            self.model.update_from_file(network.config_file)
-
-        if not self.train.epoch.nrof_epochs:
-            self.train.epoch.nrof_epochs = self.train.learning_rate.schedule[-1][0]
-
-        if self.validate:
-            self.validate.batch_size = self.batch_size
-            self.validate.image.size = self.image.size
-            self.validate.image.standardization = self.image.standardization
-
-        if not self.validate.file:
-            self.validate.file = Path(self.model.path).expanduser().joinpath('report.txt')
-
-        # write arguments and store some git revision info in a text files in the log directory
-        ioutils.write_arguments(self, self.logs.joinpath('arguments.yaml'))
-        ioutils.store_revision_info(self.logs)
