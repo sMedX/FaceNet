@@ -10,12 +10,12 @@ from tqdm import tqdm
 from pathlib import Path
 from PIL import Image
 
-from facenet import dataset, config
+from facenet import dataset
 
 
 @click.command()
-@click.option('--path', default=config.default_train_dataset, type=Path,
-              help='Path to dataset directory to check.')
+@click.option('--path', type=Path,
+              help='Path to dataset directory to check for invalid files.')
 def main(**options):
 
     dbase = dataset.DBase(dataset.DefaultConfig(options['path']))
