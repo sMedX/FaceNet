@@ -23,6 +23,14 @@ from facenet import utils, ioutils, h5utils
 
 
 def pairwise_similarities(xa, xb=None, metric=0, atol=1.e-5):
+    """
+    Evaluate pairwise distances between vectors xa and xb
+    :param xa:
+    :param xb:
+    :param metric: 0 --- distance or 1 --- cosine distance
+    :param atol:
+    :return:
+    """
 
     if xb is None:
         sims = xa @ xa.transpose()
@@ -61,6 +69,12 @@ def std(x):
 
 
 def split_embeddings(embeddings, labels):
+    """
+    split embeddings to structure [[], [], ...[]]
+    :param embeddings:
+    :param labels:
+    :return:
+    """
     emb_list = []
     for label in np.unique(labels):
         emb_array = embeddings[label == labels]
@@ -69,6 +83,9 @@ def split_embeddings(embeddings, labels):
 
 
 class SimilarityCalculator:
+    """
+    Class to evaluate similarities according to defined metric
+    """
     def __init__(self, embeddings, labels, metric=0):
         self.metric = metric
         self.embeddings = split_embeddings(embeddings, labels)
@@ -95,6 +112,9 @@ class SimilarityCalculator:
 
 
 class ConfidenceMatrix:
+    """
+    Class to evaluate confidence matrix (tp, tn, fp, fn) and others metrics
+    """
     def __init__(self, calculator, threshold):
 
         self.threshold = np.array(threshold, ndmin=1)
@@ -159,6 +179,9 @@ class ConfidenceMatrix:
 
 
 class Report:
+    """
+    Class to generate statistical report
+    """
     def __init__(self, criterion=None):
         self.criterion = criterion
         self.conf_matrix_train = []
@@ -215,6 +238,9 @@ class Report:
 
 
 class FaceToFaceValidation:
+    """
+    Class to perform face-to-face validation
+    """
     def __init__(self, embeddings, labels, config, info=''):
         """
         :param embeddings:
@@ -307,91 +333,91 @@ class FaceToFaceValidation:
         h5utils.write_dict(h5file, self.dict, group=tag)
 
 
-class FalseExamples:
-    def __init__(self, dbase, tfrecord, threshold, metric=0, subtract_mean=False):
-        self.dbase = dbase
-        self.embeddings = tfrecord.data
-        self.threshold = threshold
-        self.metric = metric
-        self.subtract_mean = subtract_mean
-
-    def write_false_pairs(self, fpos_dir, fneg_dir, nrof_fpos_images=10, nrof_fneg_images=2):
-        ioutils.makedirs(fpos_dir)
-        ioutils.makedirs(fneg_dir)
-
-        if self.subtract_mean:
-            mean = np.mean(self.embeddings, axis=0)
-        else:
-            mean = 0
-
-        for folder1 in range(self.dbase.nrof_folders):
-            print('\rWrite false examples {}/{}'.format(folder1, self.dbase.nrof_folders),
-                  end=utils.end(folder1, self.dbase.nrof_folders))
-
-            files1, embeddings1 = self.dbase.extract_data(folder1, self.embeddings)
-
-            # search false negative pairs
-            similarities = pairwise_similarities(embeddings1 - mean, metric=self.metric)
-            similarities = spatial.distance.squareform(similarities)
-
-            for n in range(nrof_fpos_images):
-                # find maximal distances
-                i, k = np.unravel_index(np.argmax(similarities), similarities.shape)
-
-                if similarities[i, k] > self.threshold:
-                    self.write_image(similarities[i, k], files1[i], files1[k], fneg_dir)
-                    similarities[[i, k], :] = -1
-                    similarities[:, [i, k]] = -1
-                else:
-                    break
-
-            # search false positive pairs
-            for folder2 in range(folder1+1, self.dbase.nrof_folders):
-                files2, embeddings2 = self.dbase.extract_data(folder2, self.embeddings)
-
-                similarities = pairwise_similarities(embeddings1 - mean, embeddings2 - mean, metric=self.metric)
-
-                for n in range(nrof_fneg_images):
-                    # find minimal distances
-                    i, k = np.unravel_index(np.argmin(similarities), similarities.shape)
-
-                    if similarities[i, k] < self.threshold:
-                        self.write_image(similarities[i, k], files1[i], files2[k], fpos_dir)
-                        similarities[i, :] = np.Inf
-                        similarities[:, k] = np.Inf
-                    else:
-                        break
-
-    def generate_filename(self, dirname, distance, file1, file2):
-        dir1 = os.path.basename(os.path.dirname(file1))
-        name1 = os.path.splitext(os.path.basename(file1))[0]
-
-        dir2 = os.path.basename(os.path.dirname(file2))
-        name2 = os.path.splitext(os.path.basename(file2))[0]
-
-        return os.path.join(dirname, '{:2.3f} & {}|{} & {}|{}.png'.format(distance, dir1, name1, dir2, name2))
-
-    def generate_text(self, distance, file1, file2):
-
-        def text(file):
-            return os.path.join(os.path.basename(os.path.dirname(file)), os.path.splitext(os.path.basename(file))[0])
-
-        return '{} & {}\n{:2.3f}/{:2.3f}'.format(text(file1), text(file2), distance, self.threshold)
-
-    def write_image(self, distance, file1, file2, dirname, fsize=13):
-        fname = self.generate_filename(dirname, distance, file1, file2)
-        text = self.generate_text(distance, file1, file2)
-
-        img1 = io.imread(file1)
-        img2 = io.imread(file2)
-        img = Image.fromarray(np.concatenate([img1, img2], axis=1))
-
-        if sys.platform == 'win32':
-            font = ImageFont.truetype("arial.ttf", fsize)
-        else:
-            font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
-
-        draw = ImageDraw.Draw(img)
-        draw.text((0, 0), text, (0, 255, 0), font=font)
-
-        img.save(fname)
+# class FalseExamples:
+#     def __init__(self, dbase, tfrecord, threshold, metric=0, subtract_mean=False):
+#         self.dbase = dbase
+#         self.embeddings = tfrecord.data
+#         self.threshold = threshold
+#         self.metric = metric
+#         self.subtract_mean = subtract_mean
+#
+#     def write_false_pairs(self, fpos_dir, fneg_dir, nrof_fpos_images=10, nrof_fneg_images=2):
+#         ioutils.makedirs(fpos_dir)
+#         ioutils.makedirs(fneg_dir)
+#
+#         if self.subtract_mean:
+#             mean = np.mean(self.embeddings, axis=0)
+#         else:
+#             mean = 0
+#
+#         for folder1 in range(self.dbase.nrof_folders):
+#             print('\rWrite false examples {}/{}'.format(folder1, self.dbase.nrof_folders),
+#                   end=utils.end(folder1, self.dbase.nrof_folders))
+#
+#             files1, embeddings1 = self.dbase.extract_data(folder1, self.embeddings)
+#
+#             # search false negative pairs
+#             similarities = pairwise_similarities(embeddings1 - mean, metric=self.metric)
+#             similarities = spatial.distance.squareform(similarities)
+#
+#             for n in range(nrof_fpos_images):
+#                 # find maximal distances
+#                 i, k = np.unravel_index(np.argmax(similarities), similarities.shape)
+#
+#                 if similarities[i, k] > self.threshold:
+#                     self.write_image(similarities[i, k], files1[i], files1[k], fneg_dir)
+#                     similarities[[i, k], :] = -1
+#                     similarities[:, [i, k]] = -1
+#                 else:
+#                     break
+#
+#             # search false positive pairs
+#             for folder2 in range(folder1+1, self.dbase.nrof_folders):
+#                 files2, embeddings2 = self.dbase.extract_data(folder2, self.embeddings)
+#
+#                 similarities = pairwise_similarities(embeddings1 - mean, embeddings2 - mean, metric=self.metric)
+#
+#                 for n in range(nrof_fneg_images):
+#                     # find minimal distances
+#                     i, k = np.unravel_index(np.argmin(similarities), similarities.shape)
+#
+#                     if similarities[i, k] < self.threshold:
+#                         self.write_image(similarities[i, k], files1[i], files2[k], fpos_dir)
+#                         similarities[i, :] = np.Inf
+#                         similarities[:, k] = np.Inf
+#                     else:
+#                         break
+#
+#     def generate_filename(self, dirname, distance, file1, file2):
+#         dir1 = os.path.basename(os.path.dirname(file1))
+#         name1 = os.path.splitext(os.path.basename(file1))[0]
+#
+#         dir2 = os.path.basename(os.path.dirname(file2))
+#         name2 = os.path.splitext(os.path.basename(file2))[0]
+#
+#         return os.path.join(dirname, '{:2.3f} & {}|{} & {}|{}.png'.format(distance, dir1, name1, dir2, name2))
+#
+#     def generate_text(self, distance, file1, file2):
+#
+#         def text(file):
+#             return os.path.join(os.path.basename(os.path.dirname(file)), os.path.splitext(os.path.basename(file))[0])
+#
+#         return '{} & {}\n{:2.3f}/{:2.3f}'.format(text(file1), text(file2), distance, self.threshold)
+#
+#     def write_image(self, distance, file1, file2, dirname, fsize=13):
+#         fname = self.generate_filename(dirname, distance, file1, file2)
+#         text = self.generate_text(distance, file1, file2)
+#
+#         img1 = io.imread(file1)
+#         img2 = io.imread(file2)
+#         img = Image.fromarray(np.concatenate([img1, img2], axis=1))
+#
+#         if sys.platform == 'win32':
+#             font = ImageFont.truetype("arial.ttf", fsize)
+#         else:
+#             font = ImageFont.truetype("LiberationSans-Regular.ttf", fsize)
+#
+#         draw = ImageDraw.Draw(img)
+#         draw.text((0, 0), text, (0, 255, 0), font=font)
+#
+#         img.save(fname)
