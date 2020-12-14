@@ -519,3 +519,39 @@ class Summary:
 
         h5utils.write(self._h5file, tag, value)
 
+
+class ConstantLearningRate(tf.keras.optimizers.schedules.LearningRateSchedule):
+    """
+        Learning rate schedule that return constant value
+    """
+    def __init__(self, value, name=None):
+        super().__init__()
+        self.value = tf.convert_to_tensor(value, dtype=tf.float32)
+        self.name = name
+
+    def __call__(self, step):
+        return self.value
+
+    def get_config(self):
+        return {'learning_rate_value': self.value, 'name': self.name}
+
+
+def learning_rate_schedule(config):
+    schedule = config.learning_rate_schedule
+
+    if schedule == 'constant_learning_rate':
+        lr_schedule = ConstantLearningRate(config.constant_learning_rate)
+    elif schedule == 'exponential_decay':
+        lr_config = config.exponential_decay
+        lr_config.decay_steps *= config.epoch.size
+        lr_config.staircase = True
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(**lr_config.__dict__)
+    elif schedule == 'inverse_time_decay':
+        lr_config = config.exponential_decay
+        lr_config.decay_steps *= config.epoch.size
+        lr_config.staircase = True
+        lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(**lr_config.__dict__)
+    else:
+        raise ValueError(f'Invalid learning rate schedule {schedule}')
+
+    return lr_schedule
