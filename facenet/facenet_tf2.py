@@ -30,37 +30,14 @@ import random
 from facenet import nodes, h5utils, FaceNet
 
 
-class Placeholders:
-    def __init__(self):
-        self.image_batch = tf.placeholder(tf.uint8, shape=[None, None, None, 3], name='image_batch')
-        self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
-        self.batch_size = tf.placeholder(tf.int32, name='batch_size')
-        self.phase_train = tf.placeholder(tf.bool, name='phase_train')
-        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+def inputs(config):
+    return tf.keras.Input([config.size, config.size, 3])
 
-    def train_feed_dict(self, image_batch, label_batch, learning_rate):
-        return {
-            self.image_batch: image_batch,
-            self.label_batch: label_batch,
-            self.learning_rate: learning_rate,
-            self.phase_train: True,
-            self.batch_size: image_batch.shape[0]
-        }
 
-    def validate_feed_dict(self, image_batch, label_batch):
-        return {
-            self.image_batch: image_batch,
-            self.label_batch: label_batch,
-            self.phase_train: False,
-            self.batch_size: image_batch.shape[0]
-        }
-
-    def embedding_feed_dict(self, image_batch):
-        return {
-            self.image_batch: image_batch,
-            self.phase_train: False,
-            self.batch_size: image_batch.shape[0]
-        }
+def softmax_cross_entropy_with_logits(logits, labels):
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+    cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+    return cross_entropy_mean
 
 
 class ImageLoader:
@@ -171,21 +148,36 @@ def make_test_dataset(dbase, loader, config):
     return dataset
 
 
-def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch, info):
-    print('\nEvaluation embeddings on validation set', info)
+def evaluate_embeddings(model, dset):
+    print('Evaluation embeddings on data set')
 
-    embeddings = []
-    labels = []
+    embeddings_ = []
+    labels_ = []
 
-    nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
-    sess.run(iterator.initializer)
+    for images, labels in tqdm(dset):
+        embeddings = model.embedding(images)
 
-    for _ in tqdm(range(nrof_batches)):
-        image_batch, label_batch = sess.run(batch)
-        embeddings.append(sess.run(embedding, feed_dict=placeholders.embedding_feed_dict(image_batch)))
-        labels.append(label_batch)
+        embeddings_.append(embeddings)
+        labels_.append(labels)
 
-    return np.concatenate(embeddings), np.concatenate(labels)
+    return np.concatenate(embeddings_), np.concatenate(labels_)
+
+
+# def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch, info):
+#     print('\nEvaluation embeddings on validation set', info)
+#
+#     embeddings = []
+#     labels = []
+#
+#     nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
+#     sess.run(iterator.initializer)
+#
+#     for _ in tqdm(range(nrof_batches)):
+#         image_batch, label_batch = sess.run(batch)
+#         embeddings.append(sess.run(embedding, feed_dict=placeholders.embedding_feed_dict(image_batch)))
+#         labels.append(label_batch)
+#
+#     return np.concatenate(embeddings), np.concatenate(labels)
 
 
 def triplet_loss(anchor, positive, negative, alpha):
