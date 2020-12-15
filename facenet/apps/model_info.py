@@ -25,8 +25,9 @@ def main(**options):
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            tfutils.load_model(cfg.model.path)
+            fvars = cfg.model.path / 'variables.txt'
 
+            tfutils.load_model(cfg.model.path)
             graph = tf.get_default_graph()
 
             print()
@@ -42,19 +43,24 @@ def main(**options):
             phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
             print('output:', phase_train_placeholder)
 
-            print('output list of trainable variables')
-            fvars = cfg.model.path / 'variables.txt'
+            print(f'output list of trainable variables {fvars}')
+
             with fvars.open('w') as f:
+                f.write('-----------------------------\n')
+                f.write(f'number of trainable variables {len(tf.trainable_variables())}\n')
+                f.write('-----------------------------\n')
+
                 for i, var in enumerate(tf.trainable_variables()):
                     f.write(f'{i}) {var}\n')
 
-    print('output list of operations from frozen graph')
     with tf.Graph().as_default():
         with tf.Session() as sess:
+            fops = cfg.model.path / 'operations.txt'
+
             tfutils.load_frozen_graph(cfg.model.path)
             graph = tf.get_default_graph()
 
-            fops = cfg.model.path / 'operations.txt'
+            print(f'output list of operations from frozen graph {fops}')
 
             with fops.open('w') as f:
                 for i, op in enumerate(graph.get_operations()):
