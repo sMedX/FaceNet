@@ -49,7 +49,11 @@ batch_normalization = {
     # Decay for the moving averages.
     'momentum': 0.995,
     # epsilon to prevent 0s in variance.
-    'epsilon': 0.001
+    'epsilon': 0.001,
+    'fused': False,
+    'trainable': True,
+    'center': True,
+    'scale': False
 }
 
 

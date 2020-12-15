@@ -78,6 +78,15 @@ def main(**options):
     # import network
     facenet_model = FaceNet(image_processing=facenet.ImageProcessing(cfg.image))
     facenet_model(facenet.inputs(cfg.image))
+
+    facenet_model.conv2d.summary()
+    for idx,  layer in enumerate(facenet_model.conv2d.layers):
+        print(idx, layer.name)
+
+    for idx, var in enumerate(facenet_model.conv2d.trainable_variables):
+        print(idx, var.name, var.shape)
+
+    print('number of trainable variables', len(facenet_model.conv2d.trainable_variables))
     facenet_model.summary()
 
     model = tf.keras.Sequential([
@@ -90,7 +99,7 @@ def main(**options):
 
     print('number of trainable variables', len(model.trainable_variables))
 
-    #learning_rate = 0.05 #facenet.learning_rate_schedule(options.train)
+    # learning_rate = 0.05 #facenet.learning_rate_schedule(options.train)
     learning_rate = facenet.ConstantLearningRate(0.05)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
