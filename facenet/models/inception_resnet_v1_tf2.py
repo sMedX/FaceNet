@@ -68,40 +68,40 @@ class Block35(keras.layers.Layer):
         self.activation = tf.keras.activations.deserialize(config['activation'])
 
         self.tower_conv = tf.keras.Sequential([
-            Conv2D(32, 1, strides=1, padding='same', activation='relu', name='Conv2d_1x1',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(32, 1, strides=1, padding='same', activation='relu',
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_1x1'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU()
         ])
 
         self.tower_conv1 = tf.keras.Sequential([
-            Conv2D(32, 1, strides=1, padding='same', activation=None, name='Conv2d_0a_1x1',
-                   kernel_initializer=kernel_initializer
-                   ),
-            BatchNormalization(),
+            Conv2D(32, 1, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config['batch_normalization']),
             ReLU(),
-            Conv2D(32, 3, strides=1, padding='same', activation=None, name='Conv2d_0b_3x3',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(32, 3, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0b_3x3'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU()
         ])
 
         self.tower_conv2 = tf.keras.Sequential([
-            Conv2D(32, 1, strides=1, padding='same', activation=None, name='Conv2d_0a_1x1',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(32, 1, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU(),
-            Conv2D(32, 3, strides=1, padding='same', activation=None, name='Conv2d_0b_3x3',
-                   kernel_initializer=kernel_initializer
-                   ),
-            BatchNormalization(),
+            Conv2D(32, 3, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0b_3x3'),
+            BatchNormalization(**self.config['batch_normalization']),
             ReLU(),
-            Conv2D(32, 3, strides=1, padding='same', activation=None, name='Conv2d_0c_3x3',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(32, 3, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0c_3x3'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU()
         ])
@@ -335,24 +335,24 @@ class ReductionB(tf.keras.layers.Layer):
         return net
 
 
-class Features(keras.layers.Layer):
-    def __init__(self, config):
-        super().__init__()
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
-
-        self.flatten = Flatten()
-        self.batch_normalization = BatchNormalization(**self.config['batch_normalization'])
-        self.dense = Dense(config['size'], activation=None, name='logits',
-                           kernel_initializer=kernel_initializer
-                           )
-
-    def call(self, inputs, **kwargs):
-        outputs = self.flatten(inputs)
-        outputs = self.batch_normalization(outputs)
-        outputs = self.dense(outputs)
-        return outputs
+# class Features(keras.layers.Layer):
+#     def __init__(self, config):
+#         super().__init__()
+#         if config.get('batch_normalization') is None:
+#             config['batch_normalization'] = batch_normalization
+#         self.config = config
+#
+#         self.flatten = Flatten()
+#         self.batch_normalization = BatchNormalization(**self.config['batch_normalization'])
+#         self.dense = Dense(config['size'], activation=None, name='logits',
+#                            kernel_initializer=kernel_initializer
+#                            )
+#
+#     def call(self, inputs, **kwargs):
+#         outputs = self.flatten(inputs)
+#         outputs = self.batch_normalization(outputs)
+#         outputs = self.dense(outputs)
+#         return outputs
 
 
 class InceptionResnetV1(keras.Model):
@@ -419,12 +419,16 @@ class InceptionResnetV1(keras.Model):
         layers = [Block8(config=conf) for _ in range(conf['repeat'])]
         self.repeat_block8 = tf.keras.Sequential(layers=layers, name='block8')
 
-        conf = config['block8'][1]
-        self.block8 = Block8(config=conf)
+        self.block8 = Block8(config=self.config['block8'][1])
 
-        self.avg_pool2d = AvgPool2D([3, 3], padding='VALID', name='AvgPool_1a_8x8')
-
-        self.features = Features(config['features'])
+        # self.features = Features(config['features'])
+        cfg = self.config['features']
+        self.features = tf.keras.Sequential([
+            AvgPool2D([3, 3], padding='VALID', name='AvgPool_1a_8x8'),
+            Flatten(),
+            Dense(cfg['size'], activation=None, kernel_initializer=kernel_initializer, name='logits'),
+            BatchNormalization(**self.config['batch_normalization'])
+        ])
 
     def call(self, inputs, **kwargs):
         outputs = self.image_processing(inputs)
@@ -446,8 +450,6 @@ class InceptionResnetV1(keras.Model):
         outputs = self.repeat_block8(outputs)
 
         outputs = self.block8(outputs)
-
-        outputs = self.avg_pool2d(outputs)
 
         outputs = self.features(outputs)
 
