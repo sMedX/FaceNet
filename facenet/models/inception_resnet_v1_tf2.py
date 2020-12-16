@@ -109,9 +109,9 @@ class Block35(keras.layers.Layer):
         self.up = None
 
     def build(self, input_shape):
-        self.up = Conv2D(input_shape[-1], 1, strides=1, padding='same', activation='relu', name='Conv2d_1x1',
-                         kernel_initializer=kernel_initializer
-                         )
+        self.up = Conv2D(input_shape[-1], 1, strides=1, padding='same', activation='relu',
+                         use_bias=True, kernel_initializer=kernel_initializer,
+                         name='Conv2d_1x1')
 
     def call(self, net, **kwargs):
         values = [self.tower_conv(net), self.tower_conv1(net), self.tower_conv2(net)]
