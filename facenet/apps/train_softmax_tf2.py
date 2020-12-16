@@ -99,8 +99,7 @@ def main(**options):
 
     print('number of trainable variables', len(model.trainable_variables))
 
-    # learning_rate = 0.05 #facenet.learning_rate_schedule(options.train)
-    learning_rate = facenet.ConstantLearningRate(0.05)
+    learning_rate = facenet.learning_rate_schedule(cfg.train)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # ema = tf.train.ExponentialMovingAverage(options.train.moving_average_decay)
