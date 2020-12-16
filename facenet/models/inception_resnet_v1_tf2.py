@@ -239,28 +239,28 @@ class ReductionA(tf.keras.layers.Layer):
 
         filters = config['filters'][0]
         self.tower_conv = tf.keras.Sequential([
-            Conv2D(filters[0], 3, strides=2, padding='valid', activation=None, name='Conv2d_1a_3x3',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(filters[0], 3, strides=2, padding='valid', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_1a_3x3'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU()
         ])
 
         filters = config['filters'][1]
         self.tower_conv1 = tf.keras.Sequential([
-            Conv2D(filters[0], 1, strides=1, padding='same', activation=None, name='Conv2d_0a_1x1',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU(),
-            Conv2D(filters[1], 3, strides=1, padding='same', activation=None, name='Conv2d_0b_3x3',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(filters[1], 3, strides=1, padding='same', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_0b_3x3'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU(),
-            Conv2D(filters[2], 3, strides=2, padding='valid', activation=None, name='Conv2d_1a_3x3',
-                   kernel_initializer=kernel_initializer
-                   ),
+            Conv2D(filters[2], 3, strides=2, padding='valid', activation=None,
+                   use_bias=False, kernel_initializer=kernel_initializer,
+                   name='Conv2d_1a_3x3'),
             BatchNormalization(**self.config['batch_normalization']),
             ReLU()
         ])
