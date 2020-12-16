@@ -52,7 +52,7 @@ train:
   constant_learning_rate: 0.05
 
   piecewise_constant:
-    boundaries: [100, 200, 300]
+    epochs: [100, 200, 300]
     values: [0.05, 0.005, 0.0005]
 
   exponential_decay:

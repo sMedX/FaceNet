@@ -325,9 +325,10 @@ class PiecewiseConstantLearningRate(tf.keras.optimizers.schedules.LearningRateSc
     """
         Learning rate schedule for piecewise-constant learning rate
     """
-    def __init__(self, boundaries, values, name=None):
+    def __init__(self, epochs, size, values, name=None):
         super().__init__()
-        self.boundaries = boundaries
+        self.boundaries = [epoch*size for epoch in epochs]
+        self.size = size
         self.values = values
         self.name = name
 
@@ -359,6 +360,7 @@ def learning_rate_schedule(config):
         lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(**lr_config.__dict__, name='InverseTimeDecay')
     elif schedule == 'piecewise_constant':
         lr_config = config.piecewise_constant
+        lr_config.size = config.epoch.size
         lr_schedule = PiecewiseConstantLearningRate(**lr_config.__dict__, name='PiecewiseConstantLearningRate')
     else:
         raise ValueError(f'Invalid learning rate schedule {schedule}')
