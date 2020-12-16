@@ -352,7 +352,6 @@ def learning_rate_schedule(config):
     elif schedule == 'exponential_decay':
         lr_config = config.exponential_decay
         lr_config.decay_steps *= config.epoch.size
-        lr_config.staircase = True
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(**lr_config.__dict__)
     elif schedule == 'inverse_time_decay':
         lr_config = config.exponential_decay
