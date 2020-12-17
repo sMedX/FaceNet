@@ -356,8 +356,7 @@ class ReductionB(tf.keras.layers.Layer):
 
 
 class InceptionResnetV1(keras.Model):
-    def __init__(self, image_processing,
-                 config=None):
+    def __init__(self, input_shape, image_processing, config=None):
         super().__init__()
 
         if config is None:
@@ -403,32 +402,38 @@ class InceptionResnetV1(keras.Model):
         ])
 
         # repeat block35
-        layers = [Block35(config=config['block35']) for _ in range(config['block35']['repeat'])]
+        config = self.config['block35']
+        layers = [Block35(config=config) for _ in range(config['repeat'])]
         self.repeat_block35 = tf.keras.Sequential(layers=layers, name='block35')
 
-        self.reduction_a = ReductionA(config['reduction_a'])
+        # reduction a
+        self.reduction_a = ReductionA(self.config['reduction_a'])
 
         # repeat block17
-        layers = [Block17(config=config['block17']) for _ in range(config['block17']['repeat'])]
+        config = self.config['block17']
+        layers = [Block17(config=config) for _ in range(config['repeat'])]
         self.repeat_block17 = tf.keras.Sequential(layers=layers, name='block17')
 
-        self.reduction_b = ReductionB(config['reduction_b'])
+        # reduction b
+        self.reduction_b = ReductionB(self.config['reduction_b'])
 
         # repeat block8
-        conf = config['block8'][0]
-        layers = [Block8(config=conf) for _ in range(conf['repeat'])]
+        config = self.config['block8'][0]
+        layers = [Block8(config=config) for _ in range(config['repeat'])]
         self.repeat_block8 = tf.keras.Sequential(layers=layers, name='block8')
 
         self.block8 = Block8(config=self.config['block8'][1])
 
         # self.features = Features(config['features'])
-        cfg = self.config['features']
+        config = self.config['features']
         self.features = tf.keras.Sequential([
             AvgPool2D([3, 3], padding='VALID', name='AvgPool_1a_8x8'),
             Flatten(),
-            Dense(cfg['size'], activation=None, kernel_initializer=kernel_initializer, name='logits'),
+            Dense(config['size'], activation=None, kernel_initializer=kernel_initializer, name='logits'),
             BatchNormalization(**self.config['batch_normalization'])
         ])
+
+        self(input_shape)
 
     def call(self, inputs, **kwargs):
         outputs = self.image_processing(inputs)
