@@ -162,7 +162,7 @@ def evaluate_embeddings(model, dset):
     labels_ = []
 
     for images, labels in tqdm(dset):
-        embeddings = model.embedding(images)
+        embeddings = model(images)
 
         embeddings_.append(embeddings)
         labels_.append(labels)

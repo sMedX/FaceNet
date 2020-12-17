@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import ReLU, Conv2D, MaxPool2D, AvgPool2D, Dense, Flatten, Dropout, BatchNormalization
 
+kernel_initializer = tf.keras.initializers.GlorotNormal()
 
 default_config = {
     'reduction_a': {
@@ -43,8 +44,6 @@ default_config = {
     },
 }
 
-kernel_initializer = tf.keras.initializers.GlorotNormal()
-
 batch_normalization = {
     # Decay for the moving averages.
     'momentum': 0.995,
@@ -57,15 +56,22 @@ batch_normalization = {
 }
 
 
+def check_input_config(cfg):
+    if cfg is None:
+        cfg = default_config
+
+    if cfg.get('batch_normalization') is None:
+        cfg['batch_normalization'] = batch_normalization
+    return cfg
+
+
 # Inception-Resnet-A
 class Block35(keras.layers.Layer):
     """Builds the 35x35 resnet block."""
     def __init__(self, config):
         super().__init__()
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
-        self.activation = tf.keras.activations.deserialize(config['activation'])
+        self.config = check_input_config(config)
+        self.activation = tf.keras.activations.deserialize(self.config['activation'])
 
         self.tower_conv = tf.keras.Sequential([
             Conv2D(32, 1, strides=1, padding='same', activation='relu',
@@ -129,10 +135,8 @@ class Block17(keras.layers.Layer):
     """Builds the 17x17 resnet block."""
     def __init__(self, config):
         super().__init__()
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
-        self.activation = tf.keras.activations.deserialize(config['activation'])
+        self.config = check_input_config(config)
+        self.activation = tf.keras.activations.deserialize(self.config['activation'])
 
         self.tower_conv = tf.keras.Sequential([
             Conv2D(128, 1, strides=1, padding='same', activation='relu',
@@ -182,10 +186,8 @@ class Block8(keras.layers.Layer):
     """Builds the 8x8 resnet block."""
     def __init__(self, config):
         super().__init__()
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
-        self.activation = tf.keras.activations.deserialize(config['activation'])
+        self.config = check_input_config(config)
+        self.activation = tf.keras.activations.deserialize(self.config['activation'])
 
         self.tower_conv = tf.keras.Sequential([
             Conv2D(192, 1, strides=1, padding='same', activation=None,
@@ -233,11 +235,9 @@ class Block8(keras.layers.Layer):
 class ReductionA(tf.keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
+        self.config = check_input_config(config)
 
-        filters = config['filters'][0]
+        filters = self.config['filters'][0]
         self.tower_conv = tf.keras.Sequential([
             Conv2D(filters[0], 3, strides=2, padding='valid', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
@@ -246,7 +246,7 @@ class ReductionA(tf.keras.layers.Layer):
             ReLU()
         ])
 
-        filters = config['filters'][1]
+        filters = self.config['filters'][1]
         self.tower_conv1 = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
@@ -275,11 +275,9 @@ class ReductionA(tf.keras.layers.Layer):
 class ReductionB(tf.keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
+        self.config = check_input_config(config)
 
-        filters = config['filters'][0]
+        filters = self.config['filters'][0]
         self.tower_conv = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
@@ -293,7 +291,7 @@ class ReductionB(tf.keras.layers.Layer):
             ReLU()
         ])
 
-        filters = config['filters'][1]
+        filters = self.config['filters'][1]
         self.tower_conv1 = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
@@ -307,7 +305,7 @@ class ReductionB(tf.keras.layers.Layer):
             ReLU()
         ])
 
-        filters = config['filters'][2]
+        filters = self.config['filters'][2]
         self.tower_conv2 = tf.keras.Sequential([
             Conv2D(filters[0], 1,  strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
@@ -335,35 +333,10 @@ class ReductionB(tf.keras.layers.Layer):
         return net
 
 
-# class Features(keras.layers.Layer):
-#     def __init__(self, config):
-#         super().__init__()
-#         if config.get('batch_normalization') is None:
-#             config['batch_normalization'] = batch_normalization
-#         self.config = config
-#
-#         self.flatten = Flatten()
-#         self.batch_normalization = BatchNormalization(**self.config['batch_normalization'])
-#         self.dense = Dense(config['size'], activation=None, name='logits',
-#                            kernel_initializer=kernel_initializer
-#                            )
-#
-#     def call(self, inputs, **kwargs):
-#         outputs = self.flatten(inputs)
-#         outputs = self.batch_normalization(outputs)
-#         outputs = self.dense(outputs)
-#         return outputs
-
-
 class InceptionResnetV1(keras.Model):
     def __init__(self, input_shape, image_processing, config=None):
         super().__init__()
-
-        if config is None:
-            config = default_config
-        if config.get('batch_normalization') is None:
-            config['batch_normalization'] = batch_normalization
-        self.config = config
+        self.config = check_input_config(config)
 
         self.image_processing = image_processing
 
@@ -433,35 +406,28 @@ class InceptionResnetV1(keras.Model):
             BatchNormalization(**self.config['batch_normalization'])
         ])
 
+        self.model = tf.keras.Sequential([
+            self.image_processing,
+            self.conv2d,
+            self.repeat_block35,
+            self.reduction_a,
+            self.repeat_block17,
+            self.reduction_b,
+            self.repeat_block8,
+            self.block8,
+            self.features
+        ])
+
         self(input_shape)
 
-    def call(self, inputs, **kwargs):
-        outputs = self.image_processing(inputs)
+    def call(self, inputs, training=False, **kwargs):
 
-        outputs = self.conv2d(outputs)
+        # evaluate output of model
+        output = self.model(inputs)
 
-        # 5 x Inception-resnet-A
-        outputs = self.repeat_block35(outputs)
+        # normalize embeddings
+        if training is False:
+            output = tf.nn.l2_normalize(output, 1, 1e-10, name='embedding')
 
-        outputs = self.reduction_a(outputs)
-
-        # 10 x Inception-Resnet-B
-        outputs = self.repeat_block17(outputs)
-
-        # Reduction-B
-        outputs = self.reduction_b(outputs)
-
-        # 5 x Inception-Resnet-C
-        outputs = self.repeat_block8(outputs)
-
-        outputs = self.block8(outputs)
-
-        outputs = self.features(outputs)
-
-        return outputs
-
-    def embedding(self, images):
-        output = self(images, training=False)
-        output = tf.nn.l2_normalize(output, 1, 1e-10, name='embedding')
         return output
 
