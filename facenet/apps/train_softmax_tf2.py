@@ -77,11 +77,10 @@ def main(**options):
 
     # ------------------------------------------------------------------------------------------------------------------
     # import network
+    inputs = facenet.inputs(cfg.image)
+
     network = FaceNet(input_shape=facenet.inputs(cfg.image),
                       image_processing=facenet.ImageProcessing(cfg.image))
-
-    network.summary()
-    print('number of trainable variables', len(network.trainable_variables))
 
     # define model to train
     model = tf.keras.Sequential([
@@ -89,10 +88,11 @@ def main(**options):
         tf.keras.layers.Dense(train_dbase.nrof_classes,
                               kernel_initializer=tf.keras.initializers.GlorotNormal(), name='logits')
     ])
+    model(inputs)
 
-    model(facenet.inputs(cfg.image))
-
-    print('number of trainable variables', len(model.trainable_variables))
+    network.summary()
+    print('number of trainable variables in network', len(network.trainable_variables))
+    print('number of trainable variables in trained model', len(model.trainable_variables))
 
     learning_rate = facenet.learning_rate_schedule(cfg.train)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
