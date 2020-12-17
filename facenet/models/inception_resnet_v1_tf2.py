@@ -427,7 +427,7 @@ class InceptionResnetV1(keras.Model):
         # self.features = Features(config['features'])
         config = self.config['features']
         self.features = tf.keras.Sequential([
-            AvgPool2D([3, 3], padding='VALID', name='AvgPool_1a_8x8'),
+            AvgPool2D([3, 3], padding='valid', name='AvgPool_1a_8x8'),
             Flatten(),
             Dense(config['size'], activation=None, kernel_initializer=kernel_initializer, name='logits'),
             BatchNormalization(**self.config['batch_normalization'])
