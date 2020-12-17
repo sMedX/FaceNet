@@ -176,8 +176,8 @@ def main(**options):
                                                                  ds['validate'], iterator['validate'], batch['validate'],
                                                                  info)
 
-                validation = statistics.FaceToFaceValidation(embeddings, labels, options.validate.validate, info=info)
-
+                validation = statistics.FaceToFaceValidation(embeddings, labels, options.validate.validate)
+                ioutils.write_text_log(options.logfile, info)
                 ioutils.write_text_log(options.logfile, validation)
                 h5utils.write_dict(options.h5file, validation.dict, group='validate')
 
