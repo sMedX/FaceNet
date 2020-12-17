@@ -23,7 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# https://www.tensorflow.org/tutorials/customization/custom_training
+# https://www.tensorflow.org/tutorials/customization/custom_training_walkthrough
 
 import click
 import time
@@ -43,7 +43,7 @@ from facenet import facenet_tf2 as facenet
 @click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options of the application.')
 def main(**options):
-    app_file_name = '/home/korus/workspace/faces/FaceNet/facenet/apps/train_softmax.py'
+    app_file_name = 'train_softmax'
     cfg = config.train_softmax(app_file_name, options)
 
     # gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -61,6 +61,7 @@ def main(**options):
     #     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
 
     # ------------------------------------------------------------------------------------------------------------------
+    # define train and test datasets
     train_dbase = dataset.DBase(cfg.dataset)
     ioutils.write_text_log(cfg.logfile, train_dbase)
     print('train dbase:', train_dbase)
@@ -70,29 +71,23 @@ def main(**options):
     print('test dbase', test_dbase)
 
     loader = facenet.ImageLoader(config=cfg.image)
-    dset = {
-        'train': facenet.make_train_dataset(train_dbase, loader, cfg),
-        'test': facenet.make_test_dataset(test_dbase, loader, cfg),
-    }
 
+    train_dataset = facenet.make_train_dataset(train_dbase, loader, cfg)
+    test_dataset = facenet.make_test_dataset(test_dbase, loader, cfg)
+
+    # ------------------------------------------------------------------------------------------------------------------
     # import network
-    facenet_model = FaceNet(image_processing=facenet.ImageProcessing(cfg.image))
-    facenet_model(facenet.inputs(cfg.image))
+    network = FaceNet(input_shape=facenet.inputs(cfg.image),
+                      image_processing=facenet.ImageProcessing(cfg.image))
 
-    facenet_model.conv2d.summary()
-    for idx,  layer in enumerate(facenet_model.conv2d.layers):
-        print(idx, layer.name)
+    network.summary()
+    print('number of trainable variables', len(network.trainable_variables))
 
-    for idx, var in enumerate(facenet_model.conv2d.trainable_variables):
-        print(idx, var.name, var.shape)
-
-    print('number of trainable variables', len(facenet_model.conv2d.trainable_variables))
-    facenet_model.summary()
-
+    # define model to train
     model = tf.keras.Sequential([
-        facenet_model,
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(train_dbase.nrof_classes, name='logits')
+        network,
+        tf.keras.layers.Dense(train_dbase.nrof_classes,
+                              kernel_initializer=tf.keras.initializers.GlorotNormal(), name='logits')
     ])
 
     model(facenet.inputs(cfg.image))
@@ -103,7 +98,6 @@ def main(**options):
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # ema = tf.train.ExponentialMovingAverage(options.train.moving_average_decay)
-
     # ckpt = tf.train.Checkpoint(step=tf.Variable(0), optimizer=optimizer, net=model)
     # manager = tf.train.CheckpointManager(ckpt, cfg.model.path, max_to_keep=3)
 
@@ -114,11 +108,8 @@ def main(**options):
                f'learning rate {learning_rate(epoch*cfg.train.epoch.size).numpy()})'
         print('Running training', info)
 
-        # Reset the metrics at the start of the next epoch
-        # loss_value.reset_states()
-
         with tqdm(total=cfg.train.epoch.size) as bar:
-            for step, (images, labels) in enumerate(dset['train']):
+            for step, (images, labels) in enumerate(train_dataset):
                 if step == cfg.train.epoch.size:
                     break
 
@@ -135,8 +126,9 @@ def main(**options):
         # perform validation
         epoch1 = epoch + 1
         if epoch1 % cfg.validate.every_n_epochs == 0 or epoch1 == cfg.train.epoch.nrof_epochs:
-            embeddings, labels = facenet.evaluate_embeddings(facenet_model, dset['test'])
-            validation = statistics.FaceToFaceValidation(embeddings, labels, cfg.validate.validate, info=info)
+            embeddings, labels = facenet.evaluate_embeddings(network, test_dataset)
+            validation = statistics.FaceToFaceValidation(embeddings, labels, cfg.validate.validate)
+            ioutils.write_text_log(cfg.logfile, info)
             ioutils.write_text_log(cfg.logfile, validation)
             print(validation)
 
@@ -145,9 +137,8 @@ def main(**options):
         # save_path = manager.save()
         # print(f'Saved checkpoint for step {int(ckpt.step)}: {save_path}')
 
-    # model.save(cfg.model.path.joinpath('model'))
-
-    print('Model and logs have been saved to the directory: {}'.format(cfg.model.path))
+    # model.save(cfg.model.path / 'model')
+    print(f'Model and logs have been saved to the directory: {cfg.model.path}')
 
 
 if __name__ == '__main__':
