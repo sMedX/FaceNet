@@ -52,15 +52,17 @@ class ImageLoader:
         return image
 
 
-class ImageProcessing:
+class ImageProcessing(tf.keras.layers.Layer):
     def __init__(self, config):
+        super().__init__()
+
         self.input_node_name = nodes['input']['name']
 
         self.config = config
         self.image_size = tf.constant([self.config.size, self.config.size], name='image_size')
         self.eps = 1e-3
 
-    def __call__(self, image_batch, **kwargs):
+    def call(self, image_batch, **kwargs):
         image_batch = tf.identity(image_batch, name=self.input_node_name)
         image_batch = tf.cast(image_batch, dtype=tf.float32, name='float_image')
         image_batch = tf.image.resize(image_batch, size=self.image_size, name='resized_image')
