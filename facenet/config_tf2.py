@@ -86,6 +86,10 @@ class Config:
     def __bool__(self):
         return bool(self.__dict__)
 
+    @property
+    def as_dict(self):
+        return self.__dict__
+
     def items(self):
         return self.__dict__.items()
 
@@ -157,9 +161,9 @@ def train_softmax(app_file_name, options):
     cfg.logfile = cfg.logdir.joinpath('statistics.txt')
     cfg.h5file = cfg.logdir.joinpath('statistics.h5')
 
-    if not cfg.model.config:
-        network = importlib.import_module(cfg.model.module)
-        cfg.model.config = network.default_model_config
+    # if not cfg.model.config:
+    #     network = importlib.import_module(cfg.model.module)
+    #     cfg.model.config = network.default_model_config
 
     if not cfg.train.epoch.nrof_epochs:
         cfg.train.epoch.nrof_epochs = cfg.train.learning_rate.schedule[-1][0]

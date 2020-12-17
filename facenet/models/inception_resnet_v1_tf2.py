@@ -8,6 +8,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import ReLU, Conv2D, MaxPool2D, AvgPool2D, Dense, Flatten, Dropout, BatchNormalization
 
+from facenet.config_tf2 import Config
+
 kernel_initializer = tf.keras.initializers.GlorotNormal()
 
 default_config = {
@@ -27,21 +29,21 @@ default_config = {
         'scale': 0.10,
         'activation': 'relu'
     },
-    'block8': [
-        {
-            'repeat': 5,
-            'scale': 0.2,
-            'activation': 'relu'
+    'block8_1': {
+        'repeat': 5,
+        'scale': 0.2,
+        'activation': 'relu'
         },
-        {
-            'scale': 1.0,
-            'activation': None
-        }
-    ],
-    'features': {
-        'size': 512,
-        'dropout_rate': 0.5
+    'block8_2': {
+        'scale': 1.0,
+        'activation': None
+        },
+    # outputs
+    'output': {
+        'size': 512
     },
+    # weight for l2 regularization.
+    'weight_decay': 0.0005,
 }
 
 batch_normalization = {
@@ -56,13 +58,14 @@ batch_normalization = {
 }
 
 
-def check_input_config(cfg):
+def check_input_config(cfg=None):
     if cfg is None:
-        cfg = default_config
+        cfg = Config(default_config)
 
-    if cfg.get('batch_normalization') is None:
-        cfg['batch_normalization'] = batch_normalization
-    return cfg
+    if not cfg.batch_normalization:
+        cfg.batch_normalization = batch_normalization
+
+    return Config(cfg)
 
 
 # Inception-Resnet-A
@@ -71,13 +74,13 @@ class Block35(keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
         self.config = check_input_config(config)
-        self.activation = tf.keras.activations.deserialize(self.config['activation'])
+        self.activation = tf.keras.activations.deserialize(self.config.activation)
 
         self.tower_conv = tf.keras.Sequential([
             Conv2D(32, 1, strides=1, padding='same', activation='relu',
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -85,12 +88,12 @@ class Block35(keras.layers.Layer):
             Conv2D(32, 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(32, 3, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0b_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -98,17 +101,17 @@ class Block35(keras.layers.Layer):
             Conv2D(32, 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(32, 3, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0b_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(32, 3, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0c_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -123,7 +126,7 @@ class Block35(keras.layers.Layer):
         values = [self.tower_conv(net), self.tower_conv1(net), self.tower_conv2(net)]
         mixed = tf.concat(values, 3)
 
-        net += self.config['scale'] * self.up(mixed)
+        net += self.config.scale * self.up(mixed)
 
         if self.activation:
             net = self.activation(net)
@@ -136,13 +139,13 @@ class Block17(keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
         self.config = check_input_config(config)
-        self.activation = tf.keras.activations.deserialize(self.config['activation'])
+        self.activation = tf.keras.activations.deserialize(self.config.activation)
 
         self.tower_conv = tf.keras.Sequential([
             Conv2D(128, 1, strides=1, padding='same', activation='relu',
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -150,17 +153,17 @@ class Block17(keras.layers.Layer):
             Conv2D(128, 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(128, (1, 7), strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0b_1x7'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(128, (7, 1), strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0c_7x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -173,7 +176,7 @@ class Block17(keras.layers.Layer):
 
     def call(self, net, **kwargs):
         mixed = tf.concat([self.tower_conv(net), self.tower_conv1(net)], 3)
-        net += self.config['scale'] * self.up(mixed)
+        net += self.config.scale * self.up(mixed)
 
         if self.activation:
             net = self.activation(net)
@@ -187,13 +190,13 @@ class Block8(keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
         self.config = check_input_config(config)
-        self.activation = tf.keras.activations.deserialize(self.config['activation'])
+        self.activation = tf.keras.activations.deserialize(self.config.activation)
 
         self.tower_conv = tf.keras.Sequential([
             Conv2D(192, 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -201,17 +204,17 @@ class Block8(keras.layers.Layer):
             Conv2D(192, 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(192, (1, 3), strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0b_1x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(192, (3, 1), strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0c_3x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -224,7 +227,7 @@ class Block8(keras.layers.Layer):
 
     def call(self, net, **kwargs):
         mixed = tf.concat([self.tower_conv(net), self.tower_conv1(net)], 3)
-        net += self.config['scale'] * self.up(mixed)
+        net += self.config.scale * self.up(mixed)
 
         if self.activation:
             net = self.activation(net)
@@ -237,31 +240,31 @@ class ReductionA(tf.keras.layers.Layer):
         super().__init__()
         self.config = check_input_config(config)
 
-        filters = self.config['filters'][0]
+        filters = self.config.filters[0]
         self.tower_conv = tf.keras.Sequential([
             Conv2D(filters[0], 3, strides=2, padding='valid', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1a_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
-        filters = self.config['filters'][1]
+        filters = self.config.filters[1]
         self.tower_conv1 = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(filters[1], 3, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0b_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(filters[2], 3, strides=2, padding='valid', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1a_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -277,50 +280,50 @@ class ReductionB(tf.keras.layers.Layer):
         super().__init__()
         self.config = check_input_config(config)
 
-        filters = self.config['filters'][0]
+        filters = self.config.filters[0]
         self.tower_conv = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(filters[1], 3, strides=2, padding='valid', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1a_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
-        filters = self.config['filters'][1]
+        filters = self.config.filters[1]
         self.tower_conv1 = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(filters[1], 3, strides=2, padding='valid', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1a_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
-        filters = self.config['filters'][2]
+        filters = self.config.filters[2]
         self.tower_conv2 = tf.keras.Sequential([
             Conv2D(filters[0], 1,  strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0a_1x1'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(filters[1], 3,  strides=1, padding='same', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_0b_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(filters[2], 3, strides=2, padding='valid', activation=None,
                    use_bias=False, kernel_initializer=kernel_initializer,
                    name='Conv2d_1a_3x3'),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
@@ -344,66 +347,67 @@ class InceptionResnetV1(keras.Model):
             Conv2D(32, 3, strides=2, padding='valid', use_bias=False, activation=None, name='Conv2d_1a_3x3',
                    kernel_initializer=kernel_initializer,
                    ),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(32, 3, strides=1, padding='valid', use_bias=False, activation=None, name='Conv2d_2a_3x3',
                    kernel_initializer=kernel_initializer
                    ),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(64, 3, strides=1, padding='valid', use_bias=False, activation=None, name='Conv2d_2b_3x3',
                    kernel_initializer=kernel_initializer
                    ),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             MaxPool2D(3, strides=2, padding='valid', name='MaxPool_3a_3x3'),
             Conv2D(80, 1, strides=1, padding='valid', use_bias=False, activation=None, name='Conv2d_3b_1x1',
                    kernel_initializer=kernel_initializer,
                    ),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(192, 3, strides=1, padding='valid', use_bias=False, activation=None, name='Conv2d_4a_3x3',
                    kernel_initializer=kernel_initializer,
                    ),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
             Conv2D(256, 3, strides=2, padding='valid', use_bias=False, activation=None, name='Conv2d_4b_3x3',
                    kernel_initializer=kernel_initializer,
                    ),
-            BatchNormalization(**self.config['batch_normalization']),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
         # repeat block35
-        config = self.config['block35']
-        layers = [Block35(config=config) for _ in range(config['repeat'])]
+        config = self.config.block35
+        layers = [Block35(config=config) for _ in range(config.repeat)]
         self.repeat_block35 = tf.keras.Sequential(layers=layers, name='block35')
 
         # reduction a
-        self.reduction_a = ReductionA(self.config['reduction_a'])
+        self.reduction_a = ReductionA(self.config.reduction_a)
 
         # repeat block17
-        config = self.config['block17']
-        layers = [Block17(config=config) for _ in range(config['repeat'])]
+        config = self.config.block17
+        layers = [Block17(config=config) for _ in range(config.repeat)]
         self.repeat_block17 = tf.keras.Sequential(layers=layers, name='block17')
 
         # reduction b
-        self.reduction_b = ReductionB(self.config['reduction_b'])
+        self.reduction_b = ReductionB(self.config.reduction_b)
 
         # repeat block8
-        config = self.config['block8'][0]
-        layers = [Block8(config=config) for _ in range(config['repeat'])]
+        config = self.config.block8_1
+        layers = [Block8(config=config) for _ in range(config.repeat)]
         self.repeat_block8 = tf.keras.Sequential(layers=layers, name='block8')
 
-        self.block8 = Block8(config=self.config['block8'][1])
+        self.block8 = Block8(config=self.config.block8_2)
 
         # self.features = Features(config['features'])
-        config = self.config['features']
+        config = self.config.output
+
         self.features = tf.keras.Sequential([
             AvgPool2D([3, 3], padding='valid', name='AvgPool_1a_8x8'),
             Flatten(),
-            Dense(config['size'], activation=None, kernel_initializer=kernel_initializer, name='logits'),
-            BatchNormalization(**self.config['batch_normalization'])
+            Dense(config.size, activation=None, kernel_initializer=kernel_initializer, name='logits'),
+            BatchNormalization(**self.config.batch_normalization.as_dict)
         ])
 
         self.model = tf.keras.Sequential([
