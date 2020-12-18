@@ -243,7 +243,8 @@ class ReductionA(tf.keras.layers.Layer):
         self.config = check_input_config(config)
 
         filters = self.config.filters[0]
-        self.tower_conv = tf.keras.Sequential([
+
+        self.tower_conv0 = tf.keras.Sequential([
             Conv2D(filters[0], 3, strides=2, padding='valid', activation=None, use_bias=False,
                    kernel_initializer=kernel_initializer,
                    kernel_regularizer=kernel_regularizer,
@@ -253,6 +254,7 @@ class ReductionA(tf.keras.layers.Layer):
         ])
 
         filters = self.config.filters[1]
+
         self.tower_conv1 = tf.keras.Sequential([
             Conv2D(filters[0], 1, strides=1, padding='same', activation=None, use_bias=False,
                    kernel_initializer=kernel_initializer,
@@ -277,7 +279,9 @@ class ReductionA(tf.keras.layers.Layer):
         self.tower_pool = MaxPool2D(3, strides=2, padding='valid', name='MaxPool_1a_3x3')
 
     def call(self, net, **kwargs):
-        net = tf.concat([self.tower_conv(net), self.tower_conv1(net), self.tower_pool(net)], 3)
+        net = tf.concat([self.tower_conv0(net),
+                         self.tower_conv1(net),
+                         self.tower_pool(net)], 3)
         return net
 
 
