@@ -83,10 +83,16 @@ def main(**options):
                       image_processing=facenet.ImageProcessing(cfg.image))
 
     # define model to train
+    kernel_regularizer = tf.keras.regularizers.deserialize(network.config.regularizer.kernel.as_dict)
+
     model = tf.keras.Sequential([
         network,
         tf.keras.layers.Dense(train_dbase.nrof_classes,
-                              kernel_initializer=tf.keras.initializers.GlorotNormal(), name='logits')
+                              kernel_initializer=tf.keras.initializers.GlorotNormal(),
+                              kernel_regularizer=kernel_regularizer,
+                              bias_initializer='zeros',
+                              bias_regularizer=None,
+                              name='logits')
     ])
     model(inputs)
 
@@ -94,8 +100,17 @@ def main(**options):
     print('number of trainable variables in network', len(network.trainable_variables))
     print('number of trainable variables in trained model', len(model.trainable_variables))
 
+    # ------------------------------------------------------------------------------------------------------------------
     learning_rate = facenet.learning_rate_schedule(cfg.train)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
+    # model.compile(optimizer=optimizer,
+    #               loss=facenet.softmax_cross_entropy_with_logits)
+
+    # model.fit(data, labels, {
+    #     epochs: 5,
+    #     batchSize: 32,
+    # })
 
     # ema = tf.train.ExponentialMovingAverage(options.train.moving_average_decay)
     # ckpt = tf.train.Checkpoint(step=tf.Variable(0), optimizer=optimizer, net=model)
@@ -116,6 +131,7 @@ def main(**options):
                 with tf.GradientTape() as tape:
                     logits = model(images, training=True)
                     loss = facenet.softmax_cross_entropy_with_logits(logits, labels)
+                    # loss = model.loss(logits, labels)
 
                     gradients = tape.gradient(loss, model.trainable_variables)
                     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -137,7 +153,7 @@ def main(**options):
         # save_path = manager.save()
         # print(f'Saved checkpoint for step {int(ckpt.step)}: {save_path}')
 
-    # model.save(cfg.model.path / 'model')
+    model.save(cfg.model.path / 'model')
     print(f'Model and logs have been saved to the directory: {cfg.model.path}')
 
 

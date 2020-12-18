@@ -42,6 +42,13 @@ default_config = {
     },
 }
 
+regularizer = {
+    'kernel': {
+        'class_name': 'L2',
+        'config': {'l2': 0.0005}
+    }
+}
+
 batch_normalization = {
     'momentum': 0.995,
     'epsilon': 0.001,
@@ -61,6 +68,9 @@ def check_input_config(cfg=None):
 
     if not cfg.batch_normalization:
         cfg.batch_normalization = Config(batch_normalization)
+
+    if not cfg.regularizer:
+        cfg.regularizer = Config(regularizer)
 
     return cfg
 
