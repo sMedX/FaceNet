@@ -88,7 +88,15 @@ class Config:
 
     @property
     def as_dict(self):
-        return self.__dict__
+        def as_dict(obj):
+            s = {}
+            for key, item in obj.items():
+                if isinstance(item, Config):
+                    item = as_dict(item)
+                s[key] = item
+            return s
+
+        return as_dict(self)
 
     def items(self):
         return self.__dict__.items()
