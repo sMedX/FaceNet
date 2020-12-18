@@ -119,7 +119,7 @@ class Block35(keras.layers.Layer):
             ReLU()
         ])
 
-        self.up = Conv2D(256, 1, strides=1, padding='same', activation=activation, use_bias=True,
+        self.up = Conv2D(256, 1, strides=1, padding='same', activation=None, use_bias=True,
                          kernel_initializer=kernel_initializer,
                          kernel_regularizer=kernel_regularizer,
                          name='Conv2d_1x1')
