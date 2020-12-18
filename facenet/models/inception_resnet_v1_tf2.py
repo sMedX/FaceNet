@@ -380,7 +380,7 @@ class InceptionResnetV1(keras.Model):
 
         self.image_processing = image_processing
 
-        self.conv2d = tf.keras.Sequential([
+        self.conv2d = tf.keras.Sequential(name='conv2d', layers=[
             Conv2D(32, 3, strides=2, padding='valid', use_bias=False, activation=None,
                    kernel_initializer=kernel_initializer,
                    kernel_regularizer=kernel_regularizer,
@@ -451,7 +451,7 @@ class InceptionResnetV1(keras.Model):
         # self.features = Features(config['features'])
         config = self.config.output
 
-        self.features = tf.keras.Sequential([
+        self.features = tf.keras.Sequential(name='features', layers=[
             AvgPool2D([3, 3], padding='valid', name='AvgPool_1a_8x8'),
             Flatten(),
             Dense(config.size, activation=None, use_bias=False,
@@ -491,7 +491,7 @@ class InceptionResnetV1(keras.Model):
     def summary(self, line_length=None, positions=None, print_fn=None):
         super().summary(line_length, positions, print_fn)
 
-        for idx, layer in enumerate(self.layers):
+        for idx, layer in enumerate(self.custom_layers):
             print(idx, layer.name, 'weights/variables', len(layer.get_weights()), len(layer.trainable_variables))
 
         print('trainable variables', len(self.trainable_variables))
