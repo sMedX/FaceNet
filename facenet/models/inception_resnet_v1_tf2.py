@@ -146,7 +146,7 @@ class Block17(keras.layers.Layer):
         self.tower_conv0 = tf.keras.Sequential([
             Conv2D(128, 1, strides=1, padding='same', activation=None, use_bias=False,
                    kernel_initializer=kernel_initializer,
-                   kernel_regularizer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
