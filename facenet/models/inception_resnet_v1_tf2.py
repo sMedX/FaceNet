@@ -196,47 +196,51 @@ class Block8(keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
         self.config = check_input_config(config)
-        self.activation = tf.keras.activations.deserialize(self.config.activation)
+        self.mixed_activation = tf.keras.activations.deserialize(self.config.activation)
 
-        self.tower_conv = tf.keras.Sequential([
-            Conv2D(192, 1, strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(192, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
         self.tower_conv1 = tf.keras.Sequential([
-            Conv2D(192, 1, strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(192, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(192, (1, 3), strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(192, (1, 3), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0b_1x3'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(192, (3, 1), strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(192, (3, 1), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0c_3x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
-        self.up = None
-
-    def build(self, input_shape):
-        self.up = Conv2D(input_shape[-1], 1, strides=1, padding='same', activation='relu',
-                         use_bias=True, kernel_initializer=kernel_initializer,
+        self.up = Conv2D(1792, 1, strides=1, padding='same', activation=None, use_bias=True,
+                         kernel_initializer=kernel_initializer,
+                         kernel_regularizer=kernel_regularizer,
                          name='Conv2d_1x1')
 
     def call(self, net, **kwargs):
-        mixed = tf.concat([self.tower_conv(net), self.tower_conv1(net)], 3)
+        mixed = tf.concat([self.tower_conv0(net),
+                           self.tower_conv1(net)], 3)
+
         net += self.config.scale * self.up(mixed)
 
-        if self.activation:
-            net = self.activation(net)
+        if self.mixed_activation:
+            net = self.mixed_activation(net)
 
         return net
 
@@ -351,8 +355,10 @@ class ReductionB(tf.keras.layers.Layer):
         self.tower_pool = MaxPool2D(3, strides=2, padding='valid', name='MaxPool_1a_3x3')
 
     def call(self, net, **kwargs):
-        values = [self.tower_conv(net), self.tower_conv1(net), self.tower_conv2(net), self.tower_pool(net)]
-        net = tf.concat(values, 3)
+        net = tf.concat([self.tower_conv0(net),
+                         self.tower_conv1(net),
+                         self.tower_conv2(net),
+                         self.tower_pool(net)], 3)
 
         return net
 
