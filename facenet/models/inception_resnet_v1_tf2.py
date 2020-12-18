@@ -141,47 +141,51 @@ class Block17(keras.layers.Layer):
     def __init__(self, config):
         super().__init__()
         self.config = check_input_config(config)
-        self.activation = tf.keras.activations.deserialize(self.config.activation)
+        self.mixed_activation = tf.keras.activations.deserialize('relu')
 
-        self.tower_conv = tf.keras.Sequential([
-            Conv2D(128, 1, strides=1, padding='same', activation='relu',
-                   use_bias=False, kernel_initializer=kernel_initializer,
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(128, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_initializer,
                    name='Conv2d_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
         self.tower_conv1 = tf.keras.Sequential([
-            Conv2D(128, 1, strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(128, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(128, (1, 7), strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(128, (1, 7), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0b_1x7'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(128, (7, 1), strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(128, (7, 1), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0c_7x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
         ])
 
-        self.up = None
-
-    def build(self, input_shape):
-        self.up = Conv2D(input_shape[-1], 1, strides=1, padding='same', activation='relu',
-                         use_bias=True, kernel_initializer=kernel_initializer,
+        self.up = Conv2D(896, 1, strides=1, padding='same', activation=None, use_bias=True,
+                         kernel_initializer=kernel_initializer,
+                         kernel_regularizer=kernel_regularizer,
                          name='Conv2d_1x1')
 
     def call(self, net, **kwargs):
-        mixed = tf.concat([self.tower_conv(net), self.tower_conv1(net)], 3)
+        mixed = tf.concat([self.tower_conv0(net),
+                           self.tower_conv1(net)], 3)
+
         net += self.config.scale * self.up(mixed)
 
-        if self.activation:
-            net = self.activation(net)
+        if self.mixed_activation:
+            net = self.mixed_activation(net)
 
         return net
 
