@@ -454,11 +454,14 @@ class InceptionResnetV1(keras.Model):
         self.features = tf.keras.Sequential([
             AvgPool2D([3, 3], padding='valid', name='AvgPool_1a_8x8'),
             Flatten(),
-            Dense(config.size, activation=None, kernel_initializer=kernel_initializer, name='logits'),
+            Dense(config.size, activation=None, use_bias=False,
+                  kernel_initializer=kernel_initializer,
+                  kernel_regularizer=kernel_regularizer,
+                  name='logits'),
             BatchNormalization(**self.config.batch_normalization.as_dict)
         ])
 
-        self.model = tf.keras.Sequential([
+        self.custom_layers = (
             self.image_processing,
             self.conv2d,
             self.repeat_block35,
@@ -468,18 +471,29 @@ class InceptionResnetV1(keras.Model):
             self.repeat_block8,
             self.block8,
             self.features
-        ])
+        )
 
         self(input_shape)
 
     def call(self, inputs, training=False, **kwargs):
 
         # evaluate output of model
-        output = self.model(inputs)
+        output = inputs
+        for layer in self.custom_layers:
+            output = layer(output)
 
         # normalize embeddings
         if training is False:
             output = tf.nn.l2_normalize(output, 1, 1e-10, name='embedding')
 
         return output
+
+    def summary(self, line_length=None, positions=None, print_fn=None):
+        super().summary(line_length, positions, print_fn)
+
+        for idx, layer in enumerate(self.layers):
+            print(idx, layer.name, 'weights/variables', len(layer.get_weights()), len(layer.trainable_variables))
+
+        print('trainable variables', len(self.trainable_variables))
+        print('weights', len(self.get_weights()))
 
