@@ -295,14 +295,16 @@ class ReductionB(tf.keras.layers.Layer):
         self.config = check_input_config(config)
 
         filters = self.config.filters[0]
-        self.tower_conv = tf.keras.Sequential([
-            Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(filters[0], 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(filters[1], 3, strides=2, padding='valid', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(filters[1], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_1a_3x3'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
@@ -310,13 +312,15 @@ class ReductionB(tf.keras.layers.Layer):
 
         filters = self.config.filters[1]
         self.tower_conv1 = tf.keras.Sequential([
-            Conv2D(filters[0], 1, strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(filters[0], 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(filters[1], 3, strides=2, padding='valid', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(filters[1], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_1a_3x3'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
@@ -324,18 +328,21 @@ class ReductionB(tf.keras.layers.Layer):
 
         filters = self.config.filters[2]
         self.tower_conv2 = tf.keras.Sequential([
-            Conv2D(filters[0], 1,  strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(filters[0], 1,  strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0a_1x1'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(filters[1], 3,  strides=1, padding='same', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(filters[1], 3,  strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_0b_3x3'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU(),
-            Conv2D(filters[2], 3, strides=2, padding='valid', activation=None,
-                   use_bias=False, kernel_initializer=kernel_initializer,
+            Conv2D(filters[2], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
                    name='Conv2d_1a_3x3'),
             BatchNormalization(**self.config.batch_normalization.as_dict),
             ReLU()
