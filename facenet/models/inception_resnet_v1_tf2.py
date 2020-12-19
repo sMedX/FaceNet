@@ -46,6 +46,10 @@ regularizer = {
     'kernel': {
         'class_name': 'L2',
         'config': {'l2': 0.0005}
+    },
+    'activity': {
+        'class_name': 'L1',
+        'config': {'l1': 0}
     }
 }
 
@@ -450,6 +454,7 @@ class InceptionResnetV1(keras.Model):
 
         # self.features = Features(config['features'])
         config = self.config.output
+        activity_regularizer = tf.keras.regularizers.deserialize(self.config.regularizer.activity.as_dict)
 
         self.features = tf.keras.Sequential(name='features', layers=[
             AvgPool2D([3, 3], padding='valid', name='AvgPool_1a_8x8'),
@@ -457,6 +462,7 @@ class InceptionResnetV1(keras.Model):
             Dense(config.size, activation=None, use_bias=False,
                   kernel_initializer=kernel_initializer,
                   kernel_regularizer=kernel_regularizer,
+                  activity_regularizer=activity_regularizer,
                   name='logits'),
             BatchNormalization(**self.config.batch_normalization.as_dict)
         ])
