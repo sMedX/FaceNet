@@ -491,9 +491,7 @@ class InceptionResnetV1(keras.Model):
     def summary(self, line_length=None, positions=None, print_fn=None):
         super().summary(line_length, positions, print_fn)
 
-        for idx, layer in enumerate(self.custom_layers):
-            print(idx, layer.name, 'weights/variables', len(layer.get_weights()), len(layer.trainable_variables))
-
-        print('trainable variables', len(self.trainable_variables))
-        print('weights', len(self.get_weights()))
+        print('Total variables: ', len(self.variables))
+        print('Trainable variables: ', len(self.trainable_variables))
+        print('Non-trainable variables: ', len(self.non_trainable_variables))
 
