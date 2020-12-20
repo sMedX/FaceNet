@@ -141,6 +141,7 @@ def main(**options):
             'tensor_op': {
                 'accuracy': accuracy,
                 'loss': total_loss,
+                'cross_entropy': cross_entropy_mean,
                 'xent': cross_entropy_mean,
                 'center_loss': prelogits_center_loss,
                 'prelogits_norm': prelogits_norm,
