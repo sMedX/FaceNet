@@ -27,11 +27,7 @@
 # https://www.tensorflow.org/guide/keras/customizing_what_happens_in_fit
 
 import click
-import time
-from tqdm import tqdm
-from loguru import logger
 from pathlib import Path
-import itertools
 
 import tensorflow as tf
 
@@ -92,17 +88,14 @@ def main(**options):
                     optimizer=optimizer)
 
     network.fit(train_dataset,
-                batch_size=None,
                 epochs=cfg.train.epoch.nrof_epochs,
                 steps_per_epoch=None)
     network.save(cfg.model.path / 'model')
 
-    print(f'Model and logs have been saved to the directory: {cfg.model.path}')
-
     embeddings, labels = facenet.evaluate_embeddings(model, test_dataset)
-    validation = statistics.FaceToFaceValidation(embeddings, labels, cfg.validate.validate)
-    ioutils.write_text_log(cfg.logfile, validation)
-    print(validation)
+    statistics.FaceToFaceValidation(embeddings, labels, cfg.validate.validate)
+
+    print(f'Model and logs have been saved to the directory: {cfg.model.path}')
 
 
 if __name__ == '__main__':

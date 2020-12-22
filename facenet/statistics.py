@@ -3,19 +3,16 @@
 #
 # Copyright (c) 2019 Ruslan N. Kosarev
 
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
-import sys
 from tqdm import tqdm
 
 import time
 import datetime
+from loguru import logger
+
 import numpy as np
-from collections import Iterable
 import sklearn
 from sklearn.model_selection import KFold
-from scipy import spatial, interpolate
+from scipy import interpolate
 from scipy.optimize import brentq
 from pathlib import Path
 
@@ -265,6 +262,8 @@ class FaceToFaceValidation:
         self.thresholds = np.linspace(0, upper_threshold, 100)
 
         self._evaluate()
+
+        logger.info(self)
 
     def __repr__(self):
         """Representation of the database"""
