@@ -358,24 +358,10 @@ class PiecewiseConstantLearningRate(tf.keras.optimizers.schedules.LearningRateSc
 def learning_rate_schedule(config):
     schedule = config.learning_rate_schedule
 
-    if schedule == 'constant':
-        schedule = ConstantLearningRate(config.constant_learning_rate, name='ConstantLearningRate')
-    elif schedule == 'exponential_decay':
-        cfg = config.exponential_decay
-        cfg.decay_steps *= config.epoch.size
-        schedule = tf.keras.optimizers.schedules.ExponentialDecay(**cfg.__dict__, name='ExponentialDecay')
-    elif schedule == 'inverse_time_decay':
-        cfg = config.exponential_decay
-        cfg.decay_steps *= config.epoch.size
-        schedule = tf.keras.optimizers.schedules.InverseTimeDecay(**cfg.__dict__, name='InverseTimeDecay')
-    elif schedule == 'piecewise_constant':
-        cfg = config.piecewise_constant
-        boundaries = tuple([epoch*config.epoch.size for epoch in cfg.epochs[:-1]])
-        values = tuple(cfg.values)
-        schedule = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values,
-                                                                        name='PiecewiseConstantDecay')
-        # lr_schedule = PiecewiseConstantLearningRate(**lr_config.__dict__, name='PiecewiseConstantLearningRate')
-    else:
-        raise ValueError(f'Invalid learning rate schedule {schedule}')
+    try:
+        schedule.config.boundaries = [epoch * config.epoch.size for epoch in schedule.config.boundaries]
+        lr_schedule = tf.keras.optimizers.schedules.deserialize(schedule.as_dict)
+    except Exception as err:
+        raise ValueError(f'Invalid learning rate schedule {schedule}\n{err}')
 
-    return schedule
+    return lr_schedule

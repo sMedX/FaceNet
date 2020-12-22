@@ -47,7 +47,11 @@ train:
       - [300, 0.0005]
 
   # learning rate schedule
-  learning_rate_schedule: piecewise_constant
+  learning_rate_schedule:
+    'class_name': 'PiecewiseConstantDecay'
+    'config':
+      'boundaries': [200, 300]
+      'values': [0.005, 0.0005, 0.00005]
 
   constant_learning_rate: 0.05
 

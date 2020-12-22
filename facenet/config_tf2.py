@@ -56,12 +56,15 @@ class Config:
     """Object representing YAML settings as a dict-like object with values as fields
     """
 
-    def __init__(self, dct={}):
+    def __init__(self, dct=None):
         """Update config from dict
         :param dct: input object
         """
+        if dct is None:
+            dct = dict()
+
         for key, item in dct.items():
-            if isinstance(item, (omegaconf.dictconfig.DictConfig, dict)):
+            if isinstance(item, dict):
                 setattr(self, key, Config(item))
             else:
                 setattr(self, key, item)
@@ -134,6 +137,7 @@ def load_config(app_file_name, options):
     if new_cfg is None:
         raise LoadConfigError("The configuration has not been loaded.")
 
+    cfg = OmegaConf.to_container(cfg)
     cfg = Config(cfg)
 
     return cfg
