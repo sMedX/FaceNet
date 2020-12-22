@@ -51,7 +51,7 @@ train:
     'class_name': 'PiecewiseConstantDecay'
     'config':
       'boundaries': [200, 300]
-      'values': [0.005, 0.0005, 0.00005]
+      'values': [0.001, 0.0001, 0.00001]
 
   constant_learning_rate: 0.05
 
