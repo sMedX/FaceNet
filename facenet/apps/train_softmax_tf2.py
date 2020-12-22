@@ -82,7 +82,7 @@ def main(**options):
 
     # ------------------------------------------------------------------------------------------------------------------
     learning_rate = facenet.learning_rate_schedule(cfg.train)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     network.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=optimizer)
