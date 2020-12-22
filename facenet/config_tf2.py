@@ -56,7 +56,7 @@ class Config:
     """Object representing YAML settings as a dict-like object with values as fields
     """
 
-    def __init__(self, dct):
+    def __init__(self, dct={}):
         """Update config from dict
         :param dct: input object
         """
@@ -81,7 +81,7 @@ class Config:
         return get_str(self)
 
     def __getattr__(self, name):
-        return self.__dict__.get(name, Config({}))
+        return self.__dict__.get(name, Config())
 
     def __bool__(self):
         return bool(self.__dict__)
@@ -165,13 +165,9 @@ def train_softmax(app_file_name, options):
 
     cfg.model.path = Path(cfg.model.path).expanduser().joinpath(subdir())
 
-    cfg.logdir = cfg.model.path.joinpath('logs')
-    cfg.logfile = cfg.logdir.joinpath('statistics.txt')
-    cfg.h5file = cfg.logdir.joinpath('statistics.h5')
-
-    # if not cfg.model.config:
-    #     network = importlib.import_module(cfg.model.module)
-    #     cfg.model.config = network.default_model_config
+    cfg.logs = Config()
+    cfg.logs.dir = cfg.model.path / 'logs'
+    cfg.logs.file = cfg.model.path.stem + '.log'
 
     if not cfg.train.epoch.nrof_epochs:
         cfg.train.epoch.nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
@@ -185,8 +181,8 @@ def train_softmax(app_file_name, options):
     set_seed(cfg.seed)
 
     # write arguments and store some git revision info in a text files in the log directory
-    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
-    ioutils.store_revision_info(cfg.logdir)
+    ioutils.write_arguments(cfg, cfg.logs.dir / (Path(app_file_name).stem + '.yaml'))
+    ioutils.store_revision_info(cfg.logs.dir)
 
     return cfg
 

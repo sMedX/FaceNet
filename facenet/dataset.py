@@ -4,6 +4,7 @@ __author__ = 'Ruslan N. Kosarev'
 from tqdm import tqdm
 import numpy as np
 from pathlib import Path
+from loguru import logger
 
 from facenet import ioutils, h5utils
 
@@ -117,6 +118,7 @@ class DBase:
                     bar.update()
 
         self.classes = classes
+        logger.info(self)
 
     def __repr__(self):
         """Representation of the database"""

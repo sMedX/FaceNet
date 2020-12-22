@@ -20,12 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
+from loguru import logger
 from pathlib import Path
 
 import random
+import numpy as np
+import tensorflow as tf
+
 
 from facenet import nodes, h5utils, FaceNet
 
@@ -130,9 +132,12 @@ def make_train_dataset(dbase, loader, config):
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
     ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True).repeat()
+    ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True)
     ds = ds.batch(batch_size=config.batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+    logger.info(f'batch_size: {config.batch_size}')
+    logger.info(f'cardinality: {ds.cardinality()}')
 
     return ds
 
@@ -142,12 +147,15 @@ def make_test_dataset(dbase, loader, config):
 
     images = tf.data.Dataset.from_tensor_slices(files).map(loader)
     labels = tf.data.Dataset.from_tensor_slices(labels)
-    dataset = tf.data.Dataset.zip((images, labels))
+    ds = tf.data.Dataset.zip((images, labels))
 
-    dataset = dataset.batch(batch_size=config.batch_size)
-    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    ds = ds.batch(batch_size=config.batch_size)
+    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
-    return dataset
+    logger.info(f'batch_size: {config.batch_size}')
+    logger.info(f'cardinality: {ds.cardinality()}')
+
+    return ds
 
 
 def evaluate_embeddings(model, dset):
@@ -351,20 +359,23 @@ def learning_rate_schedule(config):
     schedule = config.learning_rate_schedule
 
     if schedule == 'constant':
-        lr_schedule = ConstantLearningRate(config.constant_learning_rate, name='ConstantLearningRate')
+        schedule = ConstantLearningRate(config.constant_learning_rate, name='ConstantLearningRate')
     elif schedule == 'exponential_decay':
-        lr_config = config.exponential_decay
-        lr_config.decay_steps *= config.epoch.size
-        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(**lr_config.__dict__, name='ExponentialDecay')
+        cfg = config.exponential_decay
+        cfg.decay_steps *= config.epoch.size
+        schedule = tf.keras.optimizers.schedules.ExponentialDecay(**cfg.__dict__, name='ExponentialDecay')
     elif schedule == 'inverse_time_decay':
-        lr_config = config.exponential_decay
-        lr_config.decay_steps *= config.epoch.size
-        lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(**lr_config.__dict__, name='InverseTimeDecay')
+        cfg = config.exponential_decay
+        cfg.decay_steps *= config.epoch.size
+        schedule = tf.keras.optimizers.schedules.InverseTimeDecay(**cfg.__dict__, name='InverseTimeDecay')
     elif schedule == 'piecewise_constant':
-        lr_config = config.piecewise_constant
-        lr_config.size = config.epoch.size
-        lr_schedule = PiecewiseConstantLearningRate(**lr_config.__dict__, name='PiecewiseConstantLearningRate')
+        cfg = config.piecewise_constant
+        boundaries = tuple([epoch*config.epoch.size for epoch in cfg.epochs[:-1]])
+        values = tuple(cfg.values)
+        schedule = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values,
+                                                                        name='PiecewiseConstantDecay')
+        # lr_schedule = PiecewiseConstantLearningRate(**lr_config.__dict__, name='PiecewiseConstantLearningRate')
     else:
         raise ValueError(f'Invalid learning rate schedule {schedule}')
 
-    return lr_schedule
+    return schedule
