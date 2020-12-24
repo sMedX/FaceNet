@@ -167,7 +167,15 @@ def extract_faces(app_file_name, options):
 def train_softmax(app_file_name, options):
     cfg = load_config(app_file_name, options)
 
-    cfg.model.path = Path(cfg.model.path).expanduser().joinpath(subdir())
+    path = Path(cfg.model.path).expanduser()
+
+    # check if checkpoint does not exist
+    checkpoint = path / 'checkpoint'
+    if checkpoint.is_file():
+        cfg.model.path = path
+        cfg.model.checkpoint = path / 'model'
+    else:
+        cfg.model.path = path / subdir()
 
     cfg.logs = Config()
     cfg.logs.dir = cfg.model.path / 'logs'

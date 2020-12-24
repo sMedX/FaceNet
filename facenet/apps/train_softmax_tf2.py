@@ -63,6 +63,7 @@ def main(**options):
 
     model = FaceNet(input_shape=facenet.inputs(cfg.image),
                     image_processing=facenet.ImageProcessing(cfg.image))
+    model.summary()
 
     # define model to train
     kernel_regularizer = tf.keras.regularizers.deserialize(model.config.regularizer.kernel.as_dict)
@@ -77,24 +78,33 @@ def main(**options):
                               bias_regularizer=None,
                               name='logits')
     ])
-    network(inputs)
-    model.summary()
+
+    if cfg.model.checkpoint:
+        print(f'Restore checkpoint {cfg.model.checkpoint}')
+        network.load_weights(cfg.model.checkpoint)
 
     # ------------------------------------------------------------------------------------------------------------------
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=cfg.model.path / 'model',
+                                                             save_weights_only=True,
+                                                             verbose=1)
+
     learning_rate_callback = tf.keras.callbacks.LearningRateScheduler(
         facenet.LearningRateScheduler(config=cfg.train.learning_rate_schedule),
         verbose=True
     )
 
-    optimizer = tf.keras.optimizers.Adam()
-
     network.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                    optimizer=optimizer)
+                    optimizer=tf.keras.optimizers.Adam())
 
-    network.fit(train_dataset,
-                epochs=cfg.train.epoch.nrof_epochs,
-                steps_per_epoch=None,
-                callbacks=[learning_rate_callback])
+    network.fit(
+        train_dataset,
+        epochs=cfg.train.epoch.nrof_epochs,
+        steps_per_epoch=None,
+        callbacks=[
+            checkpoint_callback,
+            learning_rate_callback
+        ]
+    )
     network.save(cfg.model.path / 'model')
 
     embeddings, labels = facenet.evaluate_embeddings(model, test_dataset)
