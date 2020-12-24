@@ -71,7 +71,7 @@ def main(**options):
         model,
         tf.keras.layers.Dense(train_dbase.nrof_classes,
                               activation=None,
-                              kernel_initializer=tf.keras.initializers.GlorotNormal(),
+                              kernel_initializer=tf.keras.initializers.GlorotUniform(),
                               kernel_regularizer=kernel_regularizer,
                               bias_initializer='zeros',
                               bias_regularizer=None,
@@ -81,15 +81,20 @@ def main(**options):
     model.summary()
 
     # ------------------------------------------------------------------------------------------------------------------
-    learning_rate = facenet.learning_rate_schedule(cfg.train)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    learning_rate_callback = tf.keras.callbacks.LearningRateScheduler(
+        facenet.LearningRateScheduler(config=cfg.train.learning_rate_schedule),
+        verbose=True
+    )
+
+    optimizer = tf.keras.optimizers.Adam()
 
     network.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=optimizer)
 
     network.fit(train_dataset,
                 epochs=cfg.train.epoch.nrof_epochs,
-                steps_per_epoch=None)
+                steps_per_epoch=None,
+                callbacks=[learning_rate_callback])
     network.save(cfg.model.path / 'model')
 
     embeddings, labels = facenet.evaluate_embeddings(model, test_dataset)

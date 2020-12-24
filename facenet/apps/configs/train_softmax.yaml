@@ -48,22 +48,26 @@ train:
 
   # learning rate schedule
   learning_rate_schedule:
-    'class_name': 'PiecewiseConstantDecay'
-    'config':
-      'boundaries': [200, 300]
-      'values': [0.001, 0.0001, 0.00001]
+    # Learning rate value
+    value:
 
-  constant_learning_rate: 0.05
+    # Learning rate schedule is used if value is not specified
+    schedule:
+      - [100, 0.001]
+      - [200, 0.0001]
+      - [300, 0.00001]
 
-  piecewise_constant:
-    epochs: [100, 200, 300]
-    values: [0.05, 0.005, 0.0005]
-
-  exponential_decay:
-    initial_learning_rate: 0.05
-    decay_rate: 0.31622
-    decay_steps: 50
-    staircase: True
+#  constant_learning_rate: 0.05
+#
+#  piecewise_constant:
+#    epochs: [100, 200, 300]
+#    values: [0.05, 0.005, 0.0005]
+#
+#  exponential_decay:
+#    initial_learning_rate: 0.05
+#    decay_rate: 0.31622
+#    decay_steps: 50
+#    staircase: True
 
 
 loss:

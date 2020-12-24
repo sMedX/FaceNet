@@ -355,13 +355,21 @@ class PiecewiseConstantLearningRate(tf.keras.optimizers.schedules.LearningRateSc
         return self.__dict__
 
 
-def learning_rate_schedule(config):
-    schedule = config.learning_rate_schedule
+class LearningRateScheduler:
+    def __init__(self, config):
+        self.config = config
 
-    try:
-        schedule.config.boundaries = [epoch * config.epoch.size for epoch in schedule.config.boundaries]
-        lr_schedule = tf.keras.optimizers.schedules.deserialize(schedule.as_dict)
-    except Exception as err:
-        raise ValueError(f'Invalid learning rate schedule {schedule}\n{err}')
+        if self.config.value:
+            self.default_value = self.config.value
+        else:
+            self.default_value = config.schedule[-1][1]
 
-    return lr_schedule
+    def __call__(self, epoch):
+        if self.config.value:
+            return self.default_value
+
+        for (epoch_, lr_) in self.config.schedule:
+            if epoch < epoch_:
+                return lr_
+
+        return self.default_value
