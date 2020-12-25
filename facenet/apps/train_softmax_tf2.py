@@ -32,7 +32,7 @@ from pathlib import Path
 import tensorflow as tf
 
 from facenet.models.inception_resnet_v1_tf2 import InceptionResnetV1 as FaceNet
-from facenet import ioutils, statistics, config, dataset, facenet
+from facenet import ioutils, statistics, config, dataset
 from facenet import config_tf2 as config
 from facenet import facenet_tf2 as facenet
 from facenet.logging import configure_logging
@@ -42,9 +42,7 @@ from facenet.logging import configure_logging
 @click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options of the application.')
 def main(**options):
-    app_file_name = 'train_softmax'
-
-    cfg = config.train_softmax(app_file_name, options)
+    cfg = config.train_softmax(options)
     configure_logging(cfg.logs)
 
     # ------------------------------------------------------------------------------------------------------------------

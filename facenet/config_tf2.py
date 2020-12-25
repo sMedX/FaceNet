@@ -1,14 +1,13 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
+import sys
 from pathlib import Path
 from datetime import datetime
-import importlib
-import random
 
-import omegaconf
 from omegaconf import OmegaConf
 
+import random
 import numpy as np
 import tensorflow as tf
 
@@ -164,18 +163,13 @@ def extract_faces(app_file_name, options):
     return cfg
 
 
-def train_softmax(app_file_name, options):
+def train_softmax(options):
+    app_file_name = sys.argv[0]
     cfg = load_config(app_file_name, options)
 
     path = Path(cfg.model.path).expanduser()
 
-    # check if checkpoint does not exist
-    checkpoint = path / 'checkpoint'
-    if checkpoint.is_file():
-        cfg.model.path = path
-        cfg.model.checkpoint = path / 'model'
-    else:
-        cfg.model.path = path / subdir()
+    cfg.model.path = path / subdir()
 
     cfg.logs = Config()
     cfg.logs.dir = cfg.model.path / 'logs'
@@ -193,7 +187,7 @@ def train_softmax(app_file_name, options):
     set_seed(cfg.seed)
 
     # write arguments and store some git revision info in a text files in the log directory
-    ioutils.write_arguments(cfg, cfg.logs.dir / (Path(app_file_name).stem + '.yaml'))
+    ioutils.write_arguments(cfg, cfg.logs.dir)
     ioutils.store_revision_info(cfg.logs.dir)
 
     return cfg
