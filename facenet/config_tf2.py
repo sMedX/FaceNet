@@ -175,8 +175,8 @@ def train_softmax(options):
     cfg.logs.dir = cfg.model.path / 'logs'
     cfg.logs.file = cfg.model.path.stem + '.log'
 
-    if not cfg.train.epoch.nrof_epochs:
-        cfg.train.epoch.nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
+    if not cfg.train.max_nrof_epochs:
+        cfg.train.max_nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
 
     if cfg.validate:
         cfg.validate.batch_size = cfg.batch_size

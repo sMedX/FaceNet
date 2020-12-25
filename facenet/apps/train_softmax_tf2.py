@@ -87,7 +87,7 @@ def main(**options):
                                                              verbose=1)
 
     learning_rate_callback = tf.keras.callbacks.LearningRateScheduler(
-        facenet.LearningRateScheduler(config=cfg.train.learning_rate_schedule),
+        facenet.LearningRateScheduler(config=cfg.train.learning_rate),
         verbose=True
     )
 
@@ -96,7 +96,7 @@ def main(**options):
 
     network.fit(
         train_dataset,
-        epochs=cfg.train.epoch.nrof_epochs,
+        epochs=cfg.train.max_nrof_epochs,
         steps_per_epoch=None,
         callbacks=[
             checkpoint_callback,
