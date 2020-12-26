@@ -123,7 +123,7 @@ def equal_batches_input_pipeline(embeddings, config):
     return next_elem
 
 
-def dataset(files, labels, loader, shuffle, config):
+def dataset(files, labels, loader, batch_size, shuffle=True, drop_remainder=True):
     """
 
     :param files:
@@ -143,12 +143,12 @@ def dataset(files, labels, loader, shuffle, config):
     ds = tf.data.Dataset.zip((images, labels))
 
     if shuffle:
-        ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True)
+        ds = ds.shuffle(buffer_size=10 * batch_size, reshuffle_each_iteration=True)
 
-    ds = ds.batch(batch_size=config.batch_size)
+    ds = ds.batch(batch_size=batch_size, drop_remainder=drop_remainder)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
-    logger.info(f'batch_size: {config.batch_size}')
+    logger.info(f'batch_size: {batch_size}')
     logger.info(f'cardinality: {ds.cardinality()}')
 
     return ds
