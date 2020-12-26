@@ -2,11 +2,12 @@
 __author__ = 'Ruslan N. Kosarev'
 
 from tqdm import tqdm
-import numpy as np
 from pathlib import Path
 from loguru import logger
 
-from facenet import ioutils, h5utils
+import numpy as np
+
+from facenet import h5utils
 
 
 class DefaultConfig:
@@ -209,10 +210,6 @@ class DBase:
             test.append(test_)
 
         return DBase(self, classes=train), DBase(self, classes=test)
-
-    def write_report(self, file):
-        info = 64 * '-' + '\n' + str(self)
-        ioutils.write_to_file(file, info)
 
     # def extract_data(self, folder_idx, embeddings=None):
     #     indices = np.where(self.labels == folder_idx)[0]

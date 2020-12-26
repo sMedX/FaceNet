@@ -123,8 +123,17 @@ def equal_batches_input_pipeline(embeddings, config):
     return next_elem
 
 
-def make_train_dataset(dbase, loader, config):
-    data = list(zip(dbase.files, dbase.labels))
+def dataset(files, labels, loader, shuffle, config):
+    """
+
+    :param files:
+    :param labels:
+    :param loader:
+    :param config:
+    :param shuffle:
+    :return:
+    """
+    data = list(zip(files, labels))
     np.random.shuffle(data)
     files, labels = map(list, zip(*data))
 
@@ -132,22 +141,9 @@ def make_train_dataset(dbase, loader, config):
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
     ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True)
-    ds = ds.batch(batch_size=config.batch_size)
-    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
-    logger.info(f'batch_size: {config.batch_size}')
-    logger.info(f'cardinality: {ds.cardinality()}')
-
-    return ds
-
-
-def make_test_dataset(dbase, loader, config):
-    files, labels = dbase.files, dbase.labels
-
-    images = tf.data.Dataset.from_tensor_slices(files).map(loader)
-    labels = tf.data.Dataset.from_tensor_slices(labels)
-    ds = tf.data.Dataset.zip((images, labels))
+    if shuffle:
+        ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True)
 
     ds = ds.batch(batch_size=config.batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
@@ -156,6 +152,22 @@ def make_test_dataset(dbase, loader, config):
     logger.info(f'cardinality: {ds.cardinality()}')
 
     return ds
+
+
+# def make_test_dataset(dbase, loader, config):
+#     files, labels = dbase.files, dbase.labels
+#
+#     images = tf.data.Dataset.from_tensor_slices(files).map(loader)
+#     labels = tf.data.Dataset.from_tensor_slices(labels)
+#     ds = tf.data.Dataset.zip((images, labels))
+#
+#     ds = ds.batch(batch_size=config.batch_size)
+#     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+#
+#     logger.info(f'batch_size: {config.batch_size}')
+#     logger.info(f'cardinality: {ds.cardinality()}')
+#
+#     return ds
 
 
 def evaluate_embeddings(model, dset):
