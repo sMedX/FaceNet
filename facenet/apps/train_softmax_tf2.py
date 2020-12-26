@@ -10,6 +10,7 @@
 
 import click
 from pathlib import Path
+from loguru import logger
 
 import tensorflow as tf
 
@@ -78,19 +79,40 @@ def main(**options):
     network.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam())
 
+    class ValidateCallback(tf.keras.callbacks.Callback):
+        def __init__(self, model, dataset, every_n_epochs, max_nrof_epochs, config):
+            super().__init__()
+            self.model = model
+            self.dataset = dataset
+            self.config = config
+            self.every_n_epochs = every_n_epochs
+            self.max_nrof_epochs = max_nrof_epochs
+
+        def on_epoch_end(self, epoch, logs=None):
+            epoch1 = epoch + 1
+
+            if epoch1 % self.every_n_epochs == 0 or epoch1 == self.max_nrof_epochs:
+                logger.info(f'perform validation for epoch {epoch1}')
+
+                embeddings, labels = facenet.evaluate_embeddings(self.model, self.dataset)
+                statistics.FaceToFaceValidation(embeddings, labels, self.config.validate)
+
+    validate = ValidateCallback(model, test_dataset,
+                                every_n_epochs=cfg.validate.every_n_epochs,
+                                max_nrof_epochs=cfg.train.max_nrof_epochs,
+                                config=cfg.validate)
+
     network.fit(
         train_dataset,
         epochs=cfg.train.max_nrof_epochs,
         steps_per_epoch=None,
         callbacks=[
             checkpoint_callback,
-            learning_rate_callback
+            learning_rate_callback,
+            validate,
         ]
     )
     network.save(cfg.model.path / 'model')
-
-    embeddings, labels = facenet.evaluate_embeddings(model, test_dataset)
-    statistics.FaceToFaceValidation(embeddings, labels, cfg.validate.validate)
 
     print(f'Model and logs have been saved to the directory: {cfg.model.path}')
 
