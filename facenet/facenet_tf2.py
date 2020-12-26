@@ -151,7 +151,8 @@ def dataset(files, labels, loader, batch_size, buffer_size=None, drop_remainder=
     ds = ds.batch(batch_size=batch_size, drop_remainder=drop_remainder)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
-    info = (f'batch size: {batch_size}\n' +
+    info = (f'{ds}\n' +
+            f'batch size: {batch_size}\n' +
             f'buffer size: {buffer_size}\n' +
             f'drop remainder: {drop_remainder}\n' +
             f'cardinality: {ds.cardinality()}')
