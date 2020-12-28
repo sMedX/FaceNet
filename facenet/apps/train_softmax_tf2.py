@@ -15,7 +15,7 @@ from loguru import logger
 import tensorflow as tf
 
 from facenet.models.inception_resnet_v1_tf2 import InceptionResnetV1 as FaceNet
-from facenet import statistics, config, dataset, logging
+from facenet import statistics, config, dataset, logging, callbacks
 from facenet import config_tf2 as config
 from facenet import facenet_tf2 as facenet
 
@@ -82,37 +82,19 @@ def main(**options):
     network.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam())
 
-    class ValidateCallback(tf.keras.callbacks.Callback):
-        def __init__(self, model, dataset, every_n_epochs, max_nrof_epochs, config):
-            super().__init__()
-            self.model = model
-            self.dataset = dataset
-            self.config = config
-            self.every_n_epochs = every_n_epochs
-            self.max_nrof_epochs = max_nrof_epochs
-
-        def on_epoch_end(self, epoch, logs=None):
-            epoch1 = epoch + 1
-
-            if epoch1 % self.every_n_epochs == 0 or epoch1 == self.max_nrof_epochs:
-                logger.info(f'perform validation for epoch {epoch1}')
-
-                embeddings, labels = facenet.evaluate_embeddings(self.model, self.dataset)
-                statistics.FaceToFaceValidation(embeddings, labels, self.config.validate)
-
-    validate = ValidateCallback(model, test_dataset,
-                                every_n_epochs=cfg.validate.every_n_epochs,
-                                max_nrof_epochs=cfg.train.max_nrof_epochs,
-                                config=cfg.validate)
+    validate_callbacks = callbacks.ValidateCallback(model, test_dataset,
+                                                    every_n_epochs=cfg.validate.every_n_epochs,
+                                                    max_nrof_epochs=cfg.train.epoch.max_nrof_epochs,
+                                                    config=cfg.validate)
 
     network.fit(
         train_dataset,
-        epochs=cfg.train.max_nrof_epochs,
-        steps_per_epoch=None,
+        epochs=cfg.train.epoch.max_nrof_epochs,
+        steps_per_epoch=cfg.train.epoch.size,
         callbacks=[
             checkpoint_callback,
             learning_rate_callback,
-            validate,
+            validate_callbacks,
         ]
     )
     network.save(cfg.model.path / 'model')
