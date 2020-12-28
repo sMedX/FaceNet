@@ -70,22 +70,26 @@ def main(**options):
         network.load_weights(cfg.model.checkpoint)
 
     # ------------------------------------------------------------------------------------------------------------------
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=cfg.model.path / 'model',
-                                                             save_weights_only=True,
-                                                             verbose=1)
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=cfg.model.path,
+        save_weights_only=True,
+        verbose=True
+    )
 
     learning_rate_callback = tf.keras.callbacks.LearningRateScheduler(
         facenet.LearningRateScheduler(config=cfg.train.learning_rate),
         verbose=True
     )
 
-    network.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                    optimizer=tf.keras.optimizers.Adam())
-
     validate_callbacks = callbacks.ValidateCallback(model, test_dataset,
                                                     every_n_epochs=cfg.validate.every_n_epochs,
                                                     max_nrof_epochs=cfg.train.epoch.max_nrof_epochs,
                                                     config=cfg.validate)
+
+    network.compile(
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        optimizer=tf.keras.optimizers.Adam()
+    )
 
     network.fit(
         train_dataset,
@@ -97,7 +101,7 @@ def main(**options):
             validate_callbacks,
         ]
     )
-    network.save(cfg.model.path / 'model')
+    network.save(cfg.model.path)
 
     print(f'Model and logs have been saved to the directory: {cfg.model.path}')
 
