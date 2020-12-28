@@ -15,10 +15,9 @@ from loguru import logger
 import tensorflow as tf
 
 from facenet.models.inception_resnet_v1_tf2 import InceptionResnetV1 as FaceNet
-from facenet import statistics, config, dataset
+from facenet import statistics, config, dataset, logging
 from facenet import config_tf2 as config
 from facenet import facenet_tf2 as facenet
-from facenet.logging import configure_logging
 
 
 @click.command()
@@ -26,7 +25,7 @@ from facenet.logging import configure_logging
               help='Path to yaml config file with used options of the application.')
 def main(**options):
     cfg = config.train_softmax(options)
-    configure_logging(cfg.logs)
+    logging.configure_logging(cfg.logs)
 
     # ------------------------------------------------------------------------------------------------------------------
     # define train and test datasets
