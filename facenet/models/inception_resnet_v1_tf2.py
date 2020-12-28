@@ -482,14 +482,13 @@ class InceptionResnetV1(keras.Model):
         self(input_shape)
 
     def call(self, inputs, training=False, **kwargs):
-
         # evaluate output of model
         output = inputs
         for layer in self.custom_layers:
             output = layer(output)
 
         # normalize embeddings
-        if training is False:
+        if not training:
             output = tf.nn.l2_normalize(output, 1, 1e-10, name='embedding')
 
         return output
