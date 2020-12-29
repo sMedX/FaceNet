@@ -123,15 +123,15 @@ def equal_batches_input_pipeline(embeddings, config):
     return next_elem
 
 
-def dataset(files, labels, loader, batch_size, buffer_size=None, drop_remainder=True):
+def dataset(files, labels, loader, batch_size, repeat=False, buffer_size=None):
     """
 
     :param files:
     :param labels:
     :param loader:
     :param batch_size:
+    :param repeat:
     :param buffer_size:
-    :param drop_remainder:
     :return:
     """
 
@@ -148,7 +148,10 @@ def dataset(files, labels, loader, batch_size, buffer_size=None, drop_remainder=
         buffer_size *= batch_size
         ds = ds.shuffle(buffer_size=buffer_size, reshuffle_each_iteration=True)
 
-    ds = ds.batch(batch_size=batch_size, drop_remainder=drop_remainder)
+    if repeat:
+        ds = ds.repeat()
+
+    ds = ds.batch(batch_size=batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     info = (f'{ds}\n' +

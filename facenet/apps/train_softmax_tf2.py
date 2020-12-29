@@ -34,14 +34,14 @@ def main(**options):
     train_dbase = dataset.DBase(cfg.dataset)
     train_dataset = facenet.dataset(train_dbase.files, train_dbase.labels, loader,
                                     batch_size=cfg.batch_size,
-                                    buffer_size=10,
-                                    drop_remainder=True)
+                                    repeat=True,
+                                    buffer_size=10)
 
     test_dbase = dataset.DBase(cfg.validate.dataset)
     test_dataset = facenet.dataset(test_dbase.files, test_dbase.labels, loader,
                                    batch_size=cfg.batch_size,
-                                   buffer_size=None,
-                                   drop_remainder=False)
+                                   repeat=False,
+                                   buffer_size=None)
 
     # ------------------------------------------------------------------------------------------------------------------
     # import network
