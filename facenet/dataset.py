@@ -5,6 +5,7 @@ from tqdm import tqdm
 from pathlib import Path
 from loguru import logger
 
+import tensorflow as tf
 import numpy as np
 
 from facenet import h5utils
@@ -21,6 +22,39 @@ class DefaultConfig:
         self.min_nrof_images = min_nrof_images
         # Maximal number of images to download from class
         self.max_nrof_images = max_nrof_images
+
+
+def tf_dataset_api(files, labels, loader, batch_size, shuffle=False, buffer_size=None, repeat=False):
+
+    if shuffle:
+        data = list(zip(files, labels))
+        np.random.shuffle(data)
+        files, labels = map(list, zip(*data))
+
+    images = tf.data.Dataset.from_tensor_slices(files).map(loader, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    labels = tf.data.Dataset.from_tensor_slices(labels)
+
+    ds = tf.data.Dataset.zip((images, labels))
+
+    if buffer_size is not None:
+        ds = ds.shuffle(buffer_size=buffer_size*batch_size, reshuffle_each_iteration=True)
+
+    if repeat:
+        ds = ds.repeat()
+
+    ds = ds.batch(batch_size=batch_size)
+    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+    info = (f'{ds}\n' +
+            f'batch size: {batch_size}\n' +
+            f'shuffle: {shuffle}\n' +
+            f'buffer size: {buffer_size}\n' +
+            f'repeat: {repeat}\n' +
+            f'cardinality: {ds.cardinality()}')
+
+    logger.info('\n' + info)
+
+    return ds
 
 
 class ImageClass:
@@ -123,16 +157,16 @@ class DBase:
 
     def __repr__(self):
         """Representation of the database"""
-        info = ('{}\n'.format(self.__class__.__name__) +
-                '{}\n'.format(self.path) +
-                'h5 file to filter images {}\n'.format(self.h5file) +
-                'Number of classes {} \n'.format(self.nrof_classes) +
-                'Number of images {}\n'.format(self.nrof_images) +
-                'Number of pairs {}\n'.format(self.nrof_pairs) +
-                'Number of positive pairs {} \n'.format(self.nrof_positive_pairs) +
-                'Number of negative pairs {} \n'.format(self.nrof_negative_pairs) +
-                'Minimal number of images in class {}\n'.format(self.min_nrof_images) +
-                'Maximal number of images in class {}\n'.format(self.max_nrof_images))
+        info = (f'{self.__class__.__name__}\n' +
+                f'{self.path}\n' +
+                f'h5 file {self.h5file}\n' +
+                f'Number of classes {self.nrof_classes} \n' +
+                f'Number of images {self.nrof_images}\n' +
+                f'Number of pairs {self.nrof_pairs}\n' +
+                f'Number of positive pairs {self.nrof_positive_pairs} \n' +
+                f'Number of negative pairs {self.nrof_negative_pairs} \n' +
+                f'Minimal number of images in class {self.min_nrof_images}\n' +
+                f'Maximal number of images in class {self.max_nrof_images}\n')
         return info
 
     def __bool__(self):
@@ -154,11 +188,11 @@ class DBase:
 
     @property
     def min_nrof_images(self):
-        return min(cls.nrof_images for cls in self.classes) if self.nrof_classes > 0 else 0
+        return min(cls.nrof_images for cls in self.classes)
 
     @property
     def max_nrof_images(self):
-        return max(cls.nrof_images for cls in self.classes) if self.nrof_classes > 0 else 0
+        return max(cls.nrof_images for cls in self.classes)
 
     @property
     def nrof_classes(self):

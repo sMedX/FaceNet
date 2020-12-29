@@ -32,16 +32,22 @@ def main(**options):
     loader = facenet.ImageLoader(config=cfg.image)
 
     train_dbase = dataset.DBase(cfg.dataset)
-    train_dataset = facenet.dataset(train_dbase.files, train_dbase.labels, loader,
-                                    batch_size=cfg.batch_size,
-                                    repeat=True,
-                                    buffer_size=10)
+    train_dataset = dataset.tf_dataset_api(train_dbase.files,
+                                           train_dbase.labels,
+                                           loader,
+                                           shuffle=True,
+                                           batch_size=cfg.batch_size,
+                                           repeat=True,
+                                           buffer_size=10)
 
     test_dbase = dataset.DBase(cfg.validate.dataset)
-    test_dataset = facenet.dataset(test_dbase.files, test_dbase.labels, loader,
-                                   batch_size=cfg.batch_size,
-                                   repeat=False,
-                                   buffer_size=None)
+    test_dataset = dataset.tf_dataset_api(test_dbase.files,
+                                          test_dbase.labels,
+                                          loader,
+                                          shuffle=True,
+                                          batch_size=cfg.batch_size,
+                                          repeat=False,
+                                          buffer_size=None)
 
     # ------------------------------------------------------------------------------------------------------------------
     # import network
