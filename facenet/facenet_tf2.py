@@ -157,7 +157,7 @@ def dataset(files, labels, loader, batch_size, repeat=False, buffer_size=None):
     info = (f'{ds}\n' +
             f'batch size: {batch_size}\n' +
             f'buffer size: {buffer_size}\n' +
-            f'drop remainder: {drop_remainder}\n' +
+            f'repeat: {repeat}\n' +
             f'cardinality: {ds.cardinality()}')
 
     logger.info('\n' + info)
