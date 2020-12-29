@@ -31,33 +31,26 @@ def main(**options):
     # define train and test datasets
     loader = facenet.ImageLoader(config=cfg.image)
 
-    train_dbase = dataset.DBase(cfg.dataset)
-    train_dataset = dataset.tf_dataset_api(train_dbase.files,
-                                           train_dbase.labels,
-                                           loader,
-                                           shuffle=True,
-                                           batch_size=cfg.batch_size,
-                                           repeat=True,
-                                           buffer_size=10)
+    train_dbase = dataset.Database(cfg.dataset)
+    train_dataset = train_dbase.tf_dataset_api(loader,
+                                               shuffle=True,
+                                               batch_size=cfg.batch_size,
+                                               repeat=True,
+                                               buffer_size=10)
 
-    test_dbase = dataset.DBase(cfg.validate.dataset)
-    test_dataset = dataset.tf_dataset_api(test_dbase.files,
-                                          test_dbase.labels,
-                                          loader,
-                                          shuffle=True,
-                                          batch_size=cfg.batch_size,
-                                          repeat=False,
-                                          buffer_size=None)
+    test_dbase = dataset.Database(cfg.validate.dataset)
+    test_dataset = test_dbase.tf_dataset_api(loader,
+                                             shuffle=True,
+                                             batch_size=cfg.batch_size,
+                                             repeat=False,
+                                             buffer_size=None)
 
     # ------------------------------------------------------------------------------------------------------------------
-    # import network
-    inputs = facenet.inputs(cfg.image)
-
+    # define network to train
     model = FaceNet(input_shape=facenet.inputs(cfg.image),
                     image_processing=facenet.ImageProcessing(cfg.image))
     model.summary()
 
-    # define model to train
     kernel_regularizer = tf.keras.regularizers.deserialize(model.config.regularizer.kernel.as_dict)
 
     network = tf.keras.Sequential([
