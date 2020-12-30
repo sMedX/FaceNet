@@ -11,9 +11,9 @@ import numpy as np
 from facenet import h5utils
 
 
-def tf_dataset_api(files, labels, loader, batch_size, shuffle=False, buffer_size=None, repeat=False):
+def tf_dataset_api(files, labels, loader, batch_size, buffer_size=None, repeat=False):
 
-    if shuffle:
+    if buffer_size is not None:
         data = list(zip(files, labels))
         np.random.shuffle(data)
         files, labels = map(list, zip(*data))
@@ -34,7 +34,6 @@ def tf_dataset_api(files, labels, loader, batch_size, shuffle=False, buffer_size
 
     info = (f'{ds}\n' +
             f'batch size: {batch_size}\n' +
-            f'shuffle: {shuffle}\n' +
             f'buffer size: {buffer_size}\n' +
             f'repeat: {repeat}\n' +
             f'cardinality: {ds.cardinality()}')
@@ -165,11 +164,10 @@ class Database:
     def nrof_images_per_class(self):
         return [cls.nrof_images for cls in self.classes]
 
-    def tf_dataset_api(self, loader, batch_size, shuffle=False, buffer_size=None, repeat=False):
+    def tf_dataset_api(self, loader, batch_size, buffer_size=None, repeat=False):
         return tf_dataset_api(self.files,
                               self.labels,
                               loader,
                               batch_size,
-                              shuffle=shuffle,
                               buffer_size=buffer_size,
                               repeat=repeat)

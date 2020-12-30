@@ -33,14 +33,12 @@ def main(**options):
 
     train_dbase = dataset.Database(cfg.dataset)
     train_dataset = train_dbase.tf_dataset_api(loader,
-                                               shuffle=True,
                                                batch_size=cfg.batch_size,
                                                repeat=True,
                                                buffer_size=10)
 
     test_dbase = dataset.Database(cfg.validate.dataset)
     test_dataset = test_dbase.tf_dataset_api(loader,
-                                             shuffle=True,
                                              batch_size=cfg.batch_size,
                                              repeat=False,
                                              buffer_size=None)
