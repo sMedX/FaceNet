@@ -68,7 +68,7 @@ def main(**options):
 
     # ------------------------------------------------------------------------------------------------------------------
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=cfg.model.path,
+        filepath=cfg.model.path / cfg.model.path.stem,
         save_weights_only=True,
         verbose=True
     )
