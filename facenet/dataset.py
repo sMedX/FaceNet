@@ -35,7 +35,6 @@ def tf_dataset_api(files, labels, loader, batch_size, buffer_size=None, repeat=F
     info = (f'{ds}\n' +
             f'batch size: {batch_size}\n' +
             f'buffer size: {buffer_size}\n' +
-            f'repeat: {repeat}\n' +
             f'cardinality: {ds.cardinality()}')
 
     logger.info('\n' + info)
