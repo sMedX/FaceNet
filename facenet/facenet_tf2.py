@@ -385,14 +385,19 @@ class LearningRateScheduler:
         if self.config.value:
             self.default_value = self.config.value
         else:
-            self.default_value = config.schedule[-1][1]
+            self.default_value = None
 
     def __call__(self, epoch):
-        if self.config.value:
-            return self.default_value
+        if not self.default_value:
+            learning_rate = self.default_value
+        else:
+            learning_rate = self.config.schedule[-1][1]
 
-        for (epoch_, lr_) in self.config.schedule:
-            if epoch < epoch_:
-                return lr_
+            for (epoch_, learning_rate) in self.config.schedule:
+                if epoch < epoch_:
+                    break
 
-        return self.default_value
+        info = f'Epoch {epoch}: LearningRateScheduler reducing learning rate to {learning_rate}'
+        logger.info(info)
+
+        return learning_rate
