@@ -388,7 +388,7 @@ class LearningRateScheduler:
             self.default_value = None
 
     def __call__(self, epoch):
-        if not self.default_value:
+        if self.default_value is not None:
             return self.default_value
 
         learning_rate = self.config.schedule[-1][1]
