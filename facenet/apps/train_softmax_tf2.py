@@ -65,8 +65,9 @@ def main(**options):
     network(facenet.inputs(cfg.image))
 
     if cfg.model.checkpoint:
-        print(f'Restore checkpoint {cfg.model.checkpoint / cfg.model.checkpoint.stem}')
-        network.load_weights(cfg.model.checkpoint)
+        checkpoint = cfg.model.checkpoint / cfg.model.checkpoint.stem
+        print(f'Restore checkpoint {checkpoint}')
+        network.load_weights(checkpoint)
 
     # ------------------------------------------------------------------------------------------------------------------
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
