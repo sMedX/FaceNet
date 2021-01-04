@@ -62,8 +62,10 @@ def main(**options):
                               name='logits')
     ])
 
+    network(facenet.inputs(cfg.image))
+
     if cfg.model.checkpoint:
-        print(f'Restore checkpoint {cfg.model.checkpoint}')
+        print(f'Restore checkpoint {cfg.model.checkpoint / cfg.model.checkpoint.stem}')
         network.load_weights(cfg.model.checkpoint)
 
     # ------------------------------------------------------------------------------------------------------------------

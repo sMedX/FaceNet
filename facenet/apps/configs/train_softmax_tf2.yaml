@@ -54,8 +54,6 @@ image:
   size: 160
   # Performs normalization of images
   normalization: 0
-  # Performs random cropping of training images. If false, the center image_size pixels from
-  # the training images are used. If the size of the images in the data directory is equal to image_size no cropping is performed.
 
 
 # Config for validation

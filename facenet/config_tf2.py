@@ -175,6 +175,9 @@ def train_softmax(options):
     cfg.logs.dir = cfg.model.path / 'logs'
     cfg.logs.file = cfg.model.path.stem + '.log'
 
+    if cfg.model.checkpoint:
+        cfg.model.checkpoint = Path(cfg.model.checkpoint).expanduser()
+
     if not cfg.train.epoch.max_nrof_epochs:
         cfg.train.epoch.max_nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
 
