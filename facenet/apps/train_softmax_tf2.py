@@ -88,7 +88,7 @@ def main(**options):
 
     network.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        optimizer=tf.keras.optimizers.Adam()
+        optimizer=tf.keras.optimizers.Adam(epsilon=0.1)
     )
 
     network.fit(
