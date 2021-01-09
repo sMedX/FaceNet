@@ -167,8 +167,6 @@ def train_softmax(options):
     app_file_name = sys.argv[0]
     cfg = load_config(app_file_name, options)
 
-    print('---------------------------')
-    print(cfg)
     path = Path(cfg.model.path).expanduser()
 
     cfg.model.path = path / subdir()
