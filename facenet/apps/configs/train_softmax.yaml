@@ -1,13 +1,8 @@
 # coding:utf-8
 
-# Random seed
-seed: 0
-
-# Number of images to process in a batch.
-batch_size: 100
-
 dataset:
-  path:
+  # Path to the directory with aligned face images to train facenet.
+  path: ~/datasets/vggface2/train_extracted_160
   # Path to h5 file with information about valid images.
   h5file:
   # Number of classes to download from data set
@@ -19,10 +14,8 @@ dataset:
 
 # Model definition
 model:
-  # module containing the definition of the inference graph.',
+  # Module containing the definition of the inference graph
   module: facenet.models.inception_resnet_v1
-  # Model config
-  config:
   # Load a pretrained checkpoint before training starts.
   checkpoint:
   # Directory where to write trained models and checkpoints
@@ -38,20 +31,16 @@ train:
 
   # Number of batches per epoch.
   epoch:
+    # Maximal number of epochs to train facenet
+    nrof_epochs:
     # Number of batches per epoch.
     size: 1000
-    # Maximal number of epochs to run
-    nrof_epochs: 1000
 
   # learning rate value or schedule file
   learning_rate:
-    # Initial learning rate value
+    # Learning rate value
     value:
-    # Number of epochs between learning rate decay
-    decay_epochs: 100
-    # Learning rate decay factor
-    decay_factor: 1.0
-    # Learning rate schedule that is used when value is none
+    # Learning rate schedule is used if value is not specified
     schedule:
       - [100, 0.05]
       - [200, 0.005]
@@ -83,12 +72,9 @@ validate:
   # Number of epoch between validation
   every_n_epochs: 10
 
-  # Split validate data set from train data set
-  split_ratio: 0.05
-
   dataset:
-    # Path to the data directory containing aligned face patches
-    path:
+    # Path to the directory with aligned face images to validate facenet.
+    path: ~/datasets/vggface2/test_extracted_160
     # Path to h5 file with information about valid images
     h5file:
     # Number of classes to download from data set
@@ -100,16 +86,10 @@ validate:
 
   validate:
     # Distance metric  0: euclidean, 1: cosine similarity
-    metric: 1
+    metric: 0
     # Number of folds to use for cross validation. Mainly used for testing
     nrof_folds: 10
     # Target false alarm rate (face pairs that was incorrectly classified as the same)
     far_target: 0.001
-    # File to write statistical report
-    file:
-
-  image:
-    # Concatenates embeddings for the image and its horizontally flipped counterpart
-    use_flipped_images: false
 
 gpu_memory_fraction: 1.0        # Upper bound on the amount of GPU memory that will be used by the process

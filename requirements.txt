@@ -7,7 +7,7 @@ Pillow
 requests
 psutil
 numpy
-pyyaml
 click
 tqdm
 cached_property
+omegaconf

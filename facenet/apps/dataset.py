@@ -15,10 +15,10 @@ from facenet import dataset
 
 @click.command()
 @click.option('--path', type=Path,
-              help='Path to data set directory.')
-def main(**args):
-    config = dataset.Config(args['path'])
-    dbase = dataset.DBase(config)
+              help='Path to dataset directory to check for invalid files.')
+def main(**options):
+
+    dbase = dataset.DBase(dataset.DefaultConfig(options['path']))
     print(dbase)
 
     for f in tqdm(dbase.files):

@@ -1,0 +1,15 @@
+# coding:utf-8
+
+# Random seed
+seed: 0
+
+# Number of images to process in a batch.
+batch_size: 100
+
+image:
+  # Image size (height, width) in pixels
+  size: 160
+  # Margin for the crop around the bounding box (height, width) in pixels
+  margin: 0
+  # Performs normalization of the input images
+  normalization: 0

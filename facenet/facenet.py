@@ -27,11 +27,11 @@ from pathlib import Path
 
 import random
 
-from facenet import nodes, ioutils, h5utils, FaceNet
+from facenet import nodes, h5utils, FaceNet
 
 
 class Placeholders:
-    def __init__(self, image_size):
+    def __init__(self):
         self.image_batch = tf.placeholder(tf.uint8, shape=[None, None, None, 3], name='image_batch')
         self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
         self.batch_size = tf.placeholder(tf.int32, name='batch_size')
@@ -142,25 +142,23 @@ def equal_batches_input_pipeline(embeddings, config):
     return next_elem
 
 
-def make_train_dataset(dbase, map_func, args):
+def make_train_dataset(dbase, loader, config):
     data = list(zip(dbase.files, dbase.labels))
     np.random.shuffle(data)
     files, labels = map(list, zip(*data))
 
-    images = tf.data.Dataset.from_tensor_slices(files).map(map_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    images = tf.data.Dataset.from_tensor_slices(files).map(loader, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     labels = tf.data.Dataset.from_tensor_slices(labels)
 
     ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=10*args.batch_size, reshuffle_each_iteration=True).repeat()
-    ds = ds.batch(batch_size=args.batch_size)
+    ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True).repeat()
+    ds = ds.batch(batch_size=config.batch_size)
     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     return ds
 
 
-def make_test_dataset(dbase, config):
-    loader = ImageLoader(config=config.image)
-
+def make_test_dataset(dbase, loader, config):
     files, labels = dbase.files, dbase.labels
 
     images = tf.data.Dataset.from_tensor_slices(files).map(loader)
@@ -335,15 +333,14 @@ def get_triplet_batch(triplets, batch_index, batch_size):
 
 
 def learning_rate_value(epoch, config):
-    if config.value is not None:
+    if config.value:
         return config.value
-
-    if epoch >= config.schedule[-1][0]:
-        return None
 
     for (epoch_, lr_) in config.schedule:
         if epoch < epoch_:
             return lr_
+
+    return config.schedule[-1][1]
 
 
 def split_embeddings(embeddings, labels):
@@ -382,15 +379,24 @@ class Embeddings:
                     self.embeddings[idx] = self.embeddings[idx][labels, :]
 
     def __repr__(self):
-        """Representation of the database"""
+        """Representation of the embeddings"""
         data = [len(e) for e in self.embeddings]
 
+        embeddings = np.concatenate(self.embeddings, axis=0)
+        norm = np.linalg.norm(embeddings, axis=1)
+
         info = (f'{self.__class__.__name__}\n' +
-                f'{self.file}\n' +
+                f'Input file {self.file}\n' +
                 f'Number of classes {self.nrof_classes} \n' +
                 f'Number of images {self.nrof_images}\n' +
                 f'Minimal number of images in class {min(data)}\n' +
-                f'Maximal number of images in class {max(data)}\n')
+                f'Maximal number of images in class {max(data)}\n' +
+                '\n' +
+                f'Minimal embedding {np.min(norm)}\n' +
+                f'Maximal embedding {np.max(norm)}\n' +
+                f'Mean embedding {np.mean(norm)}\n'
+                )
+
         return info
 
     @property
@@ -426,7 +432,8 @@ class EvaluationOfEmbeddings:
         facenet = FaceNet(self.config.model)
 
         print('Running forward pass on images')
-        dataset = make_test_dataset(dbase, self.config)
+        loader = ImageLoader(config=config.image)
+        dataset = make_test_dataset(dbase, loader, self.config)
         iterator = dataset.make_one_shot_iterator().get_next()
 
         with tf.Session() as sess:
@@ -435,7 +442,9 @@ class EvaluationOfEmbeddings:
             for _ in tqdm(range(nrof_batches)):
                 image_batch, label_batch = sess.run(iterator)
 
-                self.embeddings.append(facenet.evaluate(image_batch))
+                embeddings = facenet.evaluate(image_batch)
+
+                self.embeddings.append(embeddings)
                 self.labels.append(label_batch)
 
         self.embeddings = np.concatenate(self.embeddings)
@@ -453,7 +462,6 @@ class EvaluationOfEmbeddings:
             emb_array = self.embeddings[label == self.labels]
             list_of_embeddings.append(emb_array)
         return list_of_embeddings
-
 
 
 class Summary:

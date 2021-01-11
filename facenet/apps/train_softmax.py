@@ -35,11 +35,11 @@ from facenet import nodes, ioutils, dataset, statistics, config, h5utils, facene
 
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__), type=Path,
+@click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options of the application.')
 def main(**options):
     start_time = time.monotonic()
-    options = config.TrainOptions(options, subdir=config.subdir())
+    options = config.train_softmax(__file__, options)
 
     # import network
     print('import model {}'.format(options.model.module))
@@ -47,17 +47,17 @@ def main(**options):
 
     # ------------------------------------------------------------------------------------------------------------------
     dbase = dataset.DBase(options.dataset)
-    ioutils.write_text_log(options.txtfile, str(dbase))
+    ioutils.write_text_log(options.logfile, dbase)
     print('train dbase:', dbase)
 
     dbase_val = dataset.DBase(options.validate.dataset)
-    ioutils.write_text_log(options.txtfile, str(dbase_val))
+    ioutils.write_text_log(options.logfile, dbase_val)
     print('validate dbase', dbase_val)
 
-    map_func = facenet.ImageLoader(config=options.image)
+    loader = facenet.ImageLoader(config=options.image)
     ds = {
-        'train': facenet.make_train_dataset(dbase, map_func, options),
-        'validate': facenet.make_validate_dataset(dbase_val, map_func, options),
+        'train': facenet.make_train_dataset(dbase, loader, options),
+        'validate': facenet.make_test_dataset(dbase_val, loader, options),
     }
 
     iterator = {
@@ -73,7 +73,7 @@ def main(**options):
     # ------------------------------------------------------------------------------------------------------------------
     global_step = tf.Variable(0, trainable=False, name='global_step')
 
-    placeholders = facenet.Placeholders(options.image.size)
+    placeholders = facenet.Placeholders()
 
     print('Building training graph')
 
@@ -102,11 +102,6 @@ def main(**options):
                                                    dbase.nrof_classes)
     tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, prelogits_center_loss * options.loss.center_factor)
 
-    # define learning rate tensor
-    learning_rate = tf.train.exponential_decay(placeholders.learning_rate, global_step,
-                                               options.train.learning_rate.decay_epochs * options.train.epoch.size,
-                                               options.train.learning_rate.decay_factor, staircase=True)
-
     # Calculate the average cross entropy loss across the batch
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=placeholders.label_batch,
                                                                    logits=logits, name='cross_entropy_per_example')
@@ -121,6 +116,7 @@ def main(**options):
     total_loss = tf.add_n([cross_entropy_mean] + regularization_losses, name='total_loss')
 
     # Build a Graph that trains the model with one batch of examples and updates the model parameters
+    learning_rate = placeholders.learning_rate
     train_op = facenet.train_op(options.train, total_loss, global_step, learning_rate, tf.global_variables())
 
     # Create a saver
@@ -159,10 +155,11 @@ def main(**options):
 
         # Training and validation loop
         for epoch in range(options.train.epoch.nrof_epochs):
-            info = '(model {}, epoch [{}/{}])'.format(options.model.path.stem, epoch+1, options.train.epoch.nrof_epochs)
+            info = f'(model {options.model.path.stem}, epoch [{epoch+1}/{options.train.epoch.nrof_epochs}])'
+            print('\nRunning training', info)
 
             # train for one epoch
-            train(options, sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], info)
+            train(sess, placeholders, epoch, tensor_ops, summary['train'], batch['train'], options.train)
 
             # save variables and the meta graph if it doesn't exist already
             tfutils.save_variables_and_metagraph(sess, saver, options.model.path, epoch)
@@ -181,7 +178,7 @@ def main(**options):
 
                 validation = statistics.FaceToFaceValidation(embeddings, labels, options.validate.validate, info=info)
 
-                ioutils.write_text_log(options.txtfile, str(validation))
+                ioutils.write_text_log(options.logfile, validation)
                 h5utils.write_dict(options.h5file, validation.dict, group='validate')
 
                 for key, value in validation.dict.items():
@@ -192,7 +189,7 @@ def main(**options):
     tfutils.save_frozen_graph(model_dir=options.model.path, optimize=True)
 
     ioutils.write_elapsed_time(options.h5file, start_time)
-    ioutils.write_elapsed_time(options.txtfile, start_time)
+    ioutils.write_elapsed_time(options.logfile, start_time)
 
     print('Statistics have been saved to the h5 file: {}'.format(options.h5file))
     print('Logs have been saved to the directory: {}'.format(options.logs))
@@ -201,20 +198,17 @@ def main(**options):
     return options.model.path
 
 
-def train(args, sess, placeholders, epoch, tensor_dict, summary, batch, info):
-    print('\nRunning training', info)
+def train(sess, placeholders, epoch, tensor_dict, summary, batch, options):
     start_time = time.monotonic()
 
-    learning_rate = facenet.learning_rate_value(epoch, args.train.learning_rate)
+    learning_rate = facenet.learning_rate_value(epoch, options.learning_rate)
     if not learning_rate:
         return False
 
     outputs = {key: [] for key in tensor_dict['tensor_op'].keys()}
 
-    epoch_size = args.train.epoch.size
-
-    with tqdm(total=epoch_size) as bar:
-        for batch_number in range(epoch_size):
+    with tqdm(total=options.epoch.size) as bar:
+        for batch_number in range(options.epoch.size):
             image_batch, label_batch = sess.run(batch)
 
             feed_dict = placeholders.train_feed_dict(image_batch, label_batch, learning_rate)

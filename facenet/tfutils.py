@@ -42,6 +42,7 @@ def get_model_filenames(model_dir):
     meta_file = meta_files[0]
     ckpt = tf.train.get_checkpoint_state(model_dir)
     ckpt_file = Path(ckpt.model_checkpoint_path).name
+
     return meta_file, ckpt_file
 
 
@@ -128,7 +129,7 @@ def save_frozen_graph(model_dir, output_file=None, suffix='', strip=True, optimi
     return output_file
 
 
-def export_h5(model_dir, image_batch=None, module=None):
+def export_h5(model_dir, module=None, image_batch=None):
 
     from facenet import nodes, config_nodes
     input_tensor_name = nodes['input']['name'] + ':0'
@@ -136,13 +137,13 @@ def export_h5(model_dir, image_batch=None, module=None):
     with tf.Graph().as_default():
         with tf.compat.v1.Session() as sess:
             # load the model meta graph and checkpoint
-            print('Model directory: {}'.format(model_dir))
+            print(f'Model directory: {model_dir}')
             meta_file, ckpt_file = get_model_filenames(model_dir)
 
             h5file = model_dir.joinpath(meta_file.stem + '.h5')
 
-            print('Metagraph file: {}'.format(meta_file))
-            print('Checkpoint file: {}'.format(ckpt_file))
+            print(f'Metagraph file: {meta_file}')
+            print(f'Checkpoint file: {ckpt_file}')
 
             saver = tf.compat.v1.train.import_meta_graph(str(model_dir.joinpath(meta_file)), clear_devices=True)
             sess.run(tf.compat.v1.global_variables_initializer())
@@ -150,6 +151,11 @@ def export_h5(model_dir, image_batch=None, module=None):
             saver.restore(sess, str(model_dir.joinpath(ckpt_file)))
 
             graph = tf.compat.v1.get_default_graph()
+
+            # if image batch is not defined generate random image batch
+            if image_batch is None:
+                size = sess.run(graph.get_tensor_by_name('image_size:0'))
+                image_batch = np.random.randint(low=0, high=255, size=[5, size[0], size[1], 3], dtype=int)
 
             feed_dict = {
                 graph.get_tensor_by_name(input_tensor_name): image_batch,
@@ -297,11 +303,11 @@ def load_frozen_graph(path, input_map=None):
 def load_model(path, input_map=None):
     path = Path(path).expanduser()
 
-    print('Model directory: {}'.format(path))
+    print(f'Model directory: {path}')
     meta_file, ckpt_file = get_model_filenames(path)
 
-    print('Metagraph file : {}'.format(meta_file))
-    print('Checkpoint file: {}'.format(ckpt_file))
+    print(f'Metagraph file : {meta_file}')
+    print(f'Checkpoint file: {ckpt_file}')
 
     saver = tf.compat.v1.train.import_meta_graph(str(path.joinpath(meta_file)), input_map=input_map)
     with tf.compat.v1.Session() as sess:

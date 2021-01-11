@@ -1,30 +1,22 @@
 # coding:utf-8
 
-# Could be either a directory containing the meta_file and ckpt_file or a model protobuf (.pb) file
-model:
-
-# Number of images to process in a batch
-batch_size: 100
-
-# Path to output tf record file
-tfrecord:
+# type of the output file (h5 or tfrecord)
+suffix: .h5
 
 dataset:
-  # Path to the data directory containing aligned face patches
-  path:
-  # Path to h5 file with information about valid images
-  h5file:
-  # Minimal number of classes per class to download from data set
+  # Path to the directory with aligned face images to train facenet.
+  path: ~/datasets/vggface2/test_extracted_160
+  # Number of classes to download from data set
+  nrof_classes:
+  # Minimal number of images per class to download from class
   min_nrof_images:
-  # Maximal number of classes per class to download from data set
-  max_nrof_classes:
+  # Maximal number of images per class to download from class
+  max_nrof_images:
 
-image:
-  # Image size (height, width) in pixels.
-  size: 160
-  # Performs standardization of images
-  standardization: true
-  # Concatenates embeddings for the image and its horizontally flipped counterpart
-  use_flipped_images: false
-
+model:
+  # Path to directory containing the meta_file and ckpt_file or a model protobuf (.pb) file, if
+  # path is not defined default_model_path from config.py will be used
+  path:
+  # If true embeddings will be normalized to 1
+  normalization: false
 

@@ -19,20 +19,20 @@ As described in http://arxiv.org/abs/1602.07261.
   Christian Szegedy, Sergey Ioffe, Vincent Vanhoucke, Alex Alemi
 """
 
-import pathlib
-import tensorflow.compat.v1 as tf
-from tensorflow.python.framework import dtypes
-
-import tf_slim as slim
 from typing import Optional
 from collections.abc import Callable
-from facenet.config import YAMLConfig
+from facenet.config import Config
+from omegaconf import OmegaConf
+from pathlib import Path
 
-model_dir = pathlib.Path(__file__).parent
-model_name = pathlib.Path(__file__).stem
-config_file = pathlib.Path(model_dir).joinpath('configs', model_name + '.yaml')
+import tensorflow.compat.v1 as tf
+import tf_slim as slim
 
-default_model_config = YAMLConfig(config_file).config
+model_dir = Path(__file__).parent
+model_name = Path(__file__).stem
+config_file = Path(model_dir).joinpath('configs', model_name + '.yaml')
+
+default_model_config = Config(OmegaConf.load(config_file).config)
 
 scope_name = 'InceptionResnetV1'
 

@@ -1,4 +1,4 @@
-"""Validate a face recognizer.
+"""Train facenet classifier.
 """
 # MIT License
 #
@@ -85,13 +85,14 @@ def binary_cross_entropy_loss(logits, options):
 
 
 @click.command()
-@click.option('--config', default=config.default_app_config(__file__), type=Path,
+@click.option('--config', default=None, type=Path,
               help='Path to yaml config file with used options for the application.')
 def main(**options):
-    options = config.TrainClassifier(options)
+    options = config.train_classifier(__file__, options)
 
     embeddings = facenet.Embeddings(options.embeddings)
-    ioutils.write_text_log(options.log_file, embeddings)
+    ioutils.write_text_log(options.logfile, embeddings)
+    print(embeddings)
 
     embarray = embeddings.data(normalize=options.embeddings.normalize)
 
@@ -154,8 +155,8 @@ def main(**options):
 
             conf_mat = ConfusionMatrix(embarray, model)
             print(conf_mat)
-            ioutils.write_text_log(options.log_file, info)
-            ioutils.write_text_log(options.log_file, conf_mat)
+            ioutils.write_text_log(options.logfile, info)
+            ioutils.write_text_log(options.logfile, conf_mat)
 
     print(f'Model has been saved to the directory: {options.classifier.path}')
 

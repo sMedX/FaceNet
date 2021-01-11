@@ -6,22 +6,19 @@ from PIL import Image
 import math
 
 
-def image_processing(image, box, size, margin=(0, 0)):
+def image_processing(image, box, options):
     if not isinstance(image, Image.Image):
         raise ValueError('Input must be PIL.Image')
 
-    margin_ = (1 + margin[0]) * (1 + margin[1]) - 1
-    w_margin = round(box.width * margin_)
-    h_margin = round(box.height * margin_)
+    w_margin = round(box.width * options.margin / 2)
+    h_margin = round(box.height * options.margin / 2)
 
     cropped = image.crop((box.left - w_margin, box.top - h_margin, box.right + w_margin, box.bottom + h_margin))
 
     # compute size of the output image
-    if isinstance(size, int):
-        size = [size, size]
-
-    size[0] += 2*math.ceil(size[0] * margin[1])
-    size[1] += 2*math.ceil(size[1] * margin[1])
+    width = math.ceil(options.size + options.size * options.margin)
+    height = math.ceil(options.size + options.size * options.margin)
+    size = (width, height)
 
     # resize input image
     resized = cropped.resize(size, Image.ANTIALIAS)
@@ -120,5 +117,7 @@ class FaceDetector:
         return self.__detector(image)
 
     def __repr__(self):
-        return 'Face detector {} has been created'.format(self.detector)
+        info = (f'class {self.__class__.__name__}\n' +
+                f'detector type: {self.detector}')
+        return info
 
