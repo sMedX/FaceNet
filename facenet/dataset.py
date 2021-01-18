@@ -58,8 +58,8 @@ def pipeline_with_equal_batches(loader, classes, config):
     #     config.nrof_examples_per_class = round(0.1*sum([len(embs) for embs in embeddings]) / len(embeddings))
     #     config.nrof_examples_per_class = max(config.nrof_examples_per_class, 1)
 
-    config.nrof_classes_per_batch = 5
-    config.nrof_examples_per_class = 5
+    config.nrof_classes_per_batch = 10
+    config.nrof_examples_per_class = 10
 
     for idx, _class in enumerate(classes):
         _class.index = idx
