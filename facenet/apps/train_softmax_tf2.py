@@ -32,14 +32,14 @@ def main(**options):
     loader = facenet.ImageLoader(config=cfg.image)
 
     train_dbase = dataset.Database(cfg.dataset)
-    # train_dataset = train_dbase.tf_dataset_api(loader,
-    #                                            batch_size=cfg.batch_size,
-    #                                            repeat=True,
-    #                                            buffer_size=10)
+    train_dataset = train_dbase.tf_dataset_api(loader,
+                                               batch_size=cfg.batch_size,
+                                               repeat=True,
+                                               buffer_size=10)
 
-    train_dataset = dataset.pipeline_with_equal_batches(loader,
-                                                        train_dbase.classes,
-                                                        cfg)
+    # train_dataset = dataset.pipeline_with_equal_batches(loader,
+    #                                                     train_dbase.classes,
+    #                                                     cfg)
     test_dbase = dataset.Database(cfg.validate.dataset)
     test_dataset = test_dbase.tf_dataset_api(loader,
                                              batch_size=cfg.batch_size,
@@ -52,16 +52,18 @@ def main(**options):
                     image_processing=facenet.ImageProcessing(cfg.image))
     model.summary()
 
-    kernel_regularizer = tf.keras.regularizers.deserialize(model.config.regularizer.kernel.as_dict)
+    # kernel_regularizer = tf.keras.regularizers.deserialize(model.config.regularizer.kernel.as_dict)
 
     network = tf.keras.Sequential([
         model,
         tf.keras.layers.Dense(train_dbase.nrof_classes,
                               activation=None,
                               kernel_initializer=tf.keras.initializers.GlorotUniform(),
-                              kernel_regularizer=kernel_regularizer,
-                              bias_initializer='zeros',
-                              bias_regularizer=None,
+                              # kernel_regularizer=kernel_regularizer,
+                              # bias_initializer='zeros',
+                              # bias_regularizer=None,
+                              kernel_constraint=tf.keras.constraints.MaxNorm(1, axis=0),
+                              use_bias=False,
                               name='logits')
     ])
 
