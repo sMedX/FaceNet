@@ -462,8 +462,7 @@ class InceptionResnetV1(keras.Model):
             Dense(config.size, activation=None, use_bias=False,
                   kernel_initializer=kernel_initializer,
                   activity_regularizer=activity_regularizer,
-                  # kernel_regularizer=kernel_regularizer,
-                  kernel_constraint=tf.keras.constraints.MaxNorm(1, axis=[0, 1]),
+                  kernel_regularizer=kernel_regularizer,
                   name='logits'),
         ])
 
