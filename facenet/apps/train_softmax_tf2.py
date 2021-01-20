@@ -53,11 +53,9 @@ def main(**options):
     model.summary()
 
     kernel_regularizer = tf.keras.regularizers.deserialize(model.config.regularizer.kernel.as_dict)
-    batch_normalization = tf.keras.layers.BatchNormalization(**model.config.batch_normalization.as_dict)
 
     network = tf.keras.Sequential([
         model,
-        batch_normalization,
         tf.keras.layers.Dense(train_dbase.nrof_classes,
                               activation=None,
                               kernel_initializer=tf.keras.initializers.GlorotUniform(),
