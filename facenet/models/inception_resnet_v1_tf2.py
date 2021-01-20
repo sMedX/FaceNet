@@ -461,10 +461,10 @@ class InceptionResnetV1(keras.Model):
             Flatten(),
             Dense(config.size, activation=None, use_bias=False,
                   kernel_initializer=kernel_initializer,
-                  kernel_regularizer=kernel_regularizer,
                   activity_regularizer=activity_regularizer,
+                  # kernel_regularizer=kernel_regularizer,
+                  kernel_constraint=tf.keras.constraints.MaxNorm(1, axis=[0, 1]),
                   name='logits'),
-            BatchNormalization(**self.config.batch_normalization.as_dict)
         ])
 
         self.custom_layers = (
