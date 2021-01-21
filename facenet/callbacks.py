@@ -5,7 +5,7 @@ from loguru import logger
 
 import tensorflow as tf
 
-from facenet import facenet_tf2 as facenet
+from facenet import facenet
 from facenet import statistics
 
 

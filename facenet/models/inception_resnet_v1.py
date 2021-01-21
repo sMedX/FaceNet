@@ -1,336 +1,502 @@
-# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
 """Contains the definition of the Inception Resnet V1 architecture.
 As described in http://arxiv.org/abs/1602.07261.
   Inception-v4, Inception-ResNet and the Impact of Residual Connections on Learning
   Christian Szegedy, Sergey Ioffe, Vincent Vanhoucke, Alex Alemi
 """
 
-from typing import Optional
-from collections.abc import Callable
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.layers import ReLU, Conv2D, MaxPool2D, AvgPool2D, Dense, Flatten, Dropout, BatchNormalization
+
 from facenet.config import Config
-from omegaconf import OmegaConf
-from pathlib import Path
 
-import tensorflow.compat.v1 as tf
-import tf_slim as slim
-
-model_dir = Path(__file__).parent
-model_name = Path(__file__).stem
-config_file = Path(model_dir).joinpath('configs', model_name + '.yaml')
-
-default_model_config = Config(OmegaConf.load(config_file).config)
-
-scope_name = 'InceptionResnetV1'
-
-nodes = {
-    'image': {
-        'path': f'{scope_name}/preprocessing',
-        'input': 'input:0',
-        'output': 'input:0'
-    },
-
-    'sequential': {
-        'path': f'{scope_name}/sequential',
-        'input': 'input:0',
-        'output': f'{scope_name}/Conv2d_4b_3x3/Relu:0'
-    },
-
-    'block35': {
-        'path': f'{scope_name}/block35',
-        'input': f'{scope_name}/Conv2d_4b_3x3/Relu:0',
-        'output': f'{scope_name}/Repeat/block35_5/Relu:0'
-    },
-
+default_config = {
     'reduction_a': {
-        'path': f'{scope_name}/Mixed_6a',
-        'input': f'{scope_name}/Repeat/block35_5/Relu:0',
-        'output': f'{scope_name}/Mixed_6a/concat:0'
-        },
-
-    'block17': {
-        'path': f'{scope_name}/block17',
-        'input': f'{scope_name}/Mixed_6a/concat:0',
-        'output': f'{scope_name}/Repeat_1/block17_10/Relu:0'
+        'filters': [[384], [192, 192, 256]]
     },
-
     'reduction_b': {
-        'path': f'{scope_name}/Mixed_7a',
-        'input': f'{scope_name}/Repeat_1/block17_10/Relu:0',
-        'output': f'{scope_name}/Mixed_7a/concat:0'
+        'filters': [[256, 384], [256, 256], [256, 256, 256]]
     },
-
-    'block8/repeat': {
-        'path': f'{scope_name}/Block8/repeat',
-        'input': f'{scope_name}/Mixed_7a/concat:0',
-        'output': f'{scope_name}/Repeat_2/block8_5/Relu:0'
+    'block35': {
+        'repeat': 5,
+        'scale': 0.17,
+        'activation': 'relu'
     },
-
-    'block8': {
-        'path': f'{scope_name}/Block8',
-        'input': f'{scope_name}/Repeat_2/block8_5/Relu:0',
-        'output': f'{scope_name}/Block8/add:0'
+    'block17': {
+        'repeat': 10,
+        'scale': 0.10,
+        'activation': 'relu'
     },
-
-    'AvgPool': {
-        'path': f'{scope_name}/AvgPool',
-        'input': f'{scope_name}/Block8/add:0',
-        'output': f'{scope_name}/Logits/AvgPool_1a_8x8/AvgPool:0'
-    },
-
-    'flatten': {
-        'path': f'{scope_name}/Flatten',
-        'input': f'{scope_name}/Logits/AvgPool_1a_8x8/AvgPool:0',
-        'output': f'{scope_name}/Logits/Flatten/flatten/Reshape:0'
-    },
-
-    'logits': {
-        'path': f'{scope_name}/Bottleneck',
-        'input': f'{scope_name}/Logits/Flatten/flatten/Reshape:0',
-        'output': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
-    },
-
-    'inference': {
-        'path': f'{scope_name}/inference',
-        'input': 'input:0',
-        'output': f'{scope_name}/Bottleneck/BatchNorm/Reshape_1:0'
+    'block8_1': {
+        'repeat': 5,
+        'scale': 0.2,
+        'activation': 'relu'
         },
+    'block8_2': {
+        'scale': 1.0,
+        'activation': None
+        },
+    # outputs
+    'output': {
+        'size': 512
+    },
+}
 
-    'embedding': {
-        'path': f'{scope_name}/embedding',
-        'input': 'input:0',
-        'output': 'embeddings:0'
-        }
+regularizer = {
+    'kernel': {
+        'class_name': 'L2',
+        'config': {'l2': 0.0005}
+    },
+    'activity': {
+        'class_name': 'L1',
+        'config': {'l1': 0}
     }
+}
+
+batch_normalization = {
+    # 'momentum': 0.995,
+    # 'epsilon': 0.001,
+    'fused': False,
+    'trainable': True,
+    'center': True,
+    'scale': False
+}
+
+kernel_regularizer = tf.keras.regularizers.L2(0.0005)
+kernel_initializer = tf.keras.initializers.GlorotUniform()
+
+
+def check_input_config(cfg=None):
+    if cfg is None:
+        cfg = Config(default_config)
+
+    if not cfg.batch_normalization:
+        cfg.batch_normalization = Config(batch_normalization)
+
+    if not cfg.regularizer:
+        cfg.regularizer = Config(regularizer)
+
+    return cfg
 
 
 # Inception-Resnet-A
-def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
+class Block35(keras.layers.Layer):
     """Builds the 35x35 resnet block."""
-    with tf.variable_scope(scope, 'Block35', [net], reuse=reuse):
-        with tf.variable_scope('Branch_0'):
-            tower_conv = slim.conv2d(net, 32, 1, scope='Conv2d_1x1')
+    def __init__(self, config):
+        super().__init__()
+        self.config = check_input_config(config)
+        self.mixed_activation = tf.keras.activations.deserialize('relu')
 
-        with tf.variable_scope('Branch_1'):
-            tower_conv1_0 = slim.conv2d(net, 32, 1, scope='Conv2d_0a_1x1')
-            tower_conv1_1 = slim.conv2d(tower_conv1_0, 32, 3, scope='Conv2d_0b_3x3')
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(32, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        with tf.variable_scope('Branch_2'):
-            tower_conv2_0 = slim.conv2d(net, 32, 1, scope='Conv2d_0a_1x1')
-            tower_conv2_1 = slim.conv2d(tower_conv2_0, 32, 3, scope='Conv2d_0b_3x3')
-            tower_conv2_2 = slim.conv2d(tower_conv2_1, 32, 3, scope='Conv2d_0c_3x3')
+        self.tower_conv1 = tf.keras.Sequential([
+            Conv2D(32, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(32, 3, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0b_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        mixed = tf.concat([tower_conv, tower_conv1_1, tower_conv2_2], 3)
-        up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
-        net += scale * up
+        self.tower_conv2 = tf.keras.Sequential([
+            Conv2D(32, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(32, 3, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0b_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(32, 3, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0c_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        if callable(activation_fn):
-            net = activation_fn(net)
-    return net
+        self.up = Conv2D(256, 1, strides=1, padding='same', activation=None, use_bias=True,
+                         kernel_initializer=kernel_initializer,
+                         kernel_regularizer=kernel_regularizer,
+                         name='Conv2d_1x1')
+
+    def call(self, net, **kwargs):
+        mixed = tf.concat([self.tower_conv0(net),
+                           self.tower_conv1(net),
+                           self.tower_conv2(net)], 3)
+
+        net += self.config.scale * self.up(mixed)
+
+        if self.mixed_activation:
+            net = self.mixed_activation(net)
+
+        return net
 
 
-# Inception-Resnet-B
-def block17(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
+class Block17(keras.layers.Layer):
     """Builds the 17x17 resnet block."""
-    with tf.variable_scope(scope, 'Block17', [net], reuse=reuse):
-        with tf.variable_scope('Branch_0'):
-            tower_conv = slim.conv2d(net, 128, 1, scope='Conv2d_1x1')
+    def __init__(self, config):
+        super().__init__()
+        self.config = check_input_config(config)
+        self.mixed_activation = tf.keras.activations.deserialize('relu')
 
-        with tf.variable_scope('Branch_1'):
-            tower_conv1_0 = slim.conv2d(net, 128, 1, scope='Conv2d_0a_1x1')
-            tower_conv1_1 = slim.conv2d(tower_conv1_0, 128, [1, 7], scope='Conv2d_0b_1x7')
-            tower_conv1_2 = slim.conv2d(tower_conv1_1, 128, [7, 1], scope='Conv2d_0c_7x1')
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(128, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        mixed = tf.concat([tower_conv, tower_conv1_2], 3)
-        up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
-        net += scale * up
+        self.tower_conv1 = tf.keras.Sequential([
+            Conv2D(128, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(128, (1, 7), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0b_1x7'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(128, (7, 1), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0c_7x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        if callable(activation_fn):
-            net = activation_fn(net)
-    return net
+        self.up = Conv2D(896, 1, strides=1, padding='same', activation=None, use_bias=True,
+                         kernel_initializer=kernel_initializer,
+                         kernel_regularizer=kernel_regularizer,
+                         name='Conv2d_1x1')
+
+    def call(self, net, **kwargs):
+        mixed = tf.concat([self.tower_conv0(net),
+                           self.tower_conv1(net)], 3)
+
+        net += self.config.scale * self.up(mixed)
+
+        if self.mixed_activation:
+            net = self.mixed_activation(net)
+
+        return net
 
 
 # Inception-Resnet-C
-def block8(net, scale=1.0, activation_fn: Optional[Callable] = tf.nn.relu, scope=None, reuse=None):
+class Block8(keras.layers.Layer):
     """Builds the 8x8 resnet block."""
-    with tf.variable_scope(scope, 'Block8', [net], reuse=reuse):
-        with tf.variable_scope('Branch_0'):
-            tower_conv = slim.conv2d(net, 192, 1, scope='Conv2d_1x1')
+    def __init__(self, config):
+        super().__init__()
+        self.config = check_input_config(config)
+        self.mixed_activation = tf.keras.activations.deserialize(self.config.activation)
 
-        with tf.variable_scope('Branch_1'):
-            tower_conv1_0 = slim.conv2d(net, 192, 1, scope='Conv2d_0a_1x1')
-            tower_conv1_1 = slim.conv2d(tower_conv1_0, 192, [1, 3], scope='Conv2d_0b_1x3')
-            tower_conv1_2 = slim.conv2d(tower_conv1_1, 192, [3, 1], scope='Conv2d_0c_3x1')
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(192, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        mixed = tf.concat([tower_conv, tower_conv1_2], 3)
-        up = slim.conv2d(mixed, net.get_shape()[3], 1, normalizer_fn=None, activation_fn=None, scope='Conv2d_1x1')
-        net += scale * up
+        self.tower_conv1 = tf.keras.Sequential([
+            Conv2D(192, 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(192, (1, 3), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0b_1x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(192, (3, 1), strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0c_3x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-        if callable(activation_fn):
-            net = activation_fn(net)
-    return net
-  
+        self.up = Conv2D(1792, 1, strides=1, padding='same', activation=None, use_bias=True,
+                         kernel_initializer=kernel_initializer,
+                         kernel_regularizer=kernel_regularizer,
+                         name='Conv2d_1x1')
 
-def reduction_a(net, config):
-    with tf.variable_scope('Branch_0'):
-        branch = config.branch[0]
-        tower_conv = slim.conv2d(net, branch[0], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+    def call(self, net, **kwargs):
+        mixed = tf.concat([self.tower_conv0(net),
+                           self.tower_conv1(net)], 3)
 
-    with tf.variable_scope('Branch_1'):
-        branch = config.branch[1]
-        tower_conv1_0 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
-        tower_conv1_1 = slim.conv2d(tower_conv1_0, branch[1], 3, scope='Conv2d_0b_3x3')
-        tower_conv1_2 = slim.conv2d(tower_conv1_1, branch[2], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
+        net += self.config.scale * self.up(mixed)
 
-    with tf.variable_scope('Branch_2'):
-        tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
+        if self.mixed_activation:
+            net = self.mixed_activation(net)
 
-    net = tf.concat([tower_conv, tower_conv1_2, tower_pool], 3)
-    return net
-
-
-def reduction_b(net, config):
-    with tf.variable_scope('Branch_0'):
-        branch = config.branch[0]
-        tower_conv = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
-        tower_conv_1 = slim.conv2d(tower_conv, branch[1], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
-
-    with tf.variable_scope('Branch_1'):
-        branch = config.branch[1]
-        tower_conv1 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
-        tower_conv1_1 = slim.conv2d(tower_conv1, branch[1], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
-
-    with tf.variable_scope('Branch_2'):
-        branch = config.branch[2]
-        tower_conv2 = slim.conv2d(net, branch[0], 1, scope='Conv2d_0a_1x1')
-        tower_conv2_1 = slim.conv2d(tower_conv2, branch[1], 3, scope='Conv2d_0b_3x3')
-        tower_conv2_2 = slim.conv2d(tower_conv2_1, branch[2], 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
-
-    with tf.variable_scope('Branch_3'):
-        tower_pool = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_1a_3x3')
-
-    net = tf.concat([tower_conv_1, tower_conv1_1, tower_conv2_2, tower_pool], 3)
-    return net
-  
-
-def inception_resnet_v1(inputs, config, is_training=True,
-                        dropout_keep_prob=0.8,
-                        reuse=None,
-                        scope=scope_name):
-    """Creates the Inception Resnet V1 model.
-    Args:
-      inputs: a 4-D tensor of size [batch_size, height, width, 3].
-      config: the object to define network parameters
-      is_training: whether is training or not.
-      dropout_keep_prob: float, the fraction to keep before final layer.
-      reuse: whether or not the network and its variables should be reused. To be able to reuse 'scope' must be given.
-      scope: Optional variable_scope.
-    Returns:
-      net: the output model.
-      end_points: the set of end_points from the inception model.
-    """
-    end_points = {}
-    bottleneck_layer_size = config.embedding_size
-
-    with tf.variable_scope(scope, scope, [inputs], reuse=reuse):
-        with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
-            with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d], stride=1, padding='SAME'):
-                # 149 x 149 x 32
-                net = slim.conv2d(inputs, 32, 3, stride=2, padding='VALID', scope='Conv2d_1a_3x3')
-                end_points['Conv2d_1a_3x3'] = net
-                # 147 x 147 x 32
-                net = slim.conv2d(net, 32, 3, padding='VALID', scope='Conv2d_2a_3x3')
-                end_points['Conv2d_2a_3x3'] = net
-                # 147 x 147 x 64
-                net = slim.conv2d(net, 64, 3, scope='Conv2d_2b_3x3')
-                end_points['Conv2d_2b_3x3'] = net
-                # 73 x 73 x 64
-                net = slim.max_pool2d(net, 3, stride=2, padding='VALID', scope='MaxPool_3a_3x3')
-                end_points['MaxPool_3a_3x3'] = net
-                # 73 x 73 x 80
-                net = slim.conv2d(net, 80, 1, padding='VALID', scope='Conv2d_3b_1x1')
-                end_points['Conv2d_3b_1x1'] = net
-                # 71 x 71 x 192
-                net = slim.conv2d(net, 192, 3, padding='VALID', scope='Conv2d_4a_3x3')
-                end_points['Conv2d_4a_3x3'] = net
-                # 35 x 35 x 256
-                net = slim.conv2d(net, 256, 3, stride=2, padding='VALID', scope='Conv2d_4b_3x3')
-                end_points['Conv2d_4b_3x3'] = net
-                
-                # 5 x Inception-resnet-A
-                net = slim.repeat(net, config.repeat[0], block35, scale=0.17)
-                end_points['Mixed_5a'] = net
-        
-                # Reduction-A
-                with tf.variable_scope('Mixed_6a'):
-                    net = reduction_a(net, config.reduction_a)
-                end_points['Mixed_6a'] = net
-                
-                # 10 x Inception-Resnet-B
-                net = slim.repeat(net, config.repeat[1], block17, scale=0.10)
-                end_points['Mixed_6b'] = net
-                
-                # Reduction-B
-                with tf.variable_scope('Mixed_7a'):
-                    net = reduction_b(net, config.reduction_b)
-                end_points['Mixed_7a'] = net
-                
-                # 5 x Inception-Resnet-C
-                net = slim.repeat(net, config.repeat[2], block8, scale=0.20)
-                end_points['Mixed_8a'] = net
-                
-                net = block8(net, activation_fn=None)
-                end_points['Mixed_8b'] = net
-                
-                with tf.variable_scope('Logits'):
-                    end_points['PrePool'] = net
-                    net = slim.avg_pool2d(net, net.get_shape()[1:3], padding='VALID', scope='AvgPool_1a_8x8')
-                    net = slim.flatten(net)
-                    net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='Dropout')
-          
-                    end_points['PreLogitsFlatten'] = net
-                
-                net = slim.fully_connected(net, bottleneck_layer_size, activation_fn=None, scope='Bottleneck', reuse=False)
-  
-    return net, end_points
+        return net
 
 
-def inference(inputs, config=None, phase_train=True, reuse=None):
+class ReductionA(tf.keras.layers.Layer):
+    def __init__(self, config):
+        super().__init__()
+        self.config = check_input_config(config)
 
-    if config is None:
-        config = default_model_config
+        filters = self.config.filters[0]
 
-    batch_norm_params = {
-        # Decay for the moving averages.
-        'decay': 0.995,
-        # epsilon to prevent 0s in variance.
-        'epsilon': 0.001,
-        # force in-place updates of mean and variance estimates
-        'updates_collections': None,
-        # Moving averages ends up in the trainable variables collection
-        'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],
-    }
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(filters[0], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1a_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
 
-    with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                        weights_initializer=slim.initializers.xavier_initializer(),
-                        weights_regularizer=slim.l2_regularizer(config.weight_decay),
-                        normalizer_fn=slim.batch_norm,
-                        normalizer_params=batch_norm_params):
+        filters = self.config.filters[1]
 
-        return inception_resnet_v1(inputs, config,
-                                   is_training=phase_train,
-                                   dropout_keep_prob=config.keep_probability,
-                                   reuse=reuse)
+        self.tower_conv1 = tf.keras.Sequential([
+            Conv2D(filters[0], 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(filters[1], 3, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0b_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(filters[2], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1a_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
+
+        self.tower_pool = MaxPool2D(3, strides=2, padding='valid', name='MaxPool_1a_3x3')
+
+    def call(self, net, **kwargs):
+        net = tf.concat([self.tower_conv0(net),
+                         self.tower_conv1(net),
+                         self.tower_pool(net)], 3)
+        return net
+
+
+class ReductionB(tf.keras.layers.Layer):
+    def __init__(self, config):
+        super().__init__()
+        self.config = check_input_config(config)
+
+        filters = self.config.filters[0]
+        self.tower_conv0 = tf.keras.Sequential([
+            Conv2D(filters[0], 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(filters[1], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1a_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
+
+        filters = self.config.filters[1]
+        self.tower_conv1 = tf.keras.Sequential([
+            Conv2D(filters[0], 1, strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(filters[1], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1a_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
+
+        filters = self.config.filters[2]
+        self.tower_conv2 = tf.keras.Sequential([
+            Conv2D(filters[0], 1,  strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0a_1x1'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(filters[1], 3,  strides=1, padding='same', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_0b_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(filters[2], 3, strides=2, padding='valid', activation=None, use_bias=False,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1a_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
+
+        self.tower_pool = MaxPool2D(3, strides=2, padding='valid', name='MaxPool_1a_3x3')
+
+    def call(self, net, **kwargs):
+        net = tf.concat([self.tower_conv0(net),
+                         self.tower_conv1(net),
+                         self.tower_conv2(net),
+                         self.tower_pool(net)], 3)
+
+        return net
+
+
+class InceptionResnetV1(keras.Model):
+    def __init__(self, input_shape, image_processing, config=None):
+        super().__init__()
+        self.config = check_input_config(config)
+
+        self.image_processing = image_processing
+
+        self.conv2d = tf.keras.Sequential(name='conv2d', layers=[
+            Conv2D(32, 3, strides=2, padding='valid', use_bias=False, activation=None,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_1a_3x3'
+                   ),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(32, 3, strides=1, padding='valid', use_bias=False, activation=None,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_2a_3x3'
+                   ),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(64, 3, strides=1, padding='valid', use_bias=False, activation=None,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_2b_3x3'
+                   ),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            MaxPool2D(3, strides=2, padding='valid', name='MaxPool_3a_3x3'),
+            Conv2D(80, 1, strides=1, padding='valid', use_bias=False, activation=None,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_3b_1x1',
+                   ),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(192, 3, strides=1, padding='valid', use_bias=False, activation=None,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_4a_3x3',
+                   ),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU(),
+            Conv2D(256, 3, strides=2, padding='valid', use_bias=False, activation=None,
+                   kernel_initializer=kernel_initializer,
+                   kernel_regularizer=kernel_regularizer,
+                   name='Conv2d_4b_3x3'),
+            BatchNormalization(**self.config.batch_normalization.as_dict),
+            ReLU()
+        ])
+
+        # repeat block35
+        config = self.config.block35
+        layers = [Block35(config=config) for _ in range(config.repeat)]
+        self.repeat_block35 = tf.keras.Sequential(layers=layers, name='block35')
+
+        # reduction a
+        self.reduction_a = ReductionA(self.config.reduction_a)
+
+        # repeat block17
+        config = self.config.block17
+        layers = [Block17(config=config) for _ in range(config.repeat)]
+        self.repeat_block17 = tf.keras.Sequential(layers=layers, name='block17')
+
+        # reduction b
+        self.reduction_b = ReductionB(self.config.reduction_b)
+
+        # repeat block8
+        config = self.config.block8_1
+        layers = [Block8(config=config) for _ in range(config.repeat)]
+        self.repeat_block8 = tf.keras.Sequential(layers=layers, name='block8')
+
+        self.block8 = Block8(config=self.config.block8_2)
+
+        # self.features = Features(config['features'])
+        config = self.config.output
+        activity_regularizer = tf.keras.regularizers.deserialize(self.config.regularizer.activity.as_dict)
+
+        self.features = tf.keras.Sequential(name='features', layers=[
+            AvgPool2D([3, 3], padding='valid', name='AvgPool_1a_8x8'),
+            Flatten(),
+            Dense(config.size, activation=None, use_bias=False,
+                  kernel_initializer=kernel_initializer,
+                  kernel_regularizer=kernel_regularizer,
+                  activity_regularizer=activity_regularizer,
+                  name='logits'),
+            BatchNormalization(**self.config.batch_normalization.as_dict)
+        ])
+
+        self.custom_layers = (
+            self.image_processing,
+            self.conv2d,
+            self.repeat_block35,
+            self.reduction_a,
+            self.repeat_block17,
+            self.reduction_b,
+            self.repeat_block8,
+            self.block8,
+            self.features
+        )
+
+        self(input_shape)
+
+    def call(self, inputs, training=False, **kwargs):
+        # evaluate output of model
+        output = inputs
+        for layer in self.custom_layers:
+            output = layer(output)
+
+        # normalize embeddings
+        if not training:
+            output = tf.nn.l2_normalize(output, axis=1, epsilon=1e-10, name='embedding')
+
+        return output
+
+    def summary(self, line_length=None, positions=None, print_fn=None):
+        super().summary(line_length, positions, print_fn)
+
+        print('Total variables: ', len(self.variables))
+        print('Trainable variables: ', len(self.trainable_variables))
+        print('Non-trainable variables: ', len(self.non_trainable_variables))
+
