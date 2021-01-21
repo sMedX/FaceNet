@@ -1,14 +1,13 @@
 # coding: utf-8
 __author__ = 'Ruslan N. Kosarev'
 
+import sys
 from pathlib import Path
 from datetime import datetime
-import importlib
-import random
 
-import omegaconf
 from omegaconf import OmegaConf
 
+import random
 import numpy as np
 import tensorflow as tf
 
@@ -49,19 +48,22 @@ def config_paths(app_file_name, custom_config_file):
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
-    tf.set_random_seed(seed)
+    tf.random.set_seed(seed)
 
 
 class Config:
     """Object representing YAML settings as a dict-like object with values as fields
     """
 
-    def __init__(self, dct):
+    def __init__(self, dct=None):
         """Update config from dict
         :param dct: input object
         """
+        if dct is None:
+            dct = dict()
+
         for key, item in dct.items():
-            if isinstance(item, (omegaconf.dictconfig.DictConfig, dict)):
+            if isinstance(item, dict):
                 setattr(self, key, Config(item))
             else:
                 setattr(self, key, item)
@@ -81,10 +83,22 @@ class Config:
         return get_str(self)
 
     def __getattr__(self, name):
-        return self.__dict__.get(name, Config({}))
+        return self.__dict__.get(name, Config())
 
     def __bool__(self):
         return bool(self.__dict__)
+
+    @property
+    def as_dict(self):
+        def as_dict(obj):
+            s = {}
+            for key, item in obj.items():
+                if isinstance(item, Config):
+                    item = as_dict(item)
+                s[key] = item
+            return s
+
+        return as_dict(self)
 
     def items(self):
         return self.__dict__.items()
@@ -122,6 +136,7 @@ def load_config(app_file_name, options):
     if new_cfg is None:
         raise LoadConfigError("The configuration has not been loaded.")
 
+    cfg = OmegaConf.to_container(cfg)
     cfg = Config(cfg)
 
     return cfg
@@ -148,21 +163,23 @@ def extract_faces(app_file_name, options):
     return cfg
 
 
-def train_softmax(app_file_name, options):
+def train_softmax(options):
+    app_file_name = sys.argv[0]
     cfg = load_config(app_file_name, options)
 
-    cfg.model.path = Path(cfg.model.path).expanduser().joinpath(subdir())
+    path = Path(cfg.model.path).expanduser()
 
-    cfg.logdir = cfg.model.path.joinpath('logs')
-    cfg.logfile = cfg.logdir.joinpath('statistics.txt')
-    cfg.h5file = cfg.logdir.joinpath('statistics.h5')
+    cfg.model.path = path / subdir()
 
-    if not cfg.model.config:
-        network = importlib.import_module(cfg.model.module)
-        cfg.model.config = network.default_model_config
+    cfg.logs = Config()
+    cfg.logs.dir = cfg.model.path / 'logs'
+    cfg.logs.file = cfg.model.path.stem + '.log'
 
-    if not cfg.train.epoch.nrof_epochs:
-        cfg.train.epoch.nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
+    if cfg.model.checkpoint:
+        cfg.model.checkpoint = Path(cfg.model.checkpoint).expanduser()
+
+    if not cfg.train.epoch.max_nrof_epochs:
+        cfg.train.epoch.max_nrof_epochs = cfg.train.learning_rate.schedule[-1][0]
 
     if cfg.validate:
         cfg.validate.batch_size = cfg.batch_size
@@ -173,8 +190,8 @@ def train_softmax(app_file_name, options):
     set_seed(cfg.seed)
 
     # write arguments and store some git revision info in a text files in the log directory
-    ioutils.write_arguments(cfg, cfg.logdir.joinpath(Path(app_file_name).stem + '.yaml'))
-    ioutils.store_revision_info(cfg.logdir)
+    ioutils.write_arguments(cfg, cfg.logs.dir)
+    ioutils.store_revision_info(cfg.logs.dir)
 
     return cfg
 

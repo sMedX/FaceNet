@@ -9,6 +9,7 @@ __pycache__/
 /*.yaml
 /configs/*
 /models/*
+/tmp/*
 
 # Distribution / packaging
 .Python

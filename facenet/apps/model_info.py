@@ -14,16 +14,20 @@ from facenet import tfutils, config, nodes
 
 
 @click.command()
-@click.option('--path', default=config.default_model_path, type=Path,
+@click.option('--config', default=config.default_model_path, type=Path,
               help='Path to directory with model.')
 def main(**options):
+    cfg = config.load_config(__file__, options)
+    cfg.model.path = Path(cfg.model.path).expanduser()
+
     input_node_name = nodes['input']['name'] + ':0'
     output_node_name = nodes['output']['name'] + ':0'
 
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            tfutils.load_model(options['path'])
+            fvars = cfg.model.path / 'variables.txt'
 
+            tfutils.load_model(cfg.model.path)
             graph = tf.get_default_graph()
 
             print()
@@ -39,21 +43,26 @@ def main(**options):
             phase_train_placeholder = graph.get_tensor_by_name('phase_train:0')
             print('output:', phase_train_placeholder)
 
-            print('output list of trainable variables')
-            fname = options['path'].joinpath('variables.txt')
-            with open(fname, 'w') as f:
+            print(f'output list of trainable variables {fvars}')
+
+            with fvars.open('w') as f:
+                f.write('-----------------------------\n')
+                f.write(f'number of trainable variables {len(tf.trainable_variables())}\n')
+                f.write('-----------------------------\n')
+
                 for i, var in enumerate(tf.trainable_variables()):
                     f.write(f'{i}) {var}\n')
 
-    print('output list of operations from frozen graph')
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            tfutils.load_frozen_graph(options['path'])
+            fops = cfg.model.path / 'operations.txt'
+
+            tfutils.load_frozen_graph(cfg.model.path)
             graph = tf.get_default_graph()
 
-            fname = options['path'].joinpath('operations.txt')
+            print(f'output list of operations from frozen graph {fops}')
 
-            with open(fname, 'w') as f:
+            with fops.open('w') as f:
                 for i, op in enumerate(graph.get_operations()):
                     f.write(f'{i}) {op.name} {op.type}\n')
 

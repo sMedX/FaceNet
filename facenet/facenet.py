@@ -20,47 +20,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
+from loguru import logger
 from pathlib import Path
 
 import random
+import numpy as np
+import tensorflow as tf
+
 
 from facenet import nodes, h5utils, FaceNet
 
 
-class Placeholders:
-    def __init__(self):
-        self.image_batch = tf.placeholder(tf.uint8, shape=[None, None, None, 3], name='image_batch')
-        self.label_batch = tf.placeholder(tf.int32, shape=[None], name='label_batch')
-        self.batch_size = tf.placeholder(tf.int32, name='batch_size')
-        self.phase_train = tf.placeholder(tf.bool, name='phase_train')
-        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+def inputs(config):
+    return tf.keras.Input([config.size, config.size, 3])
 
-    def train_feed_dict(self, image_batch, label_batch, learning_rate):
-        return {
-            self.image_batch: image_batch,
-            self.label_batch: label_batch,
-            self.learning_rate: learning_rate,
-            self.phase_train: True,
-            self.batch_size: image_batch.shape[0]
-        }
 
-    def validate_feed_dict(self, image_batch, label_batch):
-        return {
-            self.image_batch: image_batch,
-            self.label_batch: label_batch,
-            self.phase_train: False,
-            self.batch_size: image_batch.shape[0]
-        }
-
-    def embedding_feed_dict(self, image_batch):
-        return {
-            self.image_batch: image_batch,
-            self.phase_train: False,
-            self.batch_size: image_batch.shape[0]
-        }
+def softmax_cross_entropy_with_logits(logits, labels):
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+    cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+    return cross_entropy_mean
 
 
 class ImageLoader:
@@ -71,19 +50,21 @@ class ImageLoader:
     def __call__(self, path):
         contents = tf.io.read_file(path)
         image = tf.image.decode_image(contents, channels=3)
-        image = tf.image.resize_image_with_crop_or_pad(image, self.height, self.width)
+        image = tf.image.resize_with_crop_or_pad(image, self.height, self.width)
         return image
 
 
-class ImageProcessing:
+class ImageProcessing(tf.keras.layers.Layer):
     def __init__(self, config):
+        super().__init__()
+
         self.input_node_name = nodes['input']['name']
 
         self.config = config
         self.image_size = tf.constant([self.config.size, self.config.size], name='image_size')
         self.eps = 1e-3
 
-    def __call__(self, image_batch, **kwargs):
+    def call(self, image_batch, **kwargs):
         image_batch = tf.identity(image_batch, name=self.input_node_name)
         image_batch = tf.cast(image_batch, dtype=tf.float32, name='float_image')
         image_batch = tf.image.resize(image_batch, size=self.image_size, name='resized_image')
@@ -142,71 +123,82 @@ def equal_batches_input_pipeline(embeddings, config):
     return next_elem
 
 
-def make_train_dataset(dbase, loader, config):
-    data = list(zip(dbase.files, dbase.labels))
-    np.random.shuffle(data)
-    files, labels = map(list, zip(*data))
-
-    images = tf.data.Dataset.from_tensor_slices(files).map(loader, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    labels = tf.data.Dataset.from_tensor_slices(labels)
-
-    ds = tf.data.Dataset.zip((images, labels))
-    ds = ds.shuffle(buffer_size=10 * config.batch_size, reshuffle_each_iteration=True).repeat()
-    ds = ds.batch(batch_size=config.batch_size)
-    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
-
-    return ds
-
-
-def make_test_dataset(dbase, loader, config):
-    files, labels = dbase.files, dbase.labels
-
-    images = tf.data.Dataset.from_tensor_slices(files).map(loader)
-    labels = tf.data.Dataset.from_tensor_slices(labels)
-    dataset = tf.data.Dataset.zip((images, labels))
-
-    dataset = dataset.batch(batch_size=config.batch_size)
-    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-    return dataset
-
-
-def evaluate_embeddings(sess, embedding, placeholders, dataset, iterator, batch, info):
-    print('\nEvaluation embeddings on validation set', info)
-
-    embeddings = []
-    labels = []
-
-    nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
-    sess.run(iterator.initializer)
-
-    for _ in tqdm(range(nrof_batches)):
-        image_batch, label_batch = sess.run(batch)
-        embeddings.append(sess.run(embedding, feed_dict=placeholders.embedding_feed_dict(image_batch)))
-        labels.append(label_batch)
-
-    return np.concatenate(embeddings), np.concatenate(labels)
+# def dataset(files, labels, loader, batch_size, repeat=False, buffer_size=None):
+#     """
+#
+#     :param files:
+#     :param labels:
+#     :param loader:
+#     :param batch_size:
+#     :param repeat:
+#     :param buffer_size:
+#     :return:
+#     """
+#
+#     data = list(zip(files, labels))
+#     np.random.shuffle(data)
+#     files, labels = map(list, zip(*data))
+#
+#     images = tf.data.Dataset.from_tensor_slices(files).map(loader, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+#     labels = tf.data.Dataset.from_tensor_slices(labels)
+#
+#     ds = tf.data.Dataset.zip((images, labels))
+#
+#     if buffer_size is not None:
+#         buffer_size *= batch_size
+#         ds = ds.shuffle(buffer_size=buffer_size, reshuffle_each_iteration=True)
+#
+#     if repeat:
+#         ds = ds.repeat()
+#
+#     ds = ds.batch(batch_size=batch_size)
+#     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+#
+#     info = (f'{ds}\n' +
+#             f'batch size: {batch_size}\n' +
+#             f'buffer size: {buffer_size}\n' +
+#             f'repeat: {repeat}\n' +
+#             f'cardinality: {ds.cardinality()}')
+#
+#     logger.info('\n' + info)
+#
+#     return ds
 
 
-def triplet_loss(anchor, positive, negative, alpha):
-    """Calculate the triplet loss according to the FaceNet paper
-    
-    Args:
-      anchor: the embeddings for the anchor images.
-      positive: the embeddings for the positive images.
-      negative: the embeddings for the negative images.
-  
-    Returns:
-      the triplet loss according to the FaceNet paper as a float tensor.
+# def make_test_dataset(dbase, loader, config):
+#     files, labels = dbase.files, dbase.labels
+#
+#     images = tf.data.Dataset.from_tensor_slices(files).map(loader)
+#     labels = tf.data.Dataset.from_tensor_slices(labels)
+#     ds = tf.data.Dataset.zip((images, labels))
+#
+#     ds = ds.batch(batch_size=config.batch_size)
+#     ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+#
+#     logger.info(f'batch_size: {config.batch_size}')
+#     logger.info(f'cardinality: {ds.cardinality()}')
+#
+#     return ds
+
+
+def evaluate_embeddings(model, dset):
     """
-    with tf.variable_scope('triplet_loss'):
-        pos_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, positive)), 1)
-        neg_dist = tf.reduce_sum(tf.square(tf.subtract(anchor, negative)), 1)
-        
-        basic_loss = tf.add(tf.subtract(pos_dist,neg_dist), alpha)
-        loss = tf.reduce_mean(tf.maximum(basic_loss, 0.0), 0)
-      
-    return loss
+    Evaluate embeddings for given data set
+    :param model:
+    :param dset:
+    :return:
+    """
+
+    embeddings_ = []
+    labels_ = []
+
+    for images, labels in tqdm(dset):
+        embeddings = model(images)
+
+        embeddings_.append(embeddings)
+        labels_.append(labels)
+
+    return np.concatenate(embeddings_), np.concatenate(labels_)
 
 
 def center_loss(features, label, alfa, nrof_classes):
@@ -223,124 +215,6 @@ def center_loss(features, label, alfa, nrof_classes):
     with tf.control_dependencies([centers]):
         loss = tf.reduce_mean(tf.square(features - centers_batch))
     return loss, centers
-
-
-def _add_loss_summaries(total_loss):
-    """Add summaries for losses.
-  
-    Generates moving average for all losses and associated summaries for
-    visualizing the performance of the network.
-  
-    Args:
-      total_loss: Total loss from loss().
-    Returns:
-      loss_averages_op: op for generating moving averages of losses.
-    """
-    # Compute the moving average of all individual losses and the total loss.
-    loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-    losses = tf.get_collection('losses')
-    loss_averages_op = loss_averages.apply(losses + [total_loss])
-  
-    # Attach a scalar summmary to all individual losses and the total loss; do the
-    # same for the averaged version of the losses.
-    for l in losses + [total_loss]:
-        # Name each loss as '(raw)' and name the moving average version of the loss
-        # as the original loss name.
-        tf.summary.scalar(l.op.name +' (raw)', l)
-        tf.summary.scalar(l.op.name, loss_averages.average(l))
-  
-    return loss_averages_op
-
-
-def train_op(args, total_loss, global_step, learning_rate, update_gradient_vars):
-
-    # Generate moving averages of all losses and associated summaries.
-    loss_averages_op = _add_loss_summaries(total_loss)
-    optimizer = args.optimizer.lower()
-
-    # Compute gradients.
-    with tf.control_dependencies([loss_averages_op]):
-        if optimizer == 'adagrad':
-            opt = tf.train.AdagradOptimizer(learning_rate)
-        elif optimizer == 'adadelta':
-            opt = tf.train.AdadeltaOptimizer(learning_rate, rho=0.9, epsilon=1e-6)
-        elif optimizer == 'adam':
-            opt = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1)
-        elif optimizer == 'rmsprop':
-            opt = tf.train.RMSPropOptimizer(learning_rate, decay=0.9, momentum=0.9, epsilon=1.0)
-        elif optimizer == 'mom':
-            opt = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True)
-        else:
-            raise ValueError('Invalid optimization algorithm')
-    
-        grads = opt.compute_gradients(total_loss, update_gradient_vars)
-        
-    # Apply gradients.
-    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-  
-    # Add histograms for trainable variables and for gradients.
-    if args.log_histograms:
-        for var in tf.trainable_variables():
-            tf.summary.histogram(var.op.name, var)
-   
-        for grad, var in grads:
-            if grad is not None:
-                tf.summary.histogram(var.op.name + '/gradients', grad)
-  
-    # Track the moving averages of all trainable variables.
-    variable_averages = tf.train.ExponentialMovingAverage(args.moving_average_decay, global_step)
-    variables_averages_op = variable_averages.apply(tf.trainable_variables())
-  
-    with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
-        op = tf.no_op(name='train')
-  
-    return op
-
-
-def get_label_batch(label_data, batch_size, batch_index):
-    nrof_examples = np.size(label_data, 0)
-    j = batch_index*batch_size % nrof_examples
-    if j+batch_size<=nrof_examples:
-        batch = label_data[j:j+batch_size]
-    else:
-        x1 = label_data[j:nrof_examples]
-        x2 = label_data[0:nrof_examples-j]
-        batch = np.vstack([x1,x2])
-    batch_int = batch.astype(np.int64)
-    return batch_int
-
-
-def get_batch(image_data, batch_size, batch_index):
-    nrof_examples = np.size(image_data, 0)
-    j = batch_index*batch_size % nrof_examples
-    if j+batch_size<=nrof_examples:
-        batch = image_data[j:j+batch_size,:,:,:]
-    else:
-        x1 = image_data[j:nrof_examples,:,:,:]
-        x2 = image_data[0:nrof_examples-j,:,:,:]
-        batch = np.vstack([x1,x2])
-    batch_float = batch.astype(np.float32)
-    return batch_float
-
-
-def get_triplet_batch(triplets, batch_index, batch_size):
-    ax, px, nx = triplets
-    a = get_batch(ax, int(batch_size/3), batch_index)
-    p = get_batch(px, int(batch_size/3), batch_index)
-    n = get_batch(nx, int(batch_size/3), batch_index)
-    batch = np.vstack([a, p, n])
-    return batch
-
-
-def learning_rate_value(epoch, config):
-    if config.value:
-        return config.value
-
-    for (epoch_, lr_) in config.schedule:
-        if epoch < epoch_:
-            return lr_
-
-    return config.schedule[-1][1]
 
 
 def split_embeddings(embeddings, labels):
@@ -422,108 +296,105 @@ class Embeddings:
         return embeddings
 
 
-class EvaluationOfEmbeddings:
-    def __init__(self, dbase, config):
+# class EvaluationOfEmbeddings:
+#     def __init__(self, dbase, config):
+#         self.config = config
+#         self.dbase = dbase
+#         self.embeddings = []
+#         self.labels = []
+#
+#         facenet = FaceNet(self.config.model)
+#
+#         print('Running forward pass on images')
+#         loader = ImageLoader(config=config.image)
+#         dataset = make_test_dataset(dbase, loader, self.config)
+#         iterator = dataset.make_one_shot_iterator().get_next()
+#
+#         with tf.Session() as sess:
+#             nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
+#
+#             for _ in tqdm(range(nrof_batches)):
+#                 image_batch, label_batch = sess.run(iterator)
+#
+#                 embeddings = facenet.evaluate(image_batch)
+#
+#                 self.embeddings.append(embeddings)
+#                 self.labels.append(label_batch)
+#
+#         self.embeddings = np.concatenate(self.embeddings)
+#         self.labels = np.concatenate(self.labels)
+#
+#     def __repr__(self):
+#         return ('{}\n'.format(self.__class__.__name__) +
+#                 'model: {}\n'.format(self.config.model) +
+#                 'embedding size: {}\n'.format(self.embeddings.shape))
+#
+#     def split(self):
+#         list_of_embeddings = []
+#
+#         for label in np.unique(self.labels):
+#             emb_array = self.embeddings[label == self.labels]
+#             list_of_embeddings.append(emb_array)
+#         return list_of_embeddings
+
+
+# class ConstantLearningRate(tf.keras.optimizers.schedules.LearningRateSchedule):
+#     """
+#         Learning rate schedule that return constant value
+#     """
+#     def __init__(self, value, name=None):
+#         super().__init__()
+#         self.value = tf.convert_to_tensor(value, dtype=tf.float32)
+#         self.name = name
+#
+#     def __call__(self, step):
+#         return self.value
+#
+#     def get_config(self):
+#         return self.__dict__
+
+
+# class PiecewiseConstantLearningRate(tf.keras.optimizers.schedules.LearningRateSchedule):
+#     """
+#         Learning rate schedule for piecewise-constant learning rate
+#     """
+#     def __init__(self, epochs, size, values, name=None):
+#         super().__init__()
+#         self.boundaries = [epoch*size for epoch in epochs]
+#         self.size = size
+#         self.values = values
+#         self.name = name
+#
+#     def __call__(self, step):
+#         value = self.values[-1]
+#
+#         for boundary, value in zip(self.boundaries, self.values):
+#             if step < boundary:
+#                 break
+#
+#         return tf.convert_to_tensor(value, dtype=tf.float32)
+#
+#     def get_config(self):
+#         return self.__dict__
+
+
+class LearningRateScheduler:
+    def __init__(self, config):
         self.config = config
-        self.dbase = dbase
-        self.embeddings = []
-        self.labels = []
 
-        facenet = FaceNet(self.config.model)
+        if self.config.value:
+            self.default_value = self.config.value
+        else:
+            self.default_value = None
 
-        print('Running forward pass on images')
-        loader = ImageLoader(config=config.image)
-        dataset = make_test_dataset(dbase, loader, self.config)
-        iterator = dataset.make_one_shot_iterator().get_next()
+    def __call__(self, epoch):
+        if self.default_value is not None:
+            return self.default_value
 
-        with tf.Session() as sess:
-            nrof_batches = sess.run(tf.data.experimental.cardinality(dataset))
+        learning_rate = self.config.schedule[-1][1]
 
-            for _ in tqdm(range(nrof_batches)):
-                image_batch, label_batch = sess.run(iterator)
+        for (epoch_, learning_rate) in self.config.schedule:
+            if epoch < epoch_:
+                break
 
-                embeddings = facenet.evaluate(image_batch)
-
-                self.embeddings.append(embeddings)
-                self.labels.append(label_batch)
-
-        self.embeddings = np.concatenate(self.embeddings)
-        self.labels = np.concatenate(self.labels)
-
-    def __repr__(self):
-        return ('{}\n'.format(self.__class__.__name__) +
-                'model: {}\n'.format(self.config.model) +
-                'embedding size: {}\n'.format(self.embeddings.shape))
-
-    def split(self):
-        list_of_embeddings = []
-
-        for label in np.unique(self.labels):
-            emb_array = self.embeddings[label == self.labels]
-            list_of_embeddings.append(emb_array)
-        return list_of_embeddings
-
-
-class Summary:
-    def __init__(self, summary_writer, h5file, tag=''):
-        self._summary_writer = summary_writer
-        self._h5file = h5file
-        self._counts = {}
-        self._tag = tag
-
-    @staticmethod
-    def get_info_str(output):
-        if output.get('tensor_op'):
-            output = output['tensor_op']
-
-        info = ''
-        for key, item in output.items():
-            info += ' {} {:.5f}'.format(key, item)
-
-        return info[1:]
-
-    @property
-    def tag(self):
-        return self._tag
-
-    def _count(self, name):
-        if name not in self._counts.keys():
-            self._counts[name] = -1
-        self._counts[name] += 1
-        return self._counts[name]
-
-    def write_tf_summary(self, output, tag=None):
-        if output.get('summary_op'):
-            self._summary_writer.add_summary(output['summary_op'], global_step=self._count('summary_op'))
-
-        if output.get('tensor_op'):
-            output = output['tensor_op']
-
-        if tag is None:
-            tag = self.tag
-
-        summary = tf.Summary()
-
-        def add_summary(dct, tag):
-            tag = tag + '/' if tag else ''
-            for key, value in dct.items():
-                if isinstance(value, dict):
-                    add_summary(value, tag + key)
-                else:
-                    summary.value.add(tag=tag + key, simple_value=value)
-
-        add_summary(output, tag)
-        self._summary_writer.add_summary(summary, global_step=self._count(tag))
-
-    def write_h5_summary(self, output):
-        h5utils.write_dict(self._h5file, output, group=self._tag)
-
-    def write_elapsed_time(self, value):
-        tag = self._tag + '/time' if self.tag else 'time'
-
-        summary = tf.Summary()
-        summary.value.add(tag=tag, simple_value=value)
-        self._summary_writer.add_summary(summary, global_step=self._count('elapsed_time'))
-
-        h5utils.write(self._h5file, tag, value)
-
+        return learning_rate

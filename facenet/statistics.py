@@ -3,19 +3,16 @@
 #
 # Copyright (c) 2019 Ruslan N. Kosarev
 
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
-import sys
 from tqdm import tqdm
 
 import time
 import datetime
+from loguru import logger
+
 import numpy as np
-from collections import Iterable
 import sklearn
 from sklearn.model_selection import KFold
-from scipy import spatial, interpolate
+from scipy import interpolate
 from scipy.optimize import brentq
 from pathlib import Path
 
@@ -241,7 +238,7 @@ class FaceToFaceValidation:
     """
     Class to perform face-to-face validation
     """
-    def __init__(self, embeddings, labels, config, info=''):
+    def __init__(self, embeddings, labels, config):
         """
         :param embeddings:
         :param labels:
@@ -249,7 +246,6 @@ class FaceToFaceValidation:
         self.elapsed_time = time.monotonic()
         self.embeddings = embeddings
         self.labels = labels
-        self.info = info
 
         assert (embeddings.shape[0] == len(labels))
 
@@ -267,13 +263,15 @@ class FaceToFaceValidation:
 
         self._evaluate()
 
+        logger.info(self)
+
     def __repr__(self):
         """Representation of the database"""
-        info = ('{} {}\n'.format(self.__class__.__name__, self.info) +
-                'metric: {}\n\n'.format(self.config.metric))
+        info = (f'{self.__class__.__name__}\n' +
+                f'metric: {self.config.metric}\n\n')
         for r in self.reports:
             info += str(r)
-        info += 'elapsed_time: {}\n'.format(self.elapsed_time)
+        info += f'elapsed_time: {self.elapsed_time}\n'
         return info
 
     def _evaluate(self):

@@ -95,16 +95,15 @@ def git_diff():
     return info
 
 
-def write_arguments(args, p, mode='a'):
-    p = Path(p).expanduser()
+def write_arguments(args, path, mode='a'):
+    path = Path(path).expanduser()
+    name = Path(sys.argv[0]).stem + '.yaml'
 
-    if p.is_dir():
-        app = Path(sys.argv[0]).stem
-        p = Path(p).joinpath(app + '_arguments.yaml')
+    file = path / name
 
-    makedirs(p.parent)
+    makedirs(file.parent)
 
-    with p.open(mode=mode) as f:
+    with file.open(mode=mode) as f:
         f.write('{}\n'.format(str(args)))
 
 

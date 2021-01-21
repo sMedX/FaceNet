@@ -1,13 +1,14 @@
-tensorflow >=1.14.0, <2
-scipy
-scikit-learn
-h5py
+tensorflow~=2.4.0
+scipy~=1.4.1
+scikit-learn~=0.23.1
+h5py~=2.10.0
 matplotlib
-Pillow
+Pillow~=7.2.0
 requests
 psutil
-numpy
-click
-tqdm
+numpy~=1.19.4
+click~=7.1.2
+tqdm~=4.48.1
 cached_property
-omegaconf
+omegaconf~=2.0.5
+loguru
