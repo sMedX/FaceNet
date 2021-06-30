@@ -9,9 +9,10 @@ __pycache__/
 /*.yaml
 /configs/*
 /tmp/*
-/models/*.data*
-/models/*.index
-/models/*.pb
+*.data*
+*.index
+*.pb
+
 
 # Distribution / packaging
 .Python
