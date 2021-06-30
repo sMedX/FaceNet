@@ -16,29 +16,6 @@ Ubuntu 20.04
 | 2021-06-30 | Added new model trained with Tensorflow2.4 |
 
 ## Pre-trained models
-| Model name      | LFW accuracy | Training dataset | Architecture |
-|-----------------|--------------|------------------|-------------|
-| [20180408-102900](https://drive.google.com/open?id=1R77HmFADxe87GmoLwzfgMu_HY0IhcyBz) | 0.9905        | CASIA-WebFace    | [Inception ResNet v1](https://github.com/davidsandberg/facenet/blob/master/src/models/inception_resnet_v1.py) |
-| [20180402-114759](https://drive.google.com/open?id=1EXPBSXwTaqrSC0OhUdXNmKSh9qJUQ55-) | 0.9965        | VGGFace2      | [Inception ResNet v1](https://github.com/davidsandberg/facenet/blob/master/src/models/inception_resnet_v1.py) |
-
-NOTE: If you use any of the models, please do not forget to give proper credit to those providing the training dataset as well.
-
-## Training data
-Download the [VGGFace2](https://www.robots.ox.ac.uk/~vgg/data/vgg_face2/) that contains of ~3.3M faces and ~9000 classes.
-
-## Pre-processing
-
-### Face alignment using MTCNN
-One problem with the above approach seems to be that the Dlib face detector misses some of the hard examples (partial occlusion, silhouettes, etc). This makes the training set too "easy" which causes the model to perform worse on other benchmarks.
-To solve this, other face landmark detectors has been tested. One face landmark detector that has proven to work very well in this setting is the
-[Multi-task CNN](https://kpzhang93.github.io/MTCNN_face_detection_alignment/index.html). A Matlab/Caffe implementation can be found [here](https://github.com/kpzhang93/MTCNN_face_detection_alignment) and this has been used for face alignment with very good results. A Python/Tensorflow implementation of MTCNN can be found [here](https://github.com/davidsandberg/facenet/tree/master/src/align). This implementation does not give identical results to the Matlab/Caffe implementation but the performance is very similar.
-
-## Running training
-Currently, the best results are achieved by training the model using softmax loss. Details on how to train a model using softmax loss on the CASIA-WebFace dataset can be found on the page [Classifier training of Inception-ResNet-v1](https://github.com/davidsandberg/facenet/wiki/Classifier-training-of-inception-resnet-v1) and .
-
-## Pre-trained models
-### Inception-ResNet-v1 model
-A couple of pretrained models are provided. They are trained using softmax loss with the Inception-Resnet-v1 model. The datasets has been aligned using [MTCNN](https://github.com/davidsandberg/facenet/tree/master/src/align).
-
-## Performance
-The accuracy on LFW for the model [20180402-114759](https://drive.google.com/open?id=1EXPBSXwTaqrSC0OhUdXNmKSh9qJUQ55-) is 0.99650+-0.00252. A description of how to run the test can be found on the page [Validate on LFW](https://github.com/davidsandberg/facenet/wiki/Validate-on-lfw). Note that the input images to the model need to be standardized using fixed image standardization (use the option `--use_fixed_image_standardization` when running e.g. `validate_on_lfw.py`).
+| Model name      | Training dataset | Architecture |
+|-----------------|------------------|-------------|
+| [20210124-092137](https://drive.google.com/file/d/1r-B7XeNpPq7PMF7rvi5lTQBhE0-pdtmx/view?usp=sharing) | VGGFace2      | [Inception ResNet v1](https://github.com/davidsandberg/facenet/blob/master/src/models/inception_resnet_v1.py) |
